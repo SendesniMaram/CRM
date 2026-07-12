@@ -25,11 +25,17 @@ import com.crm.mapper.UserMapper;
 import com.crm.repository.RoleRepository;
 import com.crm.service.UserService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
 @Validated
+@Tag(name = "Users", description = "User management endpoints")
 public class UserController {
 
     private final UserService userService;
@@ -42,6 +48,12 @@ public class UserController {
         this.roleRepository = roleRepository;
     }
 
+    @Operation(summary = "Get Users", description = "Retrieve the list of users")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
@@ -49,6 +61,12 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    @Operation(summary = "Get User By Id", description = "Retrieve one user by id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
@@ -56,6 +74,12 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toResponse(user));
     }
 
+    @Operation(summary = "Create User", description = "Create a new user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
@@ -65,6 +89,12 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(userMapper.toResponse(createdUser));
     }
 
+    @Operation(summary = "Update User", description = "Update an existing user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User updated successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @Valid @RequestBody UserRequest request) {
@@ -74,6 +104,12 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toResponse(updatedUser));
     }
 
+    @Operation(summary = "Delete User", description = "Delete an existing user")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "User deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
@@ -81,6 +117,12 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Enable User", description = "Enable a disabled user account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User enabled successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}/enable")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<UserResponse> enableUser(@PathVariable Long id) {
@@ -88,6 +130,12 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toResponse(user));
     }
 
+    @Operation(summary = "Disable User", description = "Disable an active user account")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "User disabled successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @SecurityRequirement(name = "bearerAuth")
     @PatchMapping("/{id}/disable")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<UserResponse> disableUser(@PathVariable Long id) {
