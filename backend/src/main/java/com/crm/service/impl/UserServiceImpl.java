@@ -6,6 +6,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.crm.entity.User;
+import com.crm.exception.ResourceNotFoundException;
 import com.crm.repository.UserRepository;
 import com.crm.service.UserService;
 
@@ -26,19 +27,19 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getUserById(Long id) {
         Optional<User> user = userRepository.findById(id);
-        return user.orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        return user.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
     @Override
     public User getUserByEmail(String email) {
         Optional<User> user = userRepository.findByEmail(email);
-        return user.orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+        return user.orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
     @Override
     public User getUserByUsername(String username) {
         Optional<User> user = userRepository.findByUsername(username);
-        return user.orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        return user.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 
     @Override
