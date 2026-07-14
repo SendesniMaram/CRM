@@ -34,6 +34,9 @@ public class UserRequest {
     @Size(max = 20)
     private String phone;
 
+    private Long departmentId;
+
     @NotBlank(message = "Role type is required")
     private String roleType;
 }
+

@@ -1,14 +1,20 @@
 package com.crm.service;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import com.crm.entity.User;
 
+
 public interface UserService {
 
-    List<User> getAllUsers();
+    Page<User> searchUsers(Integer page, Integer size, String sortBy, String direction,
+                             String username, String email, String role, Boolean enabled);
+
+    Page<User> searchUsersByKeyword(String keyword, Pageable pageable);
 
     User getUserById(Long id);
+
 
     User getUserByEmail(String email);
 
@@ -17,6 +23,7 @@ public interface UserService {
     User createUser(User user);
 
     User updateUser(Long id, User userDetails);
+
 
     void deleteUser(Long id);
 

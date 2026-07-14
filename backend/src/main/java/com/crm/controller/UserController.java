@@ -1,7 +1,7 @@
 package com.crm.controller;
 
-import java.util.List;
-
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -48,7 +48,7 @@ public class UserController {
         this.roleRepository = roleRepository;
     }
 
-    @Operation(summary = "Get Users", description = "Retrieve the list of users")
+    @Operation(summary = "Get Users (paginated)", description = "Retrieve users with pagination, sorting and optional filters")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
             @ApiResponse(responseCode = "403", description = "Access denied")
@@ -56,10 +56,42 @@ public class UserController {
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
-        List<UserResponse> users = userMapper.toResponseList(userService.getAllUsers());
-        return ResponseEntity.ok(users);
+    public ResponseEntity<org.springframework.data.domain.Page<UserResponse>> getUsers(
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") Integer page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") Integer size,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "id") String sortBy,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "ASC") String direction,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String username,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String email,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String role,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Boolean enabled) {
+
+        var userPage = userService.searchUsers(page, size, sortBy, direction, username, email, role, enabled);
+        return ResponseEntity.ok(userPage.map(userMapper::toResponse));
     }
+
+    @Operation(summary = "Search Users (global)", description = "Global search on firstName, lastName, username, email")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Users retrieved successfully"),
+            @ApiResponse(responseCode = "403", description = "Access denied")
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<org.springframework.data.domain.Page<UserResponse>> searchUsers(
+            @org.springframework.web.bind.annotation.RequestParam String keyword,
+
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") Integer page,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") Integer size,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "id") String sortBy,
+            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "ASC") String direction) {
+
+        Sort.Direction dir = direction != null && direction.equalsIgnoreCase("DESC") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        var pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 10, Sort.by(dir, sortBy != null ? sortBy : "id"));
+        var resultPage = userService.searchUsersByKeyword(keyword, pageable);
+        return ResponseEntity.ok(resultPage.map(userMapper::toResponse));
+    }
+
 
     @Operation(summary = "Get User By Id", description = "Retrieve one user by id")
     @ApiResponses({
