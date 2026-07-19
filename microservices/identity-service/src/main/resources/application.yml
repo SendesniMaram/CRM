@@ -4,6 +4,21 @@ server:
 spring:
   application:
     name: identity-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/identity_db
+    username: root
+    password: Root123@
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    jpa:
+      database-platform: org.hibernate.dialect.MySQLDialect
+
 
 eureka:
   client:
@@ -21,4 +36,5 @@ info:
     name: identity-service
     description: Identity service skeleton
     version: 0.0.1-SNAPSHOT
+
 
