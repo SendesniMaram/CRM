@@ -1,0 +1,4 @@
+com.crm:identity-service:jar:0.0.1-SNAPSHOT
+\- org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:jar:4.1.2:compile
+   +- com.netflix.eureka:eureka-client:jar:2.0.2:compile
+   \- com.netflix.eureka:eureka-core:jar:2.0.2:compile
