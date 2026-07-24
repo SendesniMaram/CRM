@@ -1,0 +1,125 @@
+# ===========================
+# Maven build output
+# ===========================
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===========================
+# Maven reports & generated files
+# ===========================
+**/surefire-reports/
+**/maven-status/
+**/maven-archiver/
+**/generated-sources/
+**/generated-test-sources/
+
+# ===========================
+# Logs
+# ===========================
+*.log
+**/*.log
+
+# ===========================
+# SonarQube
+# ===========================
+.scannerwork/
+.sonarqube/
+**/.scannerwork/
+**/.sonarqube/
+
+# ===========================
+# VS Code
+# ===========================
+.vscode/
+**/.vscode/
+*.code-workspace
+
+# ===========================
+# IntelliJ IDEA
+# ===========================
+.idea/
+**/.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ===========================
+# NetBeans
+# ===========================
+nbproject/
+nb-configuration.xml
+
+# ===========================
+# Eclipse
+# ===========================
+.settings/
+.project
+.classpath
+.factorypath
+*.prefs
+
+# ===========================
+# OS files - Windows
+# ===========================
+Thumbs.db
+Desktop.ini
+*.dll
+*.exe
+*.msi
+
+# ===========================
+# OS files - macOS
+# ===========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.Spotlight-V100
+.Trashes
+
+# ===========================
+# OS files - Linux
+# ===========================
+*~
+.fuse_hidden*
+.directory
+.trashed*
+
+# ===========================
+# Environment / Local config
+# ===========================
+.env
+.env.local
+*.env
+application-local.*
+application-dev.*
+*.local.properties
+
+# ===========================
+# Dependency directories
+# ===========================
+node_modules/
+vendor/
+
+# ===========================
+# Temporary files
+# ===========================
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+*~
+
+# ===========================
+# Maven wrapper (keep)
+# ===========================
+!mvnw
+!mvnw.cmd
+!.mvn/

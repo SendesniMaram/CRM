@@ -1,12 +1,21 @@
 package com.crm.identity.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 /**
  * Authentication login request.
  */
 public class LoginRequest {
 
+    @Size(max = 100, message = "username must not exceed 100 characters")
     private String username;
+
+    @Size(max = 100, message = "email must not exceed 100 characters")
     private String email;
+
+    @NotBlank(message = "password is required")
+    @Size(max = 100, message = "password must not exceed 100 characters")
     private String password;
 
     public LoginRequest() {

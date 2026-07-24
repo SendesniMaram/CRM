@@ -9,7 +9,10 @@ public class LoginResponse {
     private String email;
     private boolean enabled;
     private String token;
+    private String refreshToken;
     private String type;
+    private String role;
+    private long expiration;
 
 
     public LoginResponse() {
@@ -47,12 +50,36 @@ public class LoginResponse {
         this.token = token;
     }
 
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+
     public String getType() {
         return type;
     }
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public long getExpiration() {
+        return expiration;
+    }
+
+    public void setExpiration(long expiration) {
+        this.expiration = expiration;
     }
 }
 
