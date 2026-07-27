@@ -2,19 +2,22 @@ package com.crm.employee.service;
 
 import com.crm.employee.dto.EmployeeRequest;
 import com.crm.employee.dto.EmployeeResponse;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
 public interface IEmployeeService {
 
-    EmployeeResponse create(EmployeeRequest request);
+    EmployeeResponse createEmployee(EmployeeRequest request);
 
-    EmployeeResponse update(Long id, EmployeeRequest request);
+    EmployeeResponse getEmployeeById(Long id);
 
-    EmployeeResponse findById(Long id);
+    List<EmployeeResponse> getAllEmployees();
 
-    List<EmployeeResponse> findAll();
+    Page<EmployeeResponse> getAllEmployeesPaged(int page, int size, String sortBy, String direction, String keyword);
 
-    void delete(Long id);
+    EmployeeResponse updateEmployee(Long id, EmployeeRequest request);
+
+    void deleteEmployee(Long id);
 }
 

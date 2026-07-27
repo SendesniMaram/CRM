@@ -7,8 +7,14 @@ import com.crm.employee.exception.ResourceNotFoundException;
 import com.crm.employee.mapper.EmployeeMapper;
 import com.crm.employee.repository.EmployeeRepository;
 import com.crm.employee.service.IEmployeeService;
+import com.crm.employee.util.EmployeeSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -26,37 +32,84 @@ public class EmployeeServiceImpl implements IEmployeeService {
     }
 
     @Override
-    public EmployeeResponse create(EmployeeRequest request) {
+    public EmployeeResponse createEmployee(EmployeeRequest request) {
+        // Validation : employeeCode unique
+        if (employeeRepository.existsByEmployeeCode(request.getEmployeeCode())) {
+            throw new IllegalArgumentException(
+                    "Employee code already exists: " + request.getEmployeeCode());
+        }
+        // Validation : email unique (si renseigné)
+        if (StringUtils.hasText(request.getEmail())
+                && employeeRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException(
+                    "Email already exists: " + request.getEmail());
+        }
+
         Employee employee = employeeMapper.toEntity(request);
         Employee saved = employeeRepository.save(employee);
         return employeeMapper.toResponse(saved);
     }
 
-@Override
-    public EmployeeResponse update(Long id, EmployeeRequest request) {
-        Employee existing = employeeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
-        employeeMapper.updateEntityFromRequest(existing, request);
-        Employee saved = employeeRepository.save(existing);
-        return employeeMapper.toResponse(saved);
-    }
-
     @Override
-    public EmployeeResponse findById(Long id) {
+    public EmployeeResponse getEmployeeById(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
         return employeeMapper.toResponse(employee);
     }
 
     @Override
-    public List<EmployeeResponse> findAll() {
+    public List<EmployeeResponse> getAllEmployees() {
         return employeeRepository.findAll().stream()
                 .map(employeeMapper::toResponse)
                 .toList();
     }
 
     @Override
-    public void delete(Long id) {
+    public Page<EmployeeResponse> getAllEmployeesPaged(int page, int size, String sortBy, String direction, String keyword) {
+        // Default sort field
+        String sortField = StringUtils.hasText(sortBy) ? sortBy : "id";
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sort = Sort.by(sortDirection, sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Employee> employeePage;
+
+        if (StringUtils.hasText(keyword)) {
+            employeePage = employeeRepository.findAll(
+                    EmployeeSpecification.searchByKeyword(keyword), pageable);
+        } else {
+            employeePage = employeeRepository.findAll(pageable);
+        }
+
+        return employeePage.map(employeeMapper::toResponse);
+    }
+
+    @Override
+    public EmployeeResponse updateEmployee(Long id, EmployeeRequest request) {
+        Employee existing = employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
+
+        // Validation : employeeCode unique (exclure l'employé courant)
+        if (!existing.getEmployeeCode().equals(request.getEmployeeCode())
+                && employeeRepository.existsByEmployeeCode(request.getEmployeeCode())) {
+            throw new IllegalArgumentException(
+                    "Employee code already exists: " + request.getEmployeeCode());
+        }
+        // Validation : email unique (exclure l'employé courant, si email renseigné)
+        if (StringUtils.hasText(request.getEmail())
+                && !request.getEmail().equals(existing.getEmail())
+                && employeeRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException(
+                    "Email already exists: " + request.getEmail());
+        }
+
+        employeeMapper.updateEntityFromRequest(existing, request);
+        Employee saved = employeeRepository.save(existing);
+        return employeeMapper.toResponse(saved);
+    }
+
+    @Override
+    public void deleteEmployee(Long id) {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
         employeeRepository.delete(employee);

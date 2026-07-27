@@ -15,6 +15,20 @@ spring:
           uri: lb://IDENTITY-SERVICE
           predicates:
             - Path=/identity/api/test
+          filters:
+            - StripPrefix=1
+        - id: employee-test
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/employee/api/test
+          filters:
+            - StripPrefix=1
+        - id: employee-service
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/employee/api/employees/**
+          filters:
+            - StripPrefix=1
 
 eureka:
   client:

@@ -21,6 +21,8 @@ jobs:
           - discovery-service
           - gateway-service
           - identity-service
+          - employee-service
+          - department-service
 
     defaults:
       run:
