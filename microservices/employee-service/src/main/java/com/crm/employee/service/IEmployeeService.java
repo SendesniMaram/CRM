@@ -1,8 +1,20 @@
 package com.crm.employee.service;
 
-/**
- * Service interface for employee management.
- * Currently empty — methods will be added when implementing business logic.
- */
+import com.crm.employee.dto.EmployeeRequest;
+import com.crm.employee.dto.EmployeeResponse;
+
+import java.util.List;
+
 public interface IEmployeeService {
+
+    EmployeeResponse create(EmployeeRequest request);
+
+    EmployeeResponse update(Long id, EmployeeRequest request);
+
+    EmployeeResponse findById(Long id);
+
+    List<EmployeeResponse> findAll();
+
+    void delete(Long id);
 }
+

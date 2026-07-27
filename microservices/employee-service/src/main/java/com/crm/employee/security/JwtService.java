@@ -2,7 +2,6 @@ package com.crm.employee.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
 
 import javax.crypto.SecretKey;
 
@@ -33,10 +32,11 @@ public class JwtService {
         Date expiry = new Date(now.getTime() + 1000L * 60 * 60);
 
         return Jwts.builder()
-                .setSubject(username)
-                .addClaims(Map.of("email", email, "enabled", enabled))
-                .setIssuedAt(now)
-                .setExpiration(expiry)
+                .subject(username)
+                .claim("email", email)
+                .claim("enabled", enabled)
+                .issuedAt(now)
+                .expiration(expiry)
                 .signWith(secretKey)
                 .compact();
     }
@@ -44,7 +44,7 @@ public class JwtService {
     public String extractUsername(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .setSigningKey(secretKey)
+                    .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();

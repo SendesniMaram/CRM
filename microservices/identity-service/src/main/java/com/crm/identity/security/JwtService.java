@@ -2,13 +2,12 @@ package com.crm.identity.security;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import java.util.Map;
 
 import javax.crypto.SecretKey;
 
-import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
@@ -37,10 +36,11 @@ public class JwtService {
         Date expiry = new Date(now.getTime() + 1000L * 60 * 60); // 1 hour
 
         return Jwts.builder()
-                .setSubject(username)
-                .addClaims(Map.of("email", email, "enabled", enabled))
-                .setIssuedAt(now)
-                .setExpiration(expiry)
+                .subject(username)
+                .claim("email", email)
+                .claim("enabled", enabled)
+                .issuedAt(now)
+                .expiration(expiry)
                 .signWith(secretKey)
                 .compact();
     }
@@ -48,7 +48,7 @@ public class JwtService {
     public String extractUsername(String token) {
         try {
             Claims claims = Jwts.parser()
-                    .setSigningKey(secretKey)
+                    .verifyWith(secretKey)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
@@ -65,4 +65,3 @@ public class JwtService {
         return extracted != null && extracted.equals(username);
     }
 }
-
