@@ -2,6 +2,7 @@ package com.crm.employee.service;
 
 import com.crm.employee.dto.EmployeeRequest;
 import com.crm.employee.dto.EmployeeResponse;
+import com.crm.employee.dto.EmployeeWithDepartmentResponse;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -19,5 +20,7 @@ public interface IEmployeeService {
     EmployeeResponse updateEmployee(Long id, EmployeeRequest request);
 
     void deleteEmployee(Long id);
+
+    EmployeeWithDepartmentResponse getEmployeeWithDepartment(Long id);
 }
 

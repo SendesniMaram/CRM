@@ -2,6 +2,7 @@ package com.crm.employee.controller;
 
 import com.crm.employee.dto.EmployeeRequest;
 import com.crm.employee.dto.EmployeeResponse;
+import com.crm.employee.dto.EmployeeWithDepartmentResponse;
 import com.crm.employee.service.IEmployeeService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -57,6 +58,12 @@ public class EmployeeController {
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeResponse> getEmployeeById(@PathVariable Long id) {
         EmployeeResponse response = employeeService.getEmployeeById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<EmployeeWithDepartmentResponse> getEmployeeWithDepartment(@PathVariable Long id) {
+        EmployeeWithDepartmentResponse response = employeeService.getEmployeeWithDepartment(id);
         return ResponseEntity.ok(response);
     }
 

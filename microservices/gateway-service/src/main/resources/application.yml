@@ -29,6 +29,18 @@ spring:
             - Path=/employee/api/employees/**
           filters:
             - StripPrefix=1
+        - id: department-test
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/department/api/test
+          filters:
+            - StripPrefix=1
+        - id: department-service
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/department/api/departments/**
+          filters:
+            - StripPrefix=1
 
 eureka:
   client:

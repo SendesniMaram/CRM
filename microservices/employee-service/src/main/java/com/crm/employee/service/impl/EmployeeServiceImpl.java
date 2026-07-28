@@ -1,7 +1,10 @@
 package com.crm.employee.service.impl;
 
+import com.crm.employee.client.DepartmentClient;
+import com.crm.employee.client.dto.DepartmentResponse;
 import com.crm.employee.dto.EmployeeRequest;
 import com.crm.employee.dto.EmployeeResponse;
+import com.crm.employee.dto.EmployeeWithDepartmentResponse;
 import com.crm.employee.entity.Employee;
 import com.crm.employee.exception.ResourceNotFoundException;
 import com.crm.employee.mapper.EmployeeMapper;
@@ -24,11 +27,14 @@ public class EmployeeServiceImpl implements IEmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final EmployeeMapper employeeMapper;
+    private final DepartmentClient departmentClient;
 
     public EmployeeServiceImpl(EmployeeRepository employeeRepository,
-                               EmployeeMapper employeeMapper) {
+                               EmployeeMapper employeeMapper,
+                               DepartmentClient departmentClient) {
         this.employeeRepository = employeeRepository;
         this.employeeMapper = employeeMapper;
+        this.departmentClient = departmentClient;
     }
 
     @Override
@@ -113,5 +119,16 @@ public class EmployeeServiceImpl implements IEmployeeService {
         Employee employee = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
         employeeRepository.delete(employee);
+    }
+
+    @Override
+    public EmployeeWithDepartmentResponse getEmployeeWithDepartment(Long id) {
+        EmployeeResponse employee = getEmployeeById(id);
+        // Circuit Breaker + Fallback gère automatiquement :
+        // - Si department-service répond -> département retourné
+        // - Si department-service indisponible -> fallback retourne null
+        // - Si département inexistant (404) -> FeignException propagée à GlobalExceptionHandler
+        DepartmentResponse department = departmentClient.getDepartmentById(id);
+        return new EmployeeWithDepartmentResponse(employee, department);
     }
 }

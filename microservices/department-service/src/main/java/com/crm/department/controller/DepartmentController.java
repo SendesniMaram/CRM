@@ -4,6 +4,7 @@ import com.crm.department.dto.DepartmentRequest;
 import com.crm.department.dto.DepartmentResponse;
 import com.crm.department.service.IDepartmentService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -35,9 +37,20 @@ public class DepartmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DepartmentResponse>> getAllDepartments() {
-        List<DepartmentResponse> departments = departmentService.getAllDepartments();
-        return ResponseEntity.ok(departments);
+    public ResponseEntity<?> getAllDepartments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "asc") String direction,
+            @RequestParam(required = false) String keyword) {
+
+        if (page == 0 && size == 10 && sortBy == null && direction.equals("asc") && keyword == null) {
+            List<DepartmentResponse> departments = departmentService.getAllDepartments();
+            return ResponseEntity.ok(departments);
+        }
+
+        Page<DepartmentResponse> departmentPage = departmentService.getAllDepartmentsPaged(page, size, sortBy, direction, keyword);
+        return ResponseEntity.ok(departmentPage);
     }
 
     @GetMapping("/{id}")

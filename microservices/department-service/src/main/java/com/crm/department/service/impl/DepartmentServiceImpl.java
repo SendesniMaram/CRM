@@ -7,6 +7,11 @@ import com.crm.department.exception.ResourceNotFoundException;
 import com.crm.department.mapper.DepartmentMapper;
 import com.crm.department.repository.DepartmentRepository;
 import com.crm.department.service.IDepartmentService;
+import com.crm.department.util.DepartmentSpecification;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -53,6 +58,25 @@ public class DepartmentServiceImpl implements IDepartmentService {
         return departmentRepository.findAll().stream()
                 .map(departmentMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public Page<DepartmentResponse> getAllDepartmentsPaged(int page, int size, String sortBy, String direction, String keyword) {
+        String sortField = StringUtils.hasText(sortBy) ? sortBy : "id";
+        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort sort = Sort.by(sortDirection, sortField);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Department> departmentPage;
+
+        if (StringUtils.hasText(keyword)) {
+            departmentPage = departmentRepository.findAll(
+                    DepartmentSpecification.searchByKeyword(keyword), pageable);
+        } else {
+            departmentPage = departmentRepository.findAll(pageable);
+        }
+
+        return departmentPage.map(departmentMapper::toResponse);
     }
 
     @Override

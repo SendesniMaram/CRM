@@ -2,6 +2,8 @@ package com.crm.employee.exception;
 
 import java.util.stream.Collectors;
 
+import feign.FeignException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -91,6 +93,40 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(404).body(body);
     }
 
+    @ExceptionHandler(FeignException.NotFound.class)
+    public ResponseEntity<ApiError> handleFeignNotFound(FeignException.NotFound ex, WebRequest request) {
+        ApiError body = new ApiError(
+                404,
+                "Not Found",
+                "Department not found: " + ex.getMessage(),
+                getPath(request)
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(FeignException.ServiceUnavailable.class)
+    public ResponseEntity<ApiError> handleFeignServiceUnavailable(FeignException.ServiceUnavailable ex, WebRequest request) {
+        ApiError body = new ApiError(
+                503,
+                "Service Unavailable",
+                "department-service is currently unavailable. Please try again later.",
+                getPath(request)
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ApiError> handleFeignException(FeignException ex, WebRequest request) {
+        int status = ex.status() != -1 ? ex.status() : 503;
+        ApiError body = new ApiError(
+                status,
+                "Service Unavailable",
+                "department-service is currently unavailable. Please try again later.",
+                getPath(request)
+        );
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
         ApiError body = new ApiError(
@@ -109,4 +145,3 @@ public class GlobalExceptionHandler {
         return request.getDescription(false);
     }
 }
-
