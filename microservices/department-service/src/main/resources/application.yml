@@ -27,9 +27,15 @@ management:
       exposure:
         include: health,info
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
 info:
   app:
     name: department-service
     description: Department microservice
     version: 0.0.1-SNAPSHOT
-
