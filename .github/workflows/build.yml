@@ -23,6 +23,8 @@ jobs:
           - identity-service
           - employee-service
           - department-service
+          - customer-service
+          - hr-service
 
     defaults:
       run:
