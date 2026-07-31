@@ -65,6 +65,42 @@ spring:
             - Path=/hr/api/hr-records/**
           filters:
             - StripPrefix=1
+        - id: payroll-test
+          uri: lb://PAYROLL-SERVICE
+          predicates:
+            - Path=/payroll/api/test
+          filters:
+            - StripPrefix=1
+        - id: payroll-service
+          uri: lb://PAYROLL-SERVICE
+          predicates:
+            - Path=/payroll/api/payrolls/**
+          filters:
+            - StripPrefix=1
+        - id: fees-test
+          uri: lb://FEES-SERVICE
+          predicates:
+            - Path=/fees/api/test
+          filters:
+            - StripPrefix=1
+        - id: fees-service
+          uri: lb://FEES-SERVICE
+          predicates:
+            - Path=/fees/api/fees/**
+          filters:
+            - StripPrefix=1
+        - id: invoice-test
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/test
+          filters:
+            - StripPrefix=1
+        - id: invoice-service
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/invoices/**
+          filters:
+            - StripPrefix=1
 
 eureka:
   client:

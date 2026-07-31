@@ -25,6 +25,9 @@ jobs:
           - department-service
           - customer-service
           - hr-service
+          - payroll-service
+          - fees-service
+          - invoice-service
 
     defaults:
       run:
