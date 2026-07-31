@@ -313,7 +313,7 @@ class LeaveServiceIntegrationTest {
         assertFalse(leaveRepository.findById(created.getId()).isPresent());
     }
 
-    @Test
+@Test
     void deleteLeave_WithNonExistentId_ShouldReturn404() throws Exception {
         mockMvc.perform(delete("/api/leaves/{id}", 99999L))
                 .andExpect(status().isNotFound())
@@ -321,5 +321,75 @@ class LeaveServiceIntegrationTest {
                 .andExpect(jsonPath("$.error").value("Not Found"))
                 .andExpect(jsonPath("$.message").value(containsString("Leave request not found")))
                 .andExpect(jsonPath("$.path").value("/api/leaves/99999"));
+    }
+
+    @Test
+    void updateLeave_WhenAlreadyApproved_ShouldReturn400() throws Exception {
+        // Create a leave request
+        String createJson = mockMvc.perform(post("/api/leaves")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        LeaveResponse created = objectMapper.readValue(createJson, LeaveResponse.class);
+
+        // Approve it
+        mockMvc.perform(patch("/api/leaves/{id}/approve", created.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+
+        // Try to update it - should fail
+        LeaveRequestDto updateRequest = new LeaveRequestDto();
+        updateRequest.setEmployeeId("EMP001");
+        updateRequest.setStartDate(LocalDate.now().plusDays(2));
+        updateRequest.setEndDate(LocalDate.now().plusDays(10));
+        updateRequest.setReason("Extended vacation");
+
+        mockMvc.perform(put("/api/leaves/{id}", created.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value(containsString("Cannot modify an already approved leave request")))
+                .andExpect(jsonPath("$.path").value("/api/leaves/" + created.getId()));
+    }
+
+    @Test
+    void updateLeave_WhenAlreadyRejected_ShouldReturn400() throws Exception {
+        // Create a leave request
+        String createJson = mockMvc.perform(post("/api/leaves")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        LeaveResponse created = objectMapper.readValue(createJson, LeaveResponse.class);
+
+        // Reject it
+        mockMvc.perform(patch("/api/leaves/{id}/reject", created.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"));
+
+        // Try to update it - should fail
+        LeaveRequestDto updateRequest = new LeaveRequestDto();
+        updateRequest.setEmployeeId("EMP001");
+        updateRequest.setStartDate(LocalDate.now().plusDays(2));
+        updateRequest.setEndDate(LocalDate.now().plusDays(10));
+        updateRequest.setReason("Extended vacation");
+
+        mockMvc.perform(put("/api/leaves/{id}", created.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value(containsString("Cannot modify an already rejected leave request")))
+                .andExpect(jsonPath("$.path").value("/api/leaves/" + created.getId()));
     }
 }

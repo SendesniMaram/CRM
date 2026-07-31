@@ -80,6 +80,14 @@ public class LeaveServiceImpl implements ILeaveService {
         LeaveRequest existing = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
 
+        // Prevent modification of already approved or rejected requests
+        if (existing.getStatus() == LeaveRequest.LeaveStatus.APPROVED) {
+            throw new IllegalArgumentException("Cannot modify an already approved leave request");
+        }
+        if (existing.getStatus() == LeaveRequest.LeaveStatus.REJECTED) {
+            throw new IllegalArgumentException("Cannot modify an already rejected leave request");
+        }
+
         // Validate date range
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after or equal to start date");
