@@ -1,4 +1,4 @@
-package com.crm.employee.config;
+package com.crm.hr.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,13 +32,23 @@ public class SecurityConfig {
                         .requestMatchers("/api/test").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.POST, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/hr-records/**", "/api/leaves/**", "/api/attendances/**", "/api/trainings/**")
+                                .hasAnyRole("SUPER_ADMIN", "ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/hr-records/**", "/api/leaves/**", "/api/attendances/**", "/api/trainings/**")
+                                .hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/hr-records/**", "/api/leaves/**", "/api/attendances/**", "/api/trainings/**")
+                                .hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/leaves/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/hr-records/**", "/api/leaves/**", "/api/attendances/**", "/api/trainings/**")
+                                .hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
+

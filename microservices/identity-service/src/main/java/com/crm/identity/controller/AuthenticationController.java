@@ -37,7 +37,8 @@ public class AuthenticationController {
         String token = jwtService.generateToken(
                 loginResponse.getUsername(),
                 loginResponse.getEmail(),
-                loginResponse.isEnabled()
+                loginResponse.isEnabled(),
+                loginResponse.getRoles()
         );
 
         loginResponse.setToken(token);

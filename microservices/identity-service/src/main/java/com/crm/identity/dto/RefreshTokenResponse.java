@@ -1,5 +1,8 @@
 package com.crm.identity.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Response body returned after a successful token refresh.
  */
@@ -8,6 +11,7 @@ public class RefreshTokenResponse {
     private String accessToken;
     private String refreshToken;
     private String type;
+    private List<String> roles = new ArrayList<>();
     private long expiration;
 
     public RefreshTokenResponse() {
@@ -35,6 +39,14 @@ public class RefreshTokenResponse {
 
     public void setType(String type) {
         this.type = type;
+    }
+
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
     }
 
     public long getExpiration() {

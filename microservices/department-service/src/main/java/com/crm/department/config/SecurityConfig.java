@@ -1,4 +1,4 @@
-package com.crm.employee.config;
+package com.crm.department.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,13 +32,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/test").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN", "EMPLOYEE")
-                        .requestMatchers(HttpMethod.POST, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/api/employees/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/departments/**").hasAnyRole("ADMIN", "EMPLOYEE")
+                        .requestMatchers(HttpMethod.POST, "/api/departments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/departments/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/departments/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 }
+

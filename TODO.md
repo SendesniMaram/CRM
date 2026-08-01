@@ -1,25 +1,37 @@
-# Payroll Service - Implementation Steps (COMPLETED)
+# Préparation au commit final — Suivi des étapes
 
-- [x] Step 1: Create pom.xml
-- [x] Step 2: Create PayrollServiceApplication.java
-- [x] Step 3: Create application.yml
-- [x] Step 4: Create application-test.yml
-- [x] Step 5: Create OpenApiConfig.java
-- [x] Step 6: Create Payroll.java entity
-- [x] Step 7: Create PayrollRequest.java DTO
-- [x] Step 8: Create PayrollResponse.java DTO
-- [x] Step 9: Create ApiError.java DTO
-- [x] Step 10: Create PayrollMapper.java
-- [x] Step 11: Create PayrollRepository.java
-- [x] Step 12: Create IPayrollService.java interface
-- [x] Step 13: Create PayrollServiceImpl.java
-- [x] Step 14: Create PayrollController.java
-- [x] Step 15: Create ResourceNotFoundException.java
-- [x] Step 16: Create GlobalExceptionHandler.java
-- [x] Step 17: Create PayrollSpecification.java
-- [x] Step 18: Create PayrollServiceSmokeTest.java
-- [x] Step 19: Create PayrollServiceIntegrationTest.java
-- [x] Step 20: Update gateway-service/application.yml (add routes)
-- [x] Step 21: Update .github/workflows/build.yml (add payroll-service to matrix)
-- [x] Step 22: Run mvn clean test in payroll-service
-- [x] Step 23: Verify BUILD SUCCESS
+## Phase 1 — Audit & Nettoyage initial
+- [ ] Supprimer les fichiers temporaires (effective.xml, dep-tree-out.txt, effective-pom)
+- [ ] Supprimer les logs (*.log)
+- [ ] Supprimer les fichiers temporaires racine (diff_gateway.txt, backend/test_*.txt)
+- [ ] Supprimer le dossier META-INF généré (identity-service)
+- [ ] Corriger l'indentation des POMs (hr, fees, payroll, customer, department)
+- [ ] Vérifier le .gitignore
+
+## Phase 2 — Documentation
+- [ ] Réécrire README.md (architecture complète, 11 modules, ports, endpoints, commandes)
+- [ ] Créer README-professional.md (version jury)
+- [ ] Réécrire TODO.md (sections : terminées / restantes / DevOps / Docker / Cloud)
+
+## Phase 3 — Nettoyage final
+- [ ] Supprimer target/
+- [ ] Supprimer .idea, .vscode
+- [ ] Supprimer logs et fichiers temporaires restants
+
+## Phase 4 — Vérification BUILD SUCCESS
+- [ ] common-security : mvn clean verify
+- [ ] discovery-service : mvn clean verify
+- [ ] gateway-service : mvn clean verify
+- [ ] identity-service : mvn clean verify
+- [ ] employee-service : mvn clean verify
+- [ ] department-service : mvn clean verify
+- [ ] customer-service : mvn clean verify
+- [ ] hr-service : mvn clean verify
+- [ ] payroll-service : mvn clean verify
+- [ ] fees-service : mvn clean verify
+- [ ] invoice-service : mvn clean verify
+- [ ] backend : mvn clean verify
+
+## Phase 5 — Rapport final
+- [ ] Rapport : fichiers modifiés, anomalies corrigées, résumé technique, BUILD SUCCESS
+

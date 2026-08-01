@@ -1,5 +1,8 @@
 package com.crm.identity.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Authentication login response.
  */
@@ -12,6 +15,7 @@ public class LoginResponse {
     private String refreshToken;
     private String type;
     private String role;
+    private List<String> roles = new ArrayList<>();
     private long expiration;
 
 
@@ -74,6 +78,14 @@ public class LoginResponse {
         this.role = role;
     }
 
+    public List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
+    }
+
     public long getExpiration() {
         return expiration;
     }
@@ -82,8 +94,4 @@ public class LoginResponse {
         this.expiration = expiration;
     }
 }
-
-
-
-
 

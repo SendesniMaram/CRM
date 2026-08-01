@@ -1,7 +1,10 @@
 package com.crm.identity.security;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 
@@ -11,34 +14,43 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * Minimal JWT service (no custom filter).
+ * JWT service for identity-service.
+ * <p>
+ * Generates tokens with a {@code roles} claim so that downstream services
+ * (using common-security) can build authorities from the token without
+ * accessing the database.
  */
 public class JwtService {
 
-    // For now a hardcoded secret to keep things functional.
-    // Later this should be externalized.
+    public static final String CLAIM_ROLES = "roles";
+    public static final String CLAIM_EMAIL = "email";
+    public static final String CLAIM_ENABLED = "enabled";
+
     private final SecretKey secretKey;
 
     public JwtService() {
-        // Must be >= 256 bits for HS256 according to JWA.
         this.secretKey = Keys.hmacShaKeyFor(
                 "dev-change-me-dev-change-me-dev-change-me-dev-change-me".getBytes(StandardCharsets.UTF_8)
         );
     }
-
 
     public JwtService(String secret) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username, String email, boolean enabled) {
+        return generateToken(username, email, enabled, List.of());
+    }
+
+    public String generateToken(String username, String email, boolean enabled, Collection<String> roles) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + 1000L * 60 * 60); // 1 hour
 
         return Jwts.builder()
                 .subject(username)
-                .claim("email", email)
-                .claim("enabled", enabled)
+                .claim(CLAIM_EMAIL, email)
+                .claim(CLAIM_ENABLED, enabled)
+                .claim(CLAIM_ROLES, roles == null ? List.of() : new ArrayList<>(roles))
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -52,11 +64,31 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-
             return claims.getSubject();
-
-        } catch (JwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return null;
+        }
+    }
+
+    /**
+     * Extract the roles claim from the token. Returns an empty list if the claim
+     * is absent or the token cannot be parsed.
+     */
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(secretKey)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            Object roles = claims.get(CLAIM_ROLES);
+            if (roles instanceof List<?> list) {
+                return list.stream().map(String::valueOf).toList();
+            }
+            return List.of();
+        } catch (JwtException | IllegalArgumentException e) {
+            return List.of();
         }
     }
 
@@ -65,3 +97,4 @@ public class JwtService {
         return extracted != null && extracted.equals(username);
     }
 }
+

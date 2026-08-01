@@ -1,4 +1,4 @@
-package com.crm.identity.security;
+package com.crm.security;
 
 import java.io.IOException;
 import java.util.List;
@@ -9,30 +9,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.crm.identity.entity.Role;
-import com.crm.identity.entity.User;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 /**
- * Stateless JWT authentication filter for identity-service.
+ * Stateless JWT authentication filter shared by all microservices.
  * <p>
- * Validates the JWT signature and populates the SecurityContext with the
- * username loaded from the database and the authorities built from the user's
- * roles stored in the {@code roles} table (the User entity does not implement
- * {@code UserDetails}).
+ * Reads the {@code Authorization: Bearer <token>} header, validates the token
+ * (signature + expiration) and populates the SecurityContext with the username
+ * and the roles extracted from the token claims. No database access is performed.
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final CustomUserDetailsService customUserDetailsService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService customUserDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
-        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Override
@@ -48,21 +42,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             String token = authorizationHeader.substring("Bearer ".length());
 
-            String username = jwtService.extractUsername(token);
-            boolean valid = username != null && jwtService.isTokenValid(token, username);
+            if (jwtService.isTokenValid(token)) {
+                String username = jwtService.extractUsername(token);
+                List<String> roles = jwtService.extractRoles(token);
 
-            if (valid) {
-                User userEntity = customUserDetailsService.loadUserByUsername(username);
-
-                List<SimpleGrantedAuthority> authorities = userEntity.getRole().stream()
-                        .map(Role::getRoleType)
-                        .map(rt -> "ROLE_" + rt.name())
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                         .map(SimpleGrantedAuthority::new)
                         .toList();
 
                 UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(userEntity, null, authorities);
-
+                        new UsernamePasswordAuthenticationToken(username, null, authorities);
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);

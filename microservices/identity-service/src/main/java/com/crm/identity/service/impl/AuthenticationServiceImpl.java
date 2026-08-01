@@ -100,6 +100,9 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 .findFirst()
                 .map(r -> r.getRoleType().name())
                 .orElse(null));
+        response.setRoles(user.getRole().stream()
+                .map(r -> r.getRoleType().name())
+                .toList());
         response.setExpiration(86400000L); // 24 heures, aligné sur le backend
         response.setRefreshToken(refreshToken.getToken());
         return response;
@@ -184,7 +187,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         String newAccessToken = jwtService.generateToken(
                 user.getUsername(),
                 user.getEmail(),
-                user.isEnabled()
+                user.isEnabled(),
+                user.getRole().stream()
+                        .map(r -> r.getRoleType().name())
+                        .toList()
         );
 
         // Construire la réponse
@@ -192,6 +198,9 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         response.setAccessToken(newAccessToken);
         response.setRefreshToken(newRefreshToken.getToken());
         response.setType("Bearer");
+        response.setRoles(user.getRole().stream()
+                .map(r -> r.getRoleType().name())
+                .toList());
         response.setExpiration(86400000L);
 
         return response;
