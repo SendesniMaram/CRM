@@ -1,37 +1,32 @@
-# Préparation au commit final — Suivi des étapes
+# TODO — Conteneurisation Docker des microservices CRM
 
-## Phase 1 — Audit & Nettoyage initial
-- [ ] Supprimer les fichiers temporaires (effective.xml, dep-tree-out.txt, effective-pom)
-- [ ] Supprimer les logs (*.log)
-- [ ] Supprimer les fichiers temporaires racine (diff_gateway.txt, backend/test_*.txt)
-- [ ] Supprimer le dossier META-INF généré (identity-service)
-- [ ] Corriger l'indentation des POMs (hr, fees, payroll, customer, department)
-- [ ] Vérifier le .gitignore
+## Objectif
+Créer UNIQUEMENT les 10 Dockerfiles (un par microservice). Aucune autre modification du projet.
 
-## Phase 2 — Documentation
-- [ ] Réécrire README.md (architecture complète, 11 modules, ports, endpoints, commandes)
-- [ ] Créer README-professional.md (version jury)
-- [ ] Réécrire TODO.md (sections : terminées / restantes / DevOps / Docker / Cloud)
+## Contexte technique
+- Image officielle : `eclipse-temurin:21-jre-jammy`
+- WORKDIR : `/app`
+- Copie : uniquement le JAR généré (`target/<service>-0.0.1-SNAPSHOT.jar`)
+- EXPOSE : port du service
+- ENTRYPOINT : `java -jar`
+- Pas de Maven dans le conteneur (JAR pré-généré)
+- Pas de docker-compose.yml, pas de modification POM / application.yml / README / GitHub Actions / tests
 
-## Phase 3 — Nettoyage final
-- [ ] Supprimer target/
-- [ ] Supprimer .idea, .vscode
-- [ ] Supprimer logs et fichiers temporaires restants
+## Étapes
 
-## Phase 4 — Vérification BUILD SUCCESS
-- [ ] common-security : mvn clean verify
-- [ ] discovery-service : mvn clean verify
-- [ ] gateway-service : mvn clean verify
-- [ ] identity-service : mvn clean verify
-- [ ] employee-service : mvn clean verify
-- [ ] department-service : mvn clean verify
-- [ ] customer-service : mvn clean verify
-- [ ] hr-service : mvn clean verify
-- [ ] payroll-service : mvn clean verify
-- [ ] fees-service : mvn clean verify
-- [ ] invoice-service : mvn clean verify
-- [ ] backend : mvn clean verify
+- [x] 1. Créer `microservices/discovery-service/Dockerfile` (EXPOSE 8761)
+- [x] 2. Créer `microservices/gateway-service/Dockerfile` (EXPOSE 8080)
+- [x] 3. Créer `microservices/identity-service/Dockerfile` (EXPOSE 8082)
+- [x] 4. Créer `microservices/employee-service/Dockerfile` (EXPOSE 8083)
+- [x] 5. Créer `microservices/department-service/Dockerfile` (EXPOSE 8084)
+- [x] 6. Créer `microservices/customer-service/Dockerfile` (EXPOSE 8085)
+- [x] 7. Créer `microservices/hr-service/Dockerfile` (EXPOSE 8086)
+- [x] 8. Créer `microservices/payroll-service/Dockerfile` (EXPOSE 8087)
+- [x] 9. Créer `microservices/fees-service/Dockerfile` (EXPOSE 8088)
+- [x] 10. Créer `microservices/invoice-service/Dockerfile` (EXPOSE 8089)
 
-## Phase 5 — Rapport final
-- [ ] Rapport : fichiers modifiés, anomalies corrigées, résumé technique, BUILD SUCCESS
+## Suivi final
+- [x] 11. Fournir la liste des Dockerfiles créés et leur emplacement
+- [x] 12. Fournir les commandes Maven de génération des JAR (séparées par `;`)
+- [x] 13. Fournir les commandes `docker build` (une par service, séparées par `;`)
 

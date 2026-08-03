@@ -1,0 +1,81 @@
+# =============================================================================
+# docker-compose.yml — CRM Microservices (Étape 1 : Infrastructure MySQL)
+# -----------------------------------------------------------------------------
+# Ce fichier est la PREMIÈRE étape de la conteneurisation.
+# Il ne contient que le socle d'infrastructure (MySQL 8.0).
+# Les microservices (discovery, gateway, identity, employee, department,
+# customer, hr, payroll, fees, invoice) seront AJOUTÉS dans les étapes suivantes.
+#
+# Commandes utiles :
+#   docker compose config        -> valide la configuration
+#   docker compose up -d mysql   -> démarre uniquement MySQL
+#   docker compose down          -> arrête les conteneurs (données conservées)
+#   docker compose down -v       -> arrête ET supprime le volume (données perdues)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Déclaration des volumes nommés
+# -----------------------------------------------------------------------------
+volumes:
+  mysql-data:
+    name: mysql-data
+    # Volume persistant : les données MySQL survivent à la suppression
+    # des conteneurs (docker compose down). Seul un « down -v » les supprime.
+
+# -----------------------------------------------------------------------------
+# Déclaration des réseaux Docker
+# -----------------------------------------------------------------------------
+networks:
+  crm-network:
+    name: crm-network
+    driver: bridge
+    # Réseau privé de type bridge : tous les conteneurs du projet CRM
+    # s'y connecteront et pourront communiquer par leur nom de service.
+
+# -----------------------------------------------------------------------------
+# Services
+# -----------------------------------------------------------------------------
+services:
+  # ===========================================================================
+  # Service MySQL 8.0 — base de données unique pour tous les microservices
+  # ===========================================================================
+  mysql:
+    image: mysql:8.0
+    container_name: crm-mysql
+    restart: unless-stopped
+
+    environment:
+      # Mot de passe du compte root (identique à celui des application.yml)
+      MYSQL_ROOT_PASSWORD: Root123@
+      # Autorise les connexions root depuis n'importe quel hôte
+      # (nécessaire pour que les conteneurs des microservices se connectent)
+      MYSQL_ROOT_HOST: '%'
+      # Jeu de caractères / collation par défaut (UTF-8, compatible Spring/JPA)
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_0900_ai_ci
+      # Fuseau horaire du serveur (aligné sur les valeurs par défaut de la JVM)
+      TZ: Europe/Paris
+
+    ports:
+      # Accès MySQL depuis l'hôte : localhost:3306 -> conteneur:3306
+      - "3306:3306"
+
+    volumes:
+      # Persistance des données dans le volume nommé
+      - mysql-data:/var/lib/mysql
+
+    networks:
+      - crm-network
+
+    healthcheck:
+      # Vérifie que MySQL répond réellement à la commande « ping »
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+      # start_period : laisse MySQL s'initialiser avant les premiers contrôles
+
+    # Aucune commande personnalisée : on utilise le point d'entrée officiel
+    # de l'image mysql:8.0 (initialisation, création de l'utilisateur root, etc.)
+
