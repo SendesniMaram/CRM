@@ -1,43 +1,50 @@
 # =============================================================================
-# docker-compose.yml — CRM Microservices (Étape 1 : Infrastructure MySQL)
+# docker-compose.yml — CRM Microservices (architecture complète)
 # -----------------------------------------------------------------------------
-# Ce fichier est la PREMIÈRE étape de la conteneurisation.
-# Il ne contient que le socle d'infrastructure (MySQL 8.0).
-# Les microservices (discovery, gateway, identity, employee, department,
-# customer, hr, payroll, fees, invoice) seront AJOUTÉS dans les étapes suivantes.
+# Démarre toute l'architecture Spring Cloud :
+#   MySQL 8           -> base de données unique
+#   discovery-service -> serveur Eureka (port 8761)
+#   gateway-service   -> Spring Cloud Gateway (port 8080)
+#   identity-service  -> authentification JWT (port 8082)
+#   employee / department / customer / hr / payroll / fees / invoice
+#                       -> microservices métier (ports 8083-8089)
 #
-# Commandes utiles :
-#   docker compose config        -> valide la configuration
-#   docker compose up -d mysql   -> démarre uniquement MySQL
-#   docker compose down          -> arrête les conteneurs (données conservées)
-#   docker compose down -v       -> arrête ET supprime le volume (données perdues)
+# Le monolithe backend/ et la librairie common-security NE sont PAS inclus.
+#
+# Le fichier est compatible avec Docker Compose v2.
+#   docker compose config
+#   docker compose up --build
+#   docker compose ps
+#   docker compose logs -f
+#   docker compose down
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Déclaration des volumes nommés
+# Volumes nommés (persistance MySQL)
 # -----------------------------------------------------------------------------
 volumes:
   mysql-data:
     name: mysql-data
-    # Volume persistant : les données MySQL survivent à la suppression
-    # des conteneurs (docker compose down). Seul un « down -v » les supprime.
+    # Les données MySQL survivent à « docker compose down ».
+    # Seul « docker compose down -v » les supprime.
 
 # -----------------------------------------------------------------------------
-# Déclaration des réseaux Docker
+# Réseau Docker unique
 # -----------------------------------------------------------------------------
 networks:
   crm-network:
     name: crm-network
     driver: bridge
-    # Réseau privé de type bridge : tous les conteneurs du projet CRM
-    # s'y connecteront et pourront communiquer par leur nom de service.
+    # Tous les conteneurs du projet communiquent par leur nom de service
+    # sur ce réseau privé de type bridge.
 
 # -----------------------------------------------------------------------------
 # Services
 # -----------------------------------------------------------------------------
 services:
+
   # ===========================================================================
-  # Service MySQL 8.0 — base de données unique pour tous les microservices
+  # 1. MySQL 8.0 — base de données unique pour tous les microservices
   # ===========================================================================
   mysql:
     image: mysql:8.0
@@ -45,37 +52,289 @@ services:
     restart: unless-stopped
 
     environment:
-      # Mot de passe du compte root (identique à celui des application.yml)
       MYSQL_ROOT_PASSWORD: Root123@
-      # Autorise les connexions root depuis n'importe quel hôte
-      # (nécessaire pour que les conteneurs des microservices se connectent)
+      MYSQL_DATABASE: crm_db
       MYSQL_ROOT_HOST: '%'
-      # Jeu de caractères / collation par défaut (UTF-8, compatible Spring/JPA)
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_0900_ai_ci
-      # Fuseau horaire du serveur (aligné sur les valeurs par défaut de la JVM)
       TZ: Europe/Paris
 
     ports:
-      # Accès MySQL depuis l'hôte : localhost:3306 -> conteneur:3306
       - "3306:3306"
 
     volumes:
-      # Persistance des données dans le volume nommé
       - mysql-data:/var/lib/mysql
 
     networks:
       - crm-network
 
     healthcheck:
-      # Vérifie que MySQL répond réellement à la commande « ping »
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 30s
-      # start_period : laisse MySQL s'initialiser avant les premiers contrôles
 
-    # Aucune commande personnalisée : on utilise le point d'entrée officiel
-    # de l'image mysql:8.0 (initialisation, création de l'utilisateur root, etc.)
+  # ===========================================================================
+  # 2. Discovery Service — serveur Eureka (port 8761)
+  # ===========================================================================
+  discovery-service:
+    build:
+      context: ./microservices/discovery-service
+      dockerfile: Dockerfile
+    image: crm/discovery-service:latest
+    container_name: discovery-service
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - crm-network
 
+  # ===========================================================================
+  # 3. Gateway Service — Spring Cloud Gateway (port 8080)
+  # ===========================================================================
+  gateway-service:
+    build:
+      context: ./microservices/gateway-service
+      dockerfile: Dockerfile
+    image: crm/gateway-service:latest
+    container_name: gateway-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Redirige Eureka vers le conteneur discovery-service (au lieu de localhost)
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 4. Identity Service — authentification JWT (port 8082)
+  # ===========================================================================
+  identity-service:
+    build:
+      context: ./microservices/identity-service
+      dockerfile: Dockerfile
+    image: crm/identity-service:latest
+    container_name: identity-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/identity_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 5. Employee Service (port 8083)
+  # ===========================================================================
+  employee-service:
+    build:
+      context: ./microservices/employee-service
+      dockerfile: Dockerfile
+    image: crm/employee-service:latest
+    container_name: employee-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 6. Department Service (port 8084)
+  # ===========================================================================
+  department-service:
+    build:
+      context: ./microservices/department-service
+      dockerfile: Dockerfile
+    image: crm/department-service:latest
+    container_name: department-service
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 7. Customer Service (port 8085)
+  # ===========================================================================
+  customer-service:
+    build:
+      context: ./microservices/customer-service
+      dockerfile: Dockerfile
+    image: crm/customer-service:latest
+    container_name: customer-service
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 8. HR Service (port 8086)
+  # ===========================================================================
+  hr-service:
+    build:
+      context: ./microservices/hr-service
+      dockerfile: Dockerfile
+    image: crm/hr-service:latest
+    container_name: hr-service
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 9. Payroll Service (port 8087)
+  # ===========================================================================
+  payroll-service:
+    build:
+      context: ./microservices/payroll-service
+      dockerfile: Dockerfile
+    image: crm/payroll-service:latest
+    container_name: payroll-service
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 10. Fees Service (port 8088)
+  # ===========================================================================
+  fees-service:
+    build:
+      context: ./microservices/fees-service
+      dockerfile: Dockerfile
+    image: crm/fees-service:latest
+    container_name: fees-service
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 11. Invoice Service (port 8089)
+  # ===========================================================================
+  invoice-service:
+    build:
+      context: ./microservices/invoice-service
+      dockerfile: Dockerfile
+    image: crm/invoice-service:latest
+    container_name: invoice-service
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: Root123@
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
