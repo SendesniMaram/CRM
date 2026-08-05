@@ -19,6 +19,10 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
     open-in-view: false
 
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef}
+
 eureka:
   client:
     service-url:

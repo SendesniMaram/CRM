@@ -23,9 +23,12 @@ import jakarta.validation.Valid;
 public class AuthenticationController {
 
     private final IAuthenticationService authenticationService;
+    private final JwtService jwtService;
 
-    public AuthenticationController(IAuthenticationService authenticationService) {
+    public AuthenticationController(IAuthenticationService authenticationService,
+                                    JwtService jwtService) {
         this.authenticationService = authenticationService;
+        this.jwtService = jwtService;
     }
 
 
@@ -33,7 +36,6 @@ public class AuthenticationController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse loginResponse = authenticationService.login(request);
 
-        JwtService jwtService = new JwtService();
         String token = jwtService.generateToken(
                 loginResponse.getUsername(),
                 loginResponse.getEmail(),

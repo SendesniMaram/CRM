@@ -35,15 +35,18 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final JwtService jwtService;
 
     public AuthenticationServiceImpl(UserRepository userRepository,
                                      RoleRepository roleRepository,
                                      PasswordEncoder passwordEncoder,
-                                     RefreshTokenRepository refreshTokenRepository) {
+                                     RefreshTokenRepository refreshTokenRepository,
+                                     JwtService jwtService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.jwtService = jwtService;
     }
 
 
@@ -183,7 +186,6 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         RefreshToken newRefreshToken = createRefreshToken(user);
 
         // Générer un nouveau JWT access token
-        JwtService jwtService = new JwtService();
         String newAccessToken = jwtService.generateToken(
                 user.getUsername(),
                 user.getEmail(),

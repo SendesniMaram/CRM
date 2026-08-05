@@ -16,8 +16,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    jpa:
-      database-platform: org.hibernate.dialect.MySQLDialect
+    database-platform: org.hibernate.dialect.MySQLDialect
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef}
 
 
 eureka:

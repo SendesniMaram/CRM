@@ -17,6 +17,18 @@ spring:
             - Path=/identity/api/test
           filters:
             - StripPrefix=1
+        - id: identity-auth
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/api/auth/**
+          filters:
+            - StripPrefix=1
+        - id: identity-users
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/api/users/**
+          filters:
+            - StripPrefix=1
         - id: employee-test
           uri: lb://EMPLOYEE-SERVICE
           predicates:
@@ -111,4 +123,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: '*'
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

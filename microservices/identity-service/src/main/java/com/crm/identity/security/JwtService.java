@@ -26,12 +26,27 @@ public class JwtService {
     public static final String CLAIM_EMAIL = "email";
     public static final String CLAIM_ENABLED = "enabled";
 
+    private static final String SECRET_ENV_VAR = "APP_JWT_SECRET";
+    private static final String DEFAULT_SECRET = "0123456789abcdef0123456789abcdef";
+
     private final SecretKey secretKey;
 
     public JwtService() {
-        this.secretKey = Keys.hmacShaKeyFor(
-                "dev-change-me-dev-change-me-dev-change-me-dev-change-me".getBytes(StandardCharsets.UTF_8)
-        );
+        this(resolveSecretFromEnvironment());
+    }
+
+    private static String resolveSecretFromEnvironment() {
+        String secret = System.getenv(SECRET_ENV_VAR);
+        if (secret == null || secret.isBlank()) {
+            secret = System.getProperty("app.jwt.secret");
+        }
+        if (secret == null || secret.isBlank()) {
+            secret = System.getProperty(SECRET_ENV_VAR);
+        }
+        if (secret == null || secret.isBlank()) {
+            return DEFAULT_SECRET;
+        }
+        return secret;
     }
 
     public JwtService(String secret) {

@@ -26,7 +26,7 @@ public class JwtSecurityAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public JwtService jwtService(
-            @Value("${app.jwt.secret:" + JwtService.DEFAULT_SECRET + "}") String secret) {
+            @Value("${app.jwt.secret:${APP_JWT_SECRET:}}") String secret) {
         return new JwtService(secret);
     }
 
