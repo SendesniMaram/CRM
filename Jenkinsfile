@@ -163,7 +163,33 @@ pipeline {
         }
 
         // =====================================================================
-        // STAGE 7 : Résumé final
+        // STAGE 7 : Compilation Maven
+        // ---------------------------------------------------------------------
+        // Compile exclusivement les modules Maven du dossier microservices,
+        // sans lancer les tests ni construire les images Docker.
+        // =====================================================================
+        stage('Compilation Maven') {
+            steps {
+                script {
+                    echo '================ COMPILATION MAVEN ================'
+                    sh 'cd microservices/common-security && mvn clean compile'
+                    sh 'cd microservices/discovery-service && mvn clean compile'
+                    sh 'cd microservices/gateway-service && mvn clean compile'
+                    sh 'cd microservices/identity-service && mvn clean compile'
+                    sh 'cd microservices/customer-service && mvn clean compile'
+                    sh 'cd microservices/department-service && mvn clean compile'
+                    sh 'cd microservices/employee-service && mvn clean compile'
+                    sh 'cd microservices/fees-service && mvn clean compile'
+                    sh 'cd microservices/hr-service && mvn clean compile'
+                    sh 'cd microservices/invoice-service && mvn clean compile'
+                    sh 'cd microservices/payroll-service && mvn clean compile'
+                    echo '===================================================='
+                }
+            }
+        }
+
+        // =====================================================================
+        // STAGE 8 : Résumé final
         // ---------------------------------------------------------------------
         // Affiche un récapitulatif de toutes les vérifications effectuées.
         // Ce stage n'atteint ce point que si toutes les vérifications
