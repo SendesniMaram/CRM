@@ -189,7 +189,90 @@ pipeline {
         }
 
         // =====================================================================
-        // STAGE 8 : Résumé final
+        // STAGE 8 : Tests Maven
+        // ---------------------------------------------------------------------
+        // Exécute la suite de tests unitaires et d'intégration de chaque
+        // microservice via la commande `mvn test`.
+        //
+        // Points importants :
+        //   - `common-security` a déjà été installé dans le dépôt Maven local
+        //     à l'étape 'Compilation Maven' (`mvn clean install -DskipTests`),
+        //     les autres services peuvent donc résoudre cette dépendance
+        //     pendant leurs propres tests.
+        //   - `mvn test` se termine en SUCCESS même si un module ne contient
+        //     aucun test (comportement par défaut de Surefire), ce qui
+        //     garantit que le pipeline ne casse pas si un service n'a pas
+        //     encore de tests ou si ses tests sont désactivés.
+        //   - Ce stage s'exécute APRÈS la compilation, conformément à
+        //     l'objectif : les tests doivent être exécutés après le build.
+        //   - On n'utilise PAS `clean` ici : la compilation a déjà été
+        //     effectuée au stage 'Compilation Maven'. `mvn test` réutilise
+        //     les classes déjà compilées (target/classes) et ne recompile
+        //     que le code de test (target/test-classes), ce qui évite une
+        //     recompilation inutile de tout le projet.
+        // =====================================================================
+        stage('Tests Maven') {
+            steps {
+                script {
+                    echo '==================== TESTS MAVEN ===================='
+                    sh 'cd microservices/common-security && mvn test'
+                    sh 'cd microservices/customer-service && mvn test'
+                    sh 'cd microservices/department-service && mvn test'
+                    sh 'cd microservices/employee-service && mvn test'
+                    sh 'cd microservices/fees-service && mvn test'
+                    sh 'cd microservices/hr-service && mvn test'
+                    sh 'cd microservices/invoice-service && mvn test'
+                    sh 'cd microservices/payroll-service && mvn test'
+                    sh 'cd microservices/discovery-service && mvn test'
+                    sh 'cd microservices/gateway-service && mvn test'
+                    sh 'cd microservices/identity-service && mvn test'
+                    echo '======================================================'
+                }
+            }
+        }
+
+        // =====================================================================
+        // STAGE 9 : Packaging Maven
+        // ---------------------------------------------------------------------
+        // Produit le fichier JAR de chaque microservice via Maven.
+        //
+        // Points importants :
+        //   - `mvn package` empaquète le projet : pour les services Spring Boot,
+        //     le spring-boot-maven-plugin génère un JAR "exécutable" (fat jar)
+        //     contenant les classes (BOOT-INF/classes) et les dépendances
+        //     (BOOT-INF/lib). Pour common-security (module de type bibliothèque),
+        //     il produit un JAR simple réutilisé comme dépendance par les
+        //     services métier.
+        //   - L'option `-DskipTests` évite de relancer les tests, déjà exécutés
+        //     avec succès au stage 'Tests Maven'. Le code est donc déjà validé
+        //     et le packaging est plus rapide (pas de recompilation des tests).
+        //   - Les commandes `sh` sont exécutées séquentiellement : si un
+        //     `mvn package` échoue (code retour non nul), la step échoue et
+        //     Jenkins interrompt immédiatement le pipeline. Un seul service
+        //     défaillant empêche la production des JAR suivants.
+        // =====================================================================
+        stage('Packaging Maven') {
+            steps {
+                script {
+                    echo '==================== PACKAGING MAVEN ===================='
+                    sh 'cd microservices/common-security && mvn package -DskipTests'
+                    sh 'cd microservices/discovery-service && mvn package -DskipTests'
+                    sh 'cd microservices/gateway-service && mvn package -DskipTests'
+                    sh 'cd microservices/identity-service && mvn package -DskipTests'
+                    sh 'cd microservices/customer-service && mvn package -DskipTests'
+                    sh 'cd microservices/department-service && mvn package -DskipTests'
+                    sh 'cd microservices/employee-service && mvn package -DskipTests'
+                    sh 'cd microservices/fees-service && mvn package -DskipTests'
+                    sh 'cd microservices/hr-service && mvn package -DskipTests'
+                    sh 'cd microservices/invoice-service && mvn package -DskipTests'
+                    sh 'cd microservices/payroll-service && mvn package -DskipTests'
+                    echo '========================================================='
+                }
+            }
+        }
+
+        // =====================================================================
+        // STAGE 10 : Résumé final
         // ---------------------------------------------------------------------
         // Affiche un récapitulatif de toutes les vérifications effectuées.
         // Ce stage n'atteint ce point que si toutes les vérifications
@@ -205,6 +288,9 @@ pipeline {
                 echo '  - docker-compose.yml présent  : OK'
                 echo '  - microservices/ présent      : OK'
                 echo '  - backend/ présent            : OK'
+                echo '  - Compilation Maven           : OK'
+                echo '  - Tests Maven                 : OK'
+                echo '  - Packaging Maven             : OK'
                 echo 'Le pipeline V1 se termine en SUCCESS.'
                 echo '======================================================'
             }
