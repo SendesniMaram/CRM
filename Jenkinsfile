@@ -172,7 +172,7 @@ pipeline {
             steps {
                 script {
                     echo '================ COMPILATION MAVEN ================'
-                    sh 'cd microservices/common-security && mvn clean compile'
+                    sh 'cd microservices/common-security && mvn clean install -DskipTests'
                     sh 'cd microservices/discovery-service && mvn clean compile'
                     sh 'cd microservices/gateway-service && mvn clean compile'
                     sh 'cd microservices/identity-service && mvn clean compile'
