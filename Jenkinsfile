@@ -1,23 +1,3 @@
-// =============================================================================
-// Jenkinsfile — CRM Spring Boot Microservices (Version 1)
-// -----------------------------------------------------------------------------
-// Pipeline déclaratif Jenkins moderne pour un projet multi-modules :
-//   - backend/                      -> monolithe Spring Boot
-//   - microservices/                -> architecture microservices Spring Cloud
-//   - docker-compose.yml            -> orchestration Docker Compose
-//
-// NOTE IMPORTANTE (V1) :
-//   Maven n'est PAS encore installé dans le conteneur Jenkins.
-//   Ce premier pipeline NE lance donc ni compilation, ni tests,
-//   ni build Docker, ni docker-compose.
-//   Il sert uniquement de base évolutive : il vérifie que la structure
-//   du dépôt est correcte et que le workspace contient tous les éléments
-//   nécessaires avant d'ajouter plus tard les étapes de build.
-//
-// Le pipeline se termine en SUCCESS uniquement si toutes les vérifications
-// structurelles passent.
-// =============================================================================
-
 pipeline {
     // -------------------------------------------------------------------------
     // agent : exécute le pipeline sur un agent Jenkins (n'importe lequel).
@@ -49,6 +29,40 @@ pipeline {
     }
 
     stages {
+                // =====================================================================
+        // STAGE 0 (TEMPORAIRE) : Audit de l'environnement Jenkins
+        // ---------------------------------------------------------------------
+        // Vérifie la présence et les versions de Java, Maven et Docker.
+        // Ce stage est uniquement destiné à l'audit de l'agent Jenkins.
+        // Il ne bloque pas le pipeline si un outil est absent.
+        // =====================================================================
+        stage('Environment Audit') {
+            steps {
+                script {
+                    echo '================ ENVIRONMENT AUDIT ================'
+
+                    // ---- 1. Java ----
+                    echo '--- Java ---'
+                    sh 'java -version 2>&1 || echo "JAVA ABSENT"'
+                    sh 'javac -version 2>&1 || echo "JDK (javac) ABSENT"'
+                    echo "JAVA_HOME = ${env.JAVA_HOME ?: 'non défini'}"
+
+                    // ---- 2. Maven ----
+                    echo '--- Maven ---'
+                    sh 'command -v mvn || echo "MAVEN ABSENT (commande mvn introuvable)"'
+                    sh 'mvn -v 2>&1 || echo "MAVEN NON EXECUTABLE"'
+
+                    // ---- 3. Docker ----
+                    echo '--- Docker ---'
+                    sh 'command -v docker || echo "DOCKER ABSENT (commande docker introuvable)"'
+                    sh 'docker --version 2>&1 || echo "DOCKER NON EXECUTABLE"'
+                    sh 'docker compose version 2>&1 || echo "DOCKER COMPOSE v2 ABSENT"'
+
+                    echo '--- FIN AUDIT ---'
+                    echo '==================================================='
+                }
+            }
+        }
 
         // =====================================================================
         // STAGE 1 : Checkout du dépôt
