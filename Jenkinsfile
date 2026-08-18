@@ -748,7 +748,7 @@ withCredentials([usernamePassword(
                     def testArtifacts = 'microservices/**/target/surefire-reports/*.xml'
 
                     // 2. Message : types d'artefacts archivés.
-                    echo 'Types d'artefacts à archiver :'
+                    echo "Types d'artefacts à archiver :"
                     echo "  - JAR          : ${jarArtifacts}"
                     echo "  - Rapports tests XML : ${testArtifacts}"
 
