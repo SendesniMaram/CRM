@@ -532,7 +532,7 @@ stage('Docker Compose Integration Test') {
                             def name     = c[0]
                             def port     = c[1]
                             def endpoint = c[2]
-                            def url      = "http://localhost:${port}${endpoint}"
+                            def url      = "http://host.docker.internal:${port}${endpoint}"
                             def healthy  = false
 
                             echo "  -> Contrôle de santé de ${name} via ${url}"
