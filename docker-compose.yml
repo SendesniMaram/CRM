@@ -24,7 +24,6 @@
 # -----------------------------------------------------------------------------
 volumes:
   mysql-data:
-    name: mysql-data
     # Les données MySQL survivent à « docker compose down ».
     # Seul « docker compose down -v » les supprime.
 
@@ -33,7 +32,6 @@ volumes:
 # -----------------------------------------------------------------------------
 networks:
   crm-network:
-    name: crm-network
     driver: bridge
     # Tous les conteneurs du projet communiquent par leur nom de service
     # sur ce réseau privé de type bridge.
@@ -48,7 +46,6 @@ services:
   # ===========================================================================
   mysql:
     image: mysql:8.0
-    container_name: crm-mysql
     restart: unless-stopped
 
     environment:
@@ -83,7 +80,6 @@ services:
       context: ./microservices/discovery-service
       dockerfile: Dockerfile
     image: crm/discovery-service:latest
-    container_name: discovery-service
     restart: unless-stopped
     ports:
       - "8761:8761"
@@ -98,7 +94,6 @@ services:
       context: ./microservices/gateway-service
       dockerfile: Dockerfile
     image: crm/gateway-service:latest
-    container_name: gateway-service
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -119,7 +114,6 @@ services:
       context: ./microservices/identity-service
       dockerfile: Dockerfile
     image: crm/identity-service:latest
-    container_name: identity-service
     restart: unless-stopped
     ports:
       - "8082:8082"
@@ -144,7 +138,6 @@ services:
       context: ./microservices/employee-service
       dockerfile: Dockerfile
     image: crm/employee-service:latest
-    container_name: employee-service
     restart: unless-stopped
     ports:
       - "8083:8083"
@@ -173,7 +166,6 @@ services:
       context: ./microservices/department-service
       dockerfile: Dockerfile
     image: crm/department-service:latest
-    container_name: department-service
     restart: unless-stopped
     ports:
       - "8084:8084"
@@ -202,7 +194,6 @@ services:
       context: ./microservices/customer-service
       dockerfile: Dockerfile
     image: crm/customer-service:latest
-    container_name: customer-service
     restart: unless-stopped
     ports:
       - "8085:8085"
@@ -231,7 +222,6 @@ services:
       context: ./microservices/hr-service
       dockerfile: Dockerfile
     image: crm/hr-service:latest
-    container_name: hr-service
     restart: unless-stopped
     ports:
       - "8086:8086"
@@ -260,7 +250,6 @@ services:
       context: ./microservices/payroll-service
       dockerfile: Dockerfile
     image: crm/payroll-service:latest
-    container_name: payroll-service
     restart: unless-stopped
     ports:
       - "8087:8087"
@@ -289,7 +278,6 @@ services:
       context: ./microservices/fees-service
       dockerfile: Dockerfile
     image: crm/fees-service:latest
-    container_name: fees-service
     restart: unless-stopped
     ports:
       - "8088:8088"
@@ -318,7 +306,6 @@ services:
       context: ./microservices/invoice-service
       dockerfile: Dockerfile
     image: crm/invoice-service:latest
-    container_name: invoice-service
     restart: unless-stopped
     ports:
       - "8089:8089"
