@@ -480,6 +480,19 @@ stage('Docker Compose Integration Test') {
                         echo 'État des conteneurs (docker compose ps) :'
                         sh 'docker compose ps'
 
+                        // Le nom du réseau est produit par Docker Compose et dépend
+                        // du projet courant. On le récupère depuis le conteneur
+                        // discovery-service au lieu de le coder en dur.
+                        def composeNetwork = sh(
+                            script: '''docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$(docker compose ps -q discovery-service)"''',
+                            returnStdout: true
+                        ).trim()
+
+                        if (!composeNetwork) {
+                            error 'ERREUR : impossible de déterminer le réseau Docker Compose du build.'
+                        }
+                        echo "Réseau Docker Compose détecté : ${composeNetwork}"
+
                         // ==========================================================
                         // 4. VÉRIFICATION RÉELLE DE SANTÉ APPLICATIVE (retry)
                         // ==========================================================
@@ -509,8 +522,8 @@ stage('Docker Compose Integration Test') {
                         def retryDelaySec = 5    // attente entre 2 tentatives (secondes)
                         def connectTo     = 5    // timeout de connexion curl (secondes)
 
-                        // Liste des contrôles : [nom, port_hôte, endpoint, code_attendu].
-                        // Les ports sont ceux publiés par docker-compose.yml sur le host.
+                        // Liste des contrôles : [nom du service, port interne, endpoint, code attendu].
+                        // Les services sont interrogés directement sur le réseau Compose.
                         def healthChecks = [
                             ['discovery-service',  8761, '/eureka/apps',       '200'],
                             ['gateway-service',    8080, '/actuator/health',   '200'],
@@ -532,17 +545,17 @@ stage('Docker Compose Integration Test') {
                             def name     = c[0]
                             def port     = c[1]
                             def endpoint = c[2]
-                            def url      = "http://host.docker.internal:${port}${endpoint}"
+                            def url      = "http://${name}:${port}${endpoint}"
                             def healthy  = false
 
                             echo "  -> Contrôle de santé de ${name} via ${url}"
 
                             // Boucle de retry jusqu'à maxRetries tentatives.
                             for (int attempt = 1; attempt <= maxRetries; attempt++) {
-                                // curl silencieux, on ne récupère que le code HTTP.
+                                // Le conteneur curl temporaire utilise le DNS du réseau Compose.
                                 // Si la connexion échoue, on renvoie '000'.
                                 def code = sh(
-                                    script: "curl -s -o /dev/null -w '%{http_code}' --connect-timeout ${connectTo} --max-time 10 ${url} || echo '000'",
+                                    script: "docker run --rm --network ${composeNetwork} curlimages/curl -s -o /dev/null -w '%{http_code}' --connect-timeout ${connectTo} --max-time 10 ${url} || echo '000'",
                                     returnStdout: true
                                 ).trim()
 
