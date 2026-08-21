@@ -39,8 +39,8 @@ environment {
         //          <username>/crm-discovery-service:build-${BUILD_NUMBER}
         //          <username>/crm-discovery-service:latest
         // -----------------------------------------------------------------
-        DOCKER_REGISTRY   = ''
-        DOCKER_IMAGE_BASE = ''
+        DOCKER_REGISTRY   = 'docker.io'
+        DOCKER_IMAGE_BASE = 'sendesnimaram'
     }
 
     stages {
