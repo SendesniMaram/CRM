@@ -577,11 +577,15 @@ stage('Docker Compose Integration Test') {
                                 def code = powershell(
                                     script: """
 \$result = docker run --rm --network '${composeNetwork}' curlimages/curl -s -o /dev/null -w '%{http_code}' --connect-timeout ${connectTo} --max-time 10 '${url}'
-if (\$LASTEXITCODE -ne 0 -or -not \$result) {
+\$curlExitCode = \$LASTEXITCODE
+
+if (\$curlExitCode -ne 0 -or -not \$result) {
     Write-Output '000'
-} else {
-    Write-Output \$result.Trim()
+    exit 0
 }
+
+Write-Output \$result.Trim()
+exit 0
 """,
                                     returnStdout: true
                                 ).trim()
