@@ -483,26 +483,34 @@ stage('Docker Compose Integration Test') {
                         // Le nom du réseau est produit par Docker Compose et dépend
                         // du projet courant. On le récupère depuis le conteneur
                         // discovery-service au lieu de le coder en dur.
-                        def composeNetwork = powershell(
-                            script: '''
-$containerId = (docker compose ps -q discovery-service | Select-Object -First 1).Trim()
-if (-not $containerId) {
-    Write-Error 'Conteneur discovery-service introuvable.'
-    exit 1
-}
-$network = (docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' $containerId | Select-Object -First 1).Trim()
-if (-not $network) {
-    Write-Error 'Réseau Docker Compose introuvable.'
-    exit 1
-}
-Write-Output $network
-''',
-                            returnStdout: true
-                        ).trim()
+                        def containerId
+                        try {
+                            containerId = bat(
+                                script: '@docker compose ps -q discovery-service',
+                                returnStdout: true
+                            ).trim()
+                        } catch (Exception ex) {
+                            error "ERREUR 21 : impossible d'obtenir le container ID de discovery-service."
+                        }
+
+                        if (!containerId) {
+                            error 'ERREUR 22 : le container ID de discovery-service est vide.'
+                        }
+
+                        def composeNetwork
+                        try {
+                            composeNetwork = bat(
+                                script: '@docker inspect --format "{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}" ' + containerId,
+                                returnStdout: true
+                            ).trim()
+                        } catch (Exception ex) {
+                            error "ERREUR 23 : impossible d'inspecter le conteneur ${containerId}."
+                        }
 
                         if (!composeNetwork) {
-                            error 'ERREUR : impossible de déterminer le réseau Docker Compose du build.'
+                            error "ERREUR 24 : aucun réseau trouvé pour le conteneur ${containerId}."
                         }
+
                         echo "Réseau Docker Compose détecté : ${composeNetwork}"
 
                         // ==========================================================
