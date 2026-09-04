@@ -58,20 +58,20 @@ environment {
 
                     // ---- 1. Java ----
                     echo '--- Java ---'
-                    sh 'java -version 2>&1 || echo "JAVA ABSENT"'
-                    sh 'javac -version 2>&1 || echo "JDK (javac) ABSENT"'
+                    bat 'java -version 2>&1 || echo JAVA ABSENT'
+                    bat 'javac -version 2>&1 || echo JDK (javac) ABSENT'
                     echo "JAVA_HOME = ${env.JAVA_HOME ?: 'non défini'}"
 
                     // ---- 2. Maven ----
                     echo '--- Maven ---'
-                    sh 'command -v mvn || echo "MAVEN ABSENT (commande mvn introuvable)"'
-                    sh 'mvn -v 2>&1 || echo "MAVEN NON EXECUTABLE"'
+                    bat 'where mvn >nul 2>&1 || echo MAVEN ABSENT (commande mvn introuvable)'
+                    bat 'mvn -v 2>&1 || echo MAVEN NON EXECUTABLE'
 
                     // ---- 3. Docker ----
                     echo '--- Docker ---'
-                    sh 'command -v docker || echo "DOCKER ABSENT (commande docker introuvable)"'
-                    sh 'docker --version 2>&1 || echo "DOCKER NON EXECUTABLE"'
-                    sh 'docker compose version 2>&1 || echo "DOCKER COMPOSE v2 ABSENT"'
+                    bat 'where docker >nul 2>&1 || echo DOCKER ABSENT (commande docker introuvable)'
+                    bat 'docker --version 2>&1 || echo DOCKER NON EXECUTABLE'
+                    bat 'docker compose version 2>&1 || echo DOCKER COMPOSE v2 ABSENT'
 
                     echo '--- FIN AUDIT ---'
                     echo '==================================================='
@@ -127,10 +127,10 @@ environment {
                     echo '================ WORKSPACE CONTENT ================'
                     // Liste récursive simplifiée des 2 premiers niveaux
                     // pour avoir une vue d'ensemble sans surcharger les logs.
-                    sh 'ls -la'
+                    bat 'dir /a'
                     echo '----------------------------------------------------'
                     echo 'Contenu du dossier microservices :'
-                    sh 'ls -la microservices 2>/dev/null || echo "microservices absent"'
+                    bat 'dir /a microservices 2>nul || echo microservices absent'
                     echo '===================================================='
                 }
             }
@@ -201,17 +201,17 @@ environment {
             steps {
                 script {
                     echo '================ COMPILATION MAVEN ================'
-                    sh 'cd microservices/common-security && mvn clean install -DskipTests'
-                    sh 'cd microservices/discovery-service && mvn clean compile'
-                    sh 'cd microservices/gateway-service && mvn clean compile'
-                    sh 'cd microservices/identity-service && mvn clean compile'
-                    sh 'cd microservices/customer-service && mvn clean compile'
-                    sh 'cd microservices/department-service && mvn clean compile'
-                    sh 'cd microservices/employee-service && mvn clean compile'
-                    sh 'cd microservices/fees-service && mvn clean compile'
-                    sh 'cd microservices/hr-service && mvn clean compile'
-                    sh 'cd microservices/invoice-service && mvn clean compile'
-                    sh 'cd microservices/payroll-service && mvn clean compile'
+                    bat 'cd /d microservices/common-security && mvn clean install -DskipTests'
+                    bat 'cd /d microservices/discovery-service && mvn clean compile'
+                    bat 'cd /d microservices/gateway-service && mvn clean compile'
+                    bat 'cd /d microservices/identity-service && mvn clean compile'
+                    bat 'cd /d microservices/customer-service && mvn clean compile'
+                    bat 'cd /d microservices/department-service && mvn clean compile'
+                    bat 'cd /d microservices/employee-service && mvn clean compile'
+                    bat 'cd /d microservices/fees-service && mvn clean compile'
+                    bat 'cd /d microservices/hr-service && mvn clean compile'
+                    bat 'cd /d microservices/invoice-service && mvn clean compile'
+                    bat 'cd /d microservices/payroll-service && mvn clean compile'
                     echo '===================================================='
                 }
             }
@@ -244,17 +244,17 @@ environment {
             steps {
                 script {
                     echo '==================== TESTS MAVEN ===================='
-                    sh 'cd microservices/common-security && mvn test'
-                    sh 'cd microservices/customer-service && mvn test'
-                    sh 'cd microservices/department-service && mvn test'
-                    sh 'cd microservices/employee-service && mvn test'
-                    sh 'cd microservices/fees-service && mvn test'
-                    sh 'cd microservices/hr-service && mvn test'
-                    sh 'cd microservices/invoice-service && mvn test'
-                    sh 'cd microservices/payroll-service && mvn test'
-                    sh 'cd microservices/discovery-service && mvn test'
-                    sh 'cd microservices/gateway-service && mvn test'
-                    sh 'cd microservices/identity-service && mvn test'
+                    bat 'cd /d microservices/common-security && mvn test'
+                    bat 'cd /d microservices/customer-service && mvn test'
+                    bat 'cd /d microservices/department-service && mvn test'
+                    bat 'cd /d microservices/employee-service && mvn test'
+                    bat 'cd /d microservices/fees-service && mvn test'
+                    bat 'cd /d microservices/hr-service && mvn test'
+                    bat 'cd /d microservices/invoice-service && mvn test'
+                    bat 'cd /d microservices/payroll-service && mvn test'
+                    bat 'cd /d microservices/discovery-service && mvn test'
+                    bat 'cd /d microservices/gateway-service && mvn test'
+                    bat 'cd /d microservices/identity-service && mvn test'
                     echo '======================================================'
                 }
             }
@@ -284,17 +284,17 @@ environment {
             steps {
                 script {
                     echo '==================== PACKAGING MAVEN ===================='
-                    sh 'cd microservices/common-security && mvn package -DskipTests'
-                    sh 'cd microservices/discovery-service && mvn package -DskipTests'
-                    sh 'cd microservices/gateway-service && mvn package -DskipTests'
-                    sh 'cd microservices/identity-service && mvn package -DskipTests'
-                    sh 'cd microservices/customer-service && mvn package -DskipTests'
-                    sh 'cd microservices/department-service && mvn package -DskipTests'
-                    sh 'cd microservices/employee-service && mvn package -DskipTests'
-                    sh 'cd microservices/fees-service && mvn package -DskipTests'
-                    sh 'cd microservices/hr-service && mvn package -DskipTests'
-                    sh 'cd microservices/invoice-service && mvn package -DskipTests'
-                    sh 'cd microservices/payroll-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/common-security && mvn package -DskipTests'
+                    bat 'cd /d microservices/discovery-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/gateway-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/identity-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/customer-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/department-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/employee-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/fees-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/hr-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/invoice-service && mvn package -DskipTests'
+                    bat 'cd /d microservices/payroll-service && mvn package -DskipTests'
                     echo '========================================================='
                 }
             }
@@ -332,7 +332,7 @@ environment {
                     // 1. Vérification de la disponibilité de Docker.
                     // Si la commande échoue (docker absent ou non exécutable),
                     // le pipeline s'arrête immédiatement.
-                    sh 'docker --version'
+                    bat 'docker --version'
 
 // 2. Construction des images Docker des 10 microservices
                     //    disposant d'un Dockerfile. Ces commandes sont
@@ -349,34 +349,34 @@ environment {
                     def buildTag = "build-${BUILD_NUMBER}"
 
                     echo "Construction de l'image discovery-service (${buildTag})"
-                    sh "docker build -t crm/discovery-service:${buildTag} -t crm/discovery-service:latest ./microservices/discovery-service"
+                    bat "docker build -t crm/discovery-service:${buildTag} -t crm/discovery-service:latest ./microservices/discovery-service"
 
                     echo "Construction de l'image gateway-service (${buildTag})"
-                    sh "docker build -t crm/gateway-service:${buildTag} -t crm/gateway-service:latest ./microservices/gateway-service"
+                    bat "docker build -t crm/gateway-service:${buildTag} -t crm/gateway-service:latest ./microservices/gateway-service"
 
                     echo "Construction de l'image identity-service (${buildTag})"
-                    sh "docker build -t crm/identity-service:${buildTag} -t crm/identity-service:latest ./microservices/identity-service"
+                    bat "docker build -t crm/identity-service:${buildTag} -t crm/identity-service:latest ./microservices/identity-service"
 
                     echo "Construction de l'image customer-service (${buildTag})"
-                    sh "docker build -t crm/customer-service:${buildTag} -t crm/customer-service:latest ./microservices/customer-service"
+                    bat "docker build -t crm/customer-service:${buildTag} -t crm/customer-service:latest ./microservices/customer-service"
 
                     echo "Construction de l'image department-service (${buildTag})"
-                    sh "docker build -t crm/department-service:${buildTag} -t crm/department-service:latest ./microservices/department-service"
+                    bat "docker build -t crm/department-service:${buildTag} -t crm/department-service:latest ./microservices/department-service"
 
                     echo "Construction de l'image employee-service (${buildTag})"
-                    sh "docker build -t crm/employee-service:${buildTag} -t crm/employee-service:latest ./microservices/employee-service"
+                    bat "docker build -t crm/employee-service:${buildTag} -t crm/employee-service:latest ./microservices/employee-service"
 
                     echo "Construction de l'image fees-service (${buildTag})"
-                    sh "docker build -t crm/fees-service:${buildTag} -t crm/fees-service:latest ./microservices/fees-service"
+                    bat "docker build -t crm/fees-service:${buildTag} -t crm/fees-service:latest ./microservices/fees-service"
 
                     echo "Construction de l'image hr-service (${buildTag})"
-                    sh "docker build -t crm/hr-service:${buildTag} -t crm/hr-service:latest ./microservices/hr-service"
+                    bat "docker build -t crm/hr-service:${buildTag} -t crm/hr-service:latest ./microservices/hr-service"
 
                     echo "Construction de l'image invoice-service (${buildTag})"
-                    sh "docker build -t crm/invoice-service:${buildTag} -t crm/invoice-service:latest ./microservices/invoice-service"
+                    bat "docker build -t crm/invoice-service:${buildTag} -t crm/invoice-service:latest ./microservices/invoice-service"
 
                     echo "Construction de l'image payroll-service (${buildTag})"
-                    sh "docker build -t crm/payroll-service:${buildTag} -t crm/payroll-service:latest ./microservices/payroll-service"
+                    bat "docker build -t crm/payroll-service:${buildTag} -t crm/payroll-service:latest ./microservices/payroll-service"
 
                     echo '======================================================='
                 }
@@ -409,7 +409,7 @@ environment {
 
                     // 1. Vérification de la disponibilité de Docker Compose.
                     //    Si `docker compose` est absent, le pipeline s'arrête.
-                    sh 'docker compose version'
+                    bat 'docker compose version'
 
                     // 2. Vérification de la présence du fichier docker-compose.yml.
                     //    Obligatoire : le pipeline s'arrête s'il est introuvable.
@@ -422,7 +422,7 @@ environment {
                     // 3. Validation de la syntaxe / configuration.
                     //    BLOQUANT : si `docker compose config` échoue (YAML ou
                     //    configuration invalide), le pipeline s'arrête.
-                    sh 'docker compose config'
+                    bat 'docker compose config'
 
                     echo 'OK : la configuration Docker Compose est valide.'
                     echo '==================================================='
@@ -468,23 +468,35 @@ stage('Docker Compose Integration Test') {
                     // même si le test échoue, pour nettoyer l'environnement.
                     try {
                         // 1. Vérification de la disponibilité de Docker Compose.
-                        sh 'docker compose version'
+                        bat 'docker compose version'
 
                         // 2. Démarrage de l'architecture conteneurisée.
                         //    BLOQUANT : si cette commande échoue, une exception
                         //    est levée -> le pipeline échoue (puis finally nettoie).
                         echo "Démarrage de l'environnement avec docker compose up -d ..."
-                        sh 'docker compose up -d'
+                        bat 'docker compose up -d'
 
                         // 3. Affichage de l'état des conteneurs (démarrés ou non).
                         echo 'État des conteneurs (docker compose ps) :'
-                        sh 'docker compose ps'
+                        bat 'docker compose ps'
 
                         // Le nom du réseau est produit par Docker Compose et dépend
                         // du projet courant. On le récupère depuis le conteneur
                         // discovery-service au lieu de le coder en dur.
-                        def composeNetwork = sh(
-                            script: '''docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' "$(docker compose ps -q discovery-service)"''',
+                        def composeNetwork = powershell(
+                            script: '''
+$containerId = (docker compose ps -q discovery-service | Select-Object -First 1).Trim()
+if (-not $containerId) {
+    Write-Error 'Conteneur discovery-service introuvable.'
+    exit 1
+}
+$network = (docker inspect --format '{{range $name, $_ := .NetworkSettings.Networks}}{{println $name}}{{end}}' $containerId | Select-Object -First 1).Trim()
+if (-not $network) {
+    Write-Error 'Réseau Docker Compose introuvable.'
+    exit 1
+}
+Write-Output $network
+''',
                             returnStdout: true
                         ).trim()
 
@@ -554,8 +566,15 @@ stage('Docker Compose Integration Test') {
                             for (int attempt = 1; attempt <= maxRetries; attempt++) {
                                 // Le conteneur curl temporaire utilise le DNS du réseau Compose.
                                 // Si la connexion échoue, on renvoie '000'.
-                                def code = sh(
-                                    script: "docker run --rm --network ${composeNetwork} curlimages/curl -s -o /dev/null -w '%{http_code}' --connect-timeout ${connectTo} --max-time 10 ${url} || echo '000'",
+                                def code = powershell(
+                                    script: """
+\$result = docker run --rm --network '${composeNetwork}' curlimages/curl -s -o /dev/null -w '%{http_code}' --connect-timeout ${connectTo} --max-time 10 '${url}'
+if (\$LASTEXITCODE -ne 0 -or -not \$result) {
+    Write-Output '000'
+} else {
+    Write-Output \$result.Trim()
+}
+""",
                                     returnStdout: true
                                 ).trim()
 
@@ -585,8 +604,8 @@ stage('Docker Compose Integration Test') {
                         // pipeline (le finally exécutera ensuite docker compose down).
                         if (!allHealthy) {
                             echo 'Un ou plusieurs services ne sont pas sains. Diagnostic :'
-                            sh 'docker compose ps'
-                            sh 'docker compose logs --tail=100'
+                            bat 'docker compose ps'
+                            bat 'docker compose logs --tail=100'
                             // Stage BLOQUANT : le pipeline termine en FAILURE.
                             error 'ERREUR : un ou plusieurs services ne sont pas devenus opérationnels. Pipeline en FAILURE.'
                         }
@@ -594,14 +613,14 @@ stage('Docker Compose Integration Test') {
                         // Si tout est sain : affichage des logs récents (résumé)
                         // pour le diagnostic, sans bloquer le pipeline.
                         echo 'Tous les services sont opérationnels. Logs récents (résumé) :'
-                        sh 'docker compose logs --tail=50'
+                        bat 'docker compose logs --tail=50'
 
                         echo "OK : le test d'intégration Docker Compose est terminé (tous les services sains)."
                     } finally {
                         // Nettoyage OBLIGATOIRE de l'environnement, exécuté
                         // que le test réussisse ou échoue.
                         echo "Nettoyage de l'environnement (docker compose down) ..."
-                        sh 'docker compose down'
+                        bat 'docker compose down'
                         echo 'Environnement arrêté et nettoyé.'
                     }
                     echo '==================================================='
@@ -646,7 +665,7 @@ stage('Docker Compose Integration Test') {
                     echo '==================== DOCKER PUSH ===================='
 
                     // 1. Vérification de la disponibilité de Docker.
-                    sh 'docker --version'
+                    bat 'docker --version'
 
                     // 2. Vérification de DOCKER_REGISTRY et DOCKER_IMAGE_BASE.
                     //    Obligatoires : sans eux, impossible de taguer/pousser.
@@ -686,7 +705,9 @@ withCredentials([usernamePassword(
                         // Méthode SÉCURISÉE : le mot de passe est envoyé via
                         // stdin (--password-stdin) et n'apparaît JAMAIS en clair
                         // dans les logs ni dans la ligne de commande.
-                        sh "echo '${DOCKER_REGISTRY_PASSWORD}' | docker login '${DOCKER_REGISTRY}' -u '${DOCKER_REGISTRY_USER}' --password-stdin"
+                        powershell '''
+$env:DOCKER_REGISTRY_PASSWORD | docker login $env:DOCKER_REGISTRY -u $env:DOCKER_REGISTRY_USER --password-stdin
+'''
                         echo 'docker login effectué avec succès.'
                     }
 
@@ -703,13 +724,13 @@ withCredentials([usernamePassword(
 
                         // Tag build-${BUILD_NUMBER}
                         echo "Tag + push de ${registryImage}:${buildTag}"
-                        sh "docker tag ${localImage}:${buildTag} ${registryImage}:${buildTag}"
-                        sh "docker push ${registryImage}:${buildTag}"
+                        bat "docker tag ${localImage}:${buildTag} ${registryImage}:${buildTag}"
+                        bat "docker push ${registryImage}:${buildTag}"
 
                         // Tag latest
                         echo "Tag + push de ${registryImage}:latest"
-                        sh "docker tag ${localImage}:latest ${registryImage}:latest"
-                        sh "docker push ${registryImage}:latest"
+                        bat "docker tag ${localImage}:latest ${registryImage}:latest"
+                        bat "docker push ${registryImage}:latest"
                     }
 
                     echo 'OK : les 10 images Docker ont été publiées avec succès.'
@@ -769,10 +790,8 @@ withCredentials([usernamePassword(
                     //    On compte les fichiers matches via le workspace.
                     //    (findFileInWorkspace est disponible via la pipeline utility steps,
                     //    mais ici on utilise une approche shell simple et robuste.)
-                    def hasJar = sh(
-                        script: "ls ${jarArtifacts} >/dev/null 2>&1",
-                        returnStatus: true
-                    ) == 0
+                    def jarFiles = findFiles(glob: jarArtifacts)
+                    def hasJar = jarFiles.length > 0
 
                     if (hasJar) {
                         echo 'OK : des JAR ont été trouvés dans microservices/*/target/.'
