@@ -649,8 +649,8 @@ exit 0
         // OBJECTIF :
         //   1. Vérifier que Docker est disponible.
         //   2. Vérifier que DOCKER_REGISTRY et DOCKER_IMAGE_BASE sont définis.
-        //   3. Effectuer un `docker login` SÉCURISÉ via withCredentials
-        //      (le mot de passe ne transite JAMAIS en clair dans les logs).
+        //   3. Générer une configuration Docker temporaire via withCredentials
+        //      (le PAT ne transite JAMAIS en clair dans les logs).
         //   4. Publier les 10 images construites au stage 'Docker Build' avec
         //      chacune DEUX tags : build-${BUILD_NUMBER} et latest.
         //   5. common-security n'est PAS publié (bibliothèque Maven, pas de
@@ -661,12 +661,13 @@ exit 0
         //   - Utilise le credential Jenkins Username/Password dont l'ID est :
         //         docker-registry-credentials
         //   - Le bloc withCredentials est LE SEUL endroit où le credential est
-        //     utilisé (docker login). Il n'est pas utilisé ailleurs.
+        //     utilisé pour générer la configuration Docker temporaire.
         //   - Le credential N'EST PAS créé par ce code : il doit être créé
         //     manuellement dans Jenkins (voir rubrique configuration).
         //
         // COMPORTEMENT :
-        //   - Stage BLOQUANT : si docker login ou un docker push échoue,
+        //   - Stage BLOQUANT : si la configuration d'authentification ou un
+        //     docker push échoue,
         //     le pipeline devient FAILURE.
         //   - Aucun docker compose up/down, aucun déploiement, aucun registre
         //     supplémentaire dans ce stage.
@@ -705,44 +706,76 @@ exit 0
                         'payroll-service'
                     ]
 
-                    // 3. docker login sécurisé via withCredentials.
-                    //    Seul docker login est entouré par le credential.
-                    //    Le mot de passe n'apparaît jamais en clair dans les logs.
-withCredentials([usernamePassword(
+                    // 3. Configuration Docker temporaire via withCredentials.
+                    //    Le PAT n'apparaît jamais dans les logs ni dans la ligne
+                    //    de commande. Aucune authentification interactive
+                    //    n'est exécutée.
+                    def dockerConfig = "${env.WORKSPACE}\\docker-push-config"
+
+                    withCredentials([usernamePassword(
                         credentialsId: 'docker-registry-credentials',
                         usernameVariable: 'DOCKER_REGISTRY_USER',
                         passwordVariable: 'DOCKER_REGISTRY_PASSWORD'
                     )]) {
-                        echo 'Connexion au Docker Registry (docker login) ...'
-                        // Méthode SÉCURISÉE : le mot de passe est envoyé via
-                        // stdin (--password-stdin) et n'apparaît JAMAIS en clair
-                        // dans les logs ni dans la ligne de commande.
-                        powershell '''
-$env:DOCKER_REGISTRY_PASSWORD | docker login $env:DOCKER_REGISTRY -u $env:DOCKER_REGISTRY_USER --password-stdin
+                        try {
+                            powershell '''
+$dockerConfig = Join-Path $env:WORKSPACE 'docker-push-config'
+$env:DOCKER_CONFIG = $dockerConfig
+New-Item -ItemType Directory -Path $dockerConfig -Force | Out-Null
+
+$pair = "$($env:DOCKER_REGISTRY_USER):$($env:DOCKER_REGISTRY_PASSWORD)"
+$encoded = [Convert]::ToBase64String(
+    [System.Text.Encoding]::UTF8.GetBytes($pair)
+)
+
+$config = @{
+    auths = @{
+        "https://index.docker.io/v1/" = @{
+            auth = $encoded
+        }
+    }
+}
+
+$config | ConvertTo-Json -Depth 5 |
+    Set-Content (Join-Path $dockerConfig 'config.json')
 '''
-                        echo 'docker login effectué avec succès.'
-                    }
 
-                    // 4. Tag + push des 10 images (2 tags chacune).
-                    for (String svc : services) {
-                        // Nom local de l'image construit au stage 'Docker Build'.
-                        def localImage = "crm/${svc}"
+                            if (!fileExists("${dockerConfig}\\config.json")) {
+                                error 'ERREUR : le fichier Docker config.json temporaire est introuvable.'
+                            }
 
-                        // Nom complet sur Docker Hub :
-                        //   <username>/crm-<service>:build-${BUILD_NUMBER}
-                        //   <username>/crm-<service>:latest
-                        // (DOCKER_IMAGE_BASE est l'utilisateur Docker Hub, SANS /crm)
-                        def registryImage = "${DOCKER_IMAGE_BASE}/crm-${svc}"
+                            withEnv(["DOCKER_CONFIG=${dockerConfig}"]) {
+                                // 4. Tag + push des 10 images (2 tags chacune).
+                                for (String svc : services) {
+                                    // Nom local de l'image construit au stage 'Docker Build'.
+                                    def localImage = "crm/${svc}"
 
-                        // Tag build-${BUILD_NUMBER}
-                        echo "Tag + push de ${registryImage}:${buildTag}"
-                        bat "docker tag ${localImage}:${buildTag} ${registryImage}:${buildTag}"
-                        bat "docker push ${registryImage}:${buildTag}"
+                                    // Nom complet sur Docker Hub :
+                                    //   <username>/crm-<service>:build-${BUILD_NUMBER}
+                                    //   <username>/crm-<service>:latest
+                                    // (DOCKER_IMAGE_BASE est l'utilisateur Docker Hub, SANS /crm)
+                                    def registryImage = "${DOCKER_IMAGE_BASE}/crm-${svc}"
 
-                        // Tag latest
-                        echo "Tag + push de ${registryImage}:latest"
-                        bat "docker tag ${localImage}:latest ${registryImage}:latest"
-                        bat "docker push ${registryImage}:latest"
+                                    // Tag build-${BUILD_NUMBER}
+                                    echo "Tag + push de ${registryImage}:${buildTag}"
+                                    bat "docker tag ${localImage}:${buildTag} ${registryImage}:${buildTag}"
+                                    bat "docker push ${registryImage}:${buildTag}"
+
+                                    // Tag latest
+                                    echo "Tag + push de ${registryImage}:latest"
+                                    bat "docker tag ${localImage}:latest ${registryImage}:latest"
+                                    bat "docker push ${registryImage}:latest"
+                                }
+                            }
+                        } finally {
+                            powershell '''
+$dockerConfig = Join-Path $env:WORKSPACE 'docker-push-config'
+if (Test-Path -LiteralPath $dockerConfig) {
+    Remove-Item -LiteralPath $dockerConfig -Recurse -Force
+}
+$env:DOCKER_CONFIG = $null
+'''
+                        }
                     }
 
                     echo 'OK : les 10 images Docker ont été publiées avec succès.'
