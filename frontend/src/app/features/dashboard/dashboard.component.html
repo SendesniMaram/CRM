@@ -1,0 +1,111 @@
+<section class="dashboard" aria-labelledby="dashboard-title">
+  <header class="dashboard-header">
+    <div>
+      <p class="eyebrow">CRM overview</p>
+      <h1 id="dashboard-title">Dashboard</h1>
+      <p class="subtitle">Consultez les principales informations de votre activité CRM en un coup d'œil.</p>
+    </div>
+    <div class="header-mark" aria-hidden="true">
+      <mat-icon>space_dashboard</mat-icon>
+    </div>
+  </header>
+
+  <section class="stats-section" aria-labelledby="stats-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Performance</p>
+        <h2 id="stats-title">Key metrics</h2>
+      </div>
+      <span class="temporary-label">Temporary snapshot</span>
+    </div>
+
+    <div class="stats-grid">
+      @for (stat of stats; track stat.title) {
+        <mat-card class="stat-card" [class]="'accent-' + stat.accent">
+          <mat-card-content>
+            <div class="stat-topline">
+              <span class="icon-box" aria-hidden="true"><mat-icon>{{ stat.icon }}</mat-icon></span>
+              <span class="stat-description">{{ stat.description }}</span>
+            </div>
+            <p class="stat-title">{{ stat.title }}</p>
+            <p class="stat-value">{{ stat.value }}</p>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  </section>
+
+  <div class="dashboard-columns">
+    <section class="activities-section" aria-labelledby="activities-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Workspace feed</p>
+          <h2 id="activities-title">Recent activities</h2>
+        </div>
+        <mat-icon class="section-icon" aria-hidden="true">history</mat-icon>
+      </div>
+
+      <mat-card class="activities-card">
+        <div class="table-container">
+          <table mat-table [dataSource]="activities" aria-label="Recent CRM activities">
+            <ng-container matColumnDef="type">
+              <th mat-header-cell *matHeaderCellDef>Type</th>
+              <td mat-cell *matCellDef="let activity"><span class="activity-type">{{ activity.type }}</span></td>
+            </ng-container>
+
+            <ng-container matColumnDef="description">
+              <th mat-header-cell *matHeaderCellDef>Activity</th>
+              <td mat-cell *matCellDef="let activity">{{ activity.description }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="user">
+              <th mat-header-cell *matHeaderCellDef>User</th>
+              <td mat-cell *matCellDef="let activity">{{ activity.user }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="date">
+              <th mat-header-cell *matHeaderCellDef>Date</th>
+              <td mat-cell *matCellDef="let activity" class="activity-date">{{ activity.date }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let activity">
+                <mat-chip [class]="'status-' + activity.status.toLowerCase().replace(' ', '-')">{{ activity.status }}</mat-chip>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="activityColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: activityColumns"></tr>
+          </table>
+        </div>
+      </mat-card>
+    </section>
+
+    <section class="summary-section" aria-labelledby="summary-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">At a glance</p>
+          <h2 id="summary-title">Action items</h2>
+        </div>
+        <mat-icon class="section-icon" aria-hidden="true">insights</mat-icon>
+      </div>
+
+      <mat-card class="summary-card">
+        <mat-card-content>
+          @for (item of summary; track item.label; let last = $last) {
+            <div class="summary-item">
+              <span class="summary-icon" aria-hidden="true"><mat-icon>{{ item.icon }}</mat-icon></span>
+              <div class="summary-copy">
+                <span class="summary-label">{{ item.label }}</span>
+                <span class="summary-detail">{{ item.detail }}</span>
+              </div>
+              <strong>{{ item.value }}</strong>
+            </div>
+            @if (!last) { <mat-divider /> }
+          }
+        </mat-card-content>
+      </mat-card>
+    </section>
+  </div>
+</section>
