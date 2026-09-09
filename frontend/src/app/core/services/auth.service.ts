@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AuthSession, LoginRequest, LoginResponse } from '../models/auth.models';
+import { CrmRole } from '../models/role.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -29,6 +30,19 @@ export class AuthService {
 
   getCurrentUser(): AuthSession['user'] | null {
     return this.getSession()?.user ?? null;
+  }
+
+  getRoles(): CrmRole[] {
+    const roles = this.getCurrentUser()?.roles;
+    return roles?.filter((role): role is CrmRole => Object.values(CrmRole).includes(role)) ?? [];
+  }
+
+  hasRole(role: CrmRole): boolean {
+    return this.getRoles().includes(role);
+  }
+
+  hasAnyRole(roles: CrmRole[]): boolean {
+    return roles.some((role) => this.hasRole(role));
   }
 
   private saveSession(response: LoginResponse): void {

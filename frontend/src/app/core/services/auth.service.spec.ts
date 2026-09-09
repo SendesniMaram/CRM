@@ -4,6 +4,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { AuthService } from './auth.service';
 import { LoginRequest, LoginResponse } from '../models/auth.models';
+import { CrmRole } from '../models/role.model';
 
 describe('AuthService', () => {
   const loginUrl = 'http://localhost:8080/identity/api/auth/login';
@@ -19,8 +20,8 @@ describe('AuthService', () => {
     token: 'synthetic-access-token',
     refreshToken: 'synthetic-refresh-token',
     type: 'Bearer',
-    role: 'USER',
-    roles: ['USER'],
+    role: CrmRole.ADMIN,
+    roles: [CrmRole.ADMIN],
     expiration: 3600
   };
   const sessionKey = 'crm.auth.session';
@@ -109,5 +110,38 @@ describe('AuthService', () => {
     httpTesting.expectOne(loginUrl).flush(response);
 
     expect(consoleSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns the valid roles of the current user', () => {
+    sessionStorage.setItem(sessionKey, JSON.stringify({
+      accessToken: 'synthetic-token',
+      refreshToken: 'synthetic-refresh-token',
+      user: { roles: [CrmRole.SUPER_ADMIN, CrmRole.EMPLOYEE, 'UNKNOWN'] }
+    }));
+
+    expect(service.getRoles()).toEqual([CrmRole.SUPER_ADMIN, CrmRole.EMPLOYEE]);
+  });
+
+  it('checks a single role and multiple acceptable roles', () => {
+    sessionStorage.setItem(sessionKey, JSON.stringify({
+      accessToken: 'synthetic-token',
+      user: { roles: [CrmRole.CLIENT] }
+    }));
+
+    expect(service.hasRole(CrmRole.CLIENT)).toBeTrue();
+    expect(service.hasRole(CrmRole.ADMIN)).toBeFalse();
+    expect(service.hasAnyRole([CrmRole.ADMIN, CrmRole.CLIENT])).toBeTrue();
+    expect(service.hasAnyRole([CrmRole.ADMIN, CrmRole.EMPLOYEE])).toBeFalse();
+  });
+
+  it('returns empty roles and false checks without a user or roles', () => {
+    expect(service.getRoles()).toEqual([]);
+    expect(service.hasRole(CrmRole.ADMIN)).toBeFalse();
+    expect(service.hasAnyRole([CrmRole.ADMIN])).toBeFalse();
+
+    sessionStorage.setItem(sessionKey, JSON.stringify({ accessToken: 'synthetic-token', user: {} }));
+
+    expect(service.getRoles()).toEqual([]);
+    expect(service.hasAnyRole([])).toBeFalse();
   });
 });

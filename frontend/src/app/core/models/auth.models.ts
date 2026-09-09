@@ -1,3 +1,5 @@
+import { CrmRole } from './role.model';
+
 export interface LoginRequest {
   username: string | null;
   email: string | null;
@@ -11,8 +13,8 @@ export interface LoginResponse {
   token: string;
   refreshToken: string;
   type: string;
-  role: string;
-  roles: string[];
+  role: CrmRole;
+  roles: CrmRole[];
   expiration: number;
 }
 

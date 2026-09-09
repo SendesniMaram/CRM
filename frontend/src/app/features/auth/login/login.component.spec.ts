@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Observable, Subject, throwError } from 'rxjs';
 import { LoginResponse } from '../../../core/models/auth.models';
+import { CrmRole } from '../../../core/models/role.model';
 import { AuthService } from '../../../core/services/auth.service';
 import { LoginComponent } from './login.component';
 
@@ -15,8 +16,8 @@ describe('LoginComponent', () => {
     token: 'synthetic-access-token',
     refreshToken: 'synthetic-refresh-token',
     type: 'Bearer',
-    role: 'USER',
-    roles: ['USER'],
+    role: CrmRole.ADMIN,
+    roles: [CrmRole.ADMIN],
     expiration: 3600
   };
   let authService: jasmine.SpyObj<AuthService>;
