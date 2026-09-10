@@ -128,8 +128,8 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             throw new IllegalStateException("email already exists");
         }
 
-        // Résoudre le rôle demandé (par défaut CLIENT si non spécifié)
-        Role role = resolveRole(request.getRoleType());
+        // Toute inscription publique reçoit uniquement le rôle CLIENT.
+        Role role = resolveClientRole();
 
         // Construire l'utilisateur
         User user = new User();
@@ -222,28 +222,9 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     }
 
 
-    /**
-     * Résout le rôle à partir du nom donné en entrée.
-     * Si roleType est null ou vide, retourne le rôle CLIENT par défaut.
-     *
-     * @param roleType le nom du rôle (ex: "admin", "employee", "client")
-     * @return l'entité Role correspondante
-     * @throws IllegalStateException si le rôle n'est pas trouvé
-     */
-    private Role resolveRole(String roleType) {
-        if (roleType == null || roleType.isBlank()) {
-            // Par défaut, attribuer le rôle CLIENT
-            return roleRepository.findByRoleType(RoleType.CLIENT)
-                    .orElseThrow(() -> new IllegalStateException("Default role CLIENT not found"));
-        }
-
-        try {
-            RoleType parsedRoleType = RoleType.valueOf(roleType.toUpperCase());
-            return roleRepository.findByRoleType(parsedRoleType)
-                    .orElseThrow(() -> new IllegalStateException("Role not found: " + roleType));
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalStateException("Invalid role type: " + roleType);
-        }
+    private Role resolveClientRole() {
+        return roleRepository.findByRoleType(RoleType.CLIENT)
+                .orElseThrow(() -> new IllegalStateException("Default role CLIENT not found"));
     }
 
 }

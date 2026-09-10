@@ -121,6 +121,8 @@ describe('RegisterComponent', () => {
     const payload = registrationService.register.calls.mostRecent().args[0] as unknown as Record<string, unknown>;
     expect(payload['confirmPassword']).toBeUndefined();
     expect(payload['roleType']).toBeUndefined();
+    expect(payload['role']).toBeUndefined();
+    expect(payload['roles']).toBeUndefined();
   });
 
   it('shows success and navigates to login after registration', () => {

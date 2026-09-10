@@ -3,10 +3,12 @@ package com.crm.identity.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Authentication register request.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class RegisterRequest {
 
     @NotBlank(message = "first name is required")
@@ -32,9 +34,6 @@ public class RegisterRequest {
 
     @Size(max = 20, message = "phone must not exceed 20 characters")
     private String phone;
-
-    @Size(max = 50, message = "role type must not exceed 50 characters")
-    private String roleType;
 
     public RegisterRequest() {
     }
@@ -87,12 +86,5 @@ public class RegisterRequest {
         this.phone = phone;
     }
 
-    public String getRoleType() {
-        return roleType;
-    }
-
-    public void setRoleType(String roleType) {
-        this.roleType = roleType;
-    }
 }
 
