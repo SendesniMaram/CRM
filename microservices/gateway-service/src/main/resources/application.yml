@@ -77,6 +77,24 @@ spring:
             - Path=/hr/api/hr-records/**
           filters:
             - StripPrefix=1
+        - id: hr-leaves
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/leaves/**
+          filters:
+            - StripPrefix=1
+        - id: hr-attendances
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/attendances/**
+          filters:
+            - StripPrefix=1
+        - id: hr-trainings
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/trainings/**
+          filters:
+            - StripPrefix=1
         - id: payroll-test
           uri: lb://PAYROLL-SERVICE
           predicates:
