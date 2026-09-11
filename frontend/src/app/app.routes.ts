@@ -22,6 +22,15 @@ export const routes: Routes = [
 						({ DashboardComponent }) => DashboardComponent
 					)
 			},
+			{
+				path: 'employees',
+				canActivate: [authGuard, roleGuard],
+				data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () =>
+					import('./features/employees/employees.routes').then(
+						({ EMPLOYEES_ROUTES }) => EMPLOYEES_ROUTES
+					)
+			},
 			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
 		]
 	},

@@ -13,6 +13,7 @@ describe('application routes', () => {
   const accessDeniedRoute = routes.find((route) => route.path === 'access-denied');
   const registerRoute = routes.find((route) => route.path === 'register');
   const dashboardRoute = privateShell?.children?.find((route) => route.path === 'dashboard');
+  const employeesRoute = privateShell?.children?.find((route) => route.path === 'employees');
 
   it('exposes login as a public route', () => {
     expect(loginRoute?.component).toBe(LoginComponent);
@@ -22,6 +23,13 @@ describe('application routes', () => {
   it('protects dashboard with authGuard', () => {
     expect(dashboardRoute?.canActivate).toContain(authGuard);
     expect(dashboardRoute?.canActivate).toContain(roleGuard);
+  });
+
+  it('protects Employees with admin roles and lazy loads its feature routes', () => {
+    expect(employeesRoute?.canActivate).toContain(authGuard);
+    expect(employeesRoute?.canActivate).toContain(roleGuard);
+    expect(employeesRoute?.data?.['roles']).toEqual(['SUPER_ADMIN', 'ADMIN']);
+    expect(employeesRoute?.loadChildren).toEqual(jasmine.any(Function));
   });
 
   it('exposes access denied as a public route', () => {

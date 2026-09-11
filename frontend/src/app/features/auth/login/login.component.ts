@@ -23,24 +23,24 @@ import { AuthService } from '../../../core/services/auth.service';
     <main class="login-page">
       <mat-card class="login-card">
         <mat-card-header>
-          <mat-card-title>CRM Login</mat-card-title>
-          <mat-card-subtitle>Sign in to continue</mat-card-subtitle>
+          <mat-card-title>Connexion CRM</mat-card-title>
+          <mat-card-subtitle>Connectez-vous pour continuer</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <form [formGroup]="loginForm" (ngSubmit)="submit()">
             <mat-form-field appearance="outline">
-              <mat-label>Username or email</mat-label>
+              <mat-label>Nom d'utilisateur ou e-mail</mat-label>
               <input matInput formControlName="identifier" autocomplete="username" />
               @if (loginForm.controls.identifier.hasError('required')) {
-                <mat-error>Username or email is required.</mat-error>
+                <mat-error>Le nom d'utilisateur ou l'e-mail est obligatoire.</mat-error>
               }
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Password</mat-label>
+              <mat-label>Mot de passe</mat-label>
               <input matInput type="password" formControlName="password" autocomplete="current-password" />
               @if (loginForm.controls.password.hasError('required')) {
-                <mat-error>Password is required.</mat-error>
+                <mat-error>Le mot de passe est obligatoire.</mat-error>
               }
             </mat-form-field>
 
@@ -49,7 +49,7 @@ import { AuthService } from '../../../core/services/auth.service';
             }
 
             <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
-              {{ loading() ? 'Signing in...' : 'Login' }}
+              {{ loading() ? 'Connexion en cours...' : 'Se connecter' }}
             </button>
           </form>
         </mat-card-content>
@@ -95,7 +95,7 @@ export class LoginComponent {
 
     this.authService.login(request).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: () => void this.router.navigate(['/dashboard']),
-      error: () => this.errorMessage.set('Login failed. Check your credentials and try again.')
+      error: () => this.errorMessage.set('Échec de la connexion. Vérifiez vos identifiants et réessayez.')
     });
   }
 }

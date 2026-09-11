@@ -27,27 +27,27 @@ describe('SidebarComponent', () => {
     return fixture.nativeElement.textContent;
   }
 
-  it('shows Dashboard for an authenticated user', () => {
-    expect(renderFor([CrmRole.ADMIN])).toContain('Dashboard');
+  it('shows the dashboard for an authenticated user', () => {
+    expect(renderFor([CrmRole.ADMIN])).toContain('Tableau de bord');
   });
 
   it('shows Employees to an ADMIN', () => {
-    expect(renderFor([CrmRole.ADMIN])).toContain('Employees');
+    expect(renderFor([CrmRole.ADMIN])).toContain('Employés');
   });
 
   it('does not show Employees to an EMPLOYEE', () => {
-    expect(renderFor([CrmRole.EMPLOYEE])).not.toContain('Employees');
+    expect(renderFor([CrmRole.EMPLOYEE])).not.toContain('Employés');
   });
 
   it('does not show Payroll to a CLIENT', () => {
-    expect(renderFor([CrmRole.CLIENT])).not.toContain('Payroll');
+    expect(renderFor([CrmRole.CLIENT])).not.toContain('Paie');
   });
 
   it('shows Employee area to an EMPLOYEE', () => {
-    expect(renderFor([CrmRole.EMPLOYEE])).toContain('Employee area');
+    expect(renderFor([CrmRole.EMPLOYEE])).toContain('Espace employé');
   });
 
   it('shows Client area to a CLIENT', () => {
-    expect(renderFor([CrmRole.CLIENT])).toContain('Client area');
+    expect(renderFor([CrmRole.CLIENT])).toContain('Espace client');
   });
 });

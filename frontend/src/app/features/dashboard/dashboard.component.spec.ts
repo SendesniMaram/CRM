@@ -20,7 +20,7 @@ describe('DashboardComponent', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('h1').textContent).toContain('Dashboard');
+    expect(fixture.nativeElement.querySelector('h1').textContent).toContain('Tableau de bord');
     expect(fixture.nativeElement.textContent).toContain('principales informations');
   });
 
@@ -28,10 +28,10 @@ describe('DashboardComponent', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Employees');
-    expect(fixture.nativeElement.textContent).toContain('Customers');
-    expect(fixture.nativeElement.textContent).toContain('Departments');
-    expect(fixture.nativeElement.textContent).toContain('Invoices');
+    expect(fixture.nativeElement.textContent).toContain('Employés');
+    expect(fixture.nativeElement.textContent).toContain('Clients');
+    expect(fixture.nativeElement.textContent).toContain('Départements');
+    expect(fixture.nativeElement.textContent).toContain('Factures');
     expect(fixture.nativeElement.textContent).toContain('€86.4K');
   });
 
@@ -39,9 +39,9 @@ describe('DashboardComponent', () => {
     const fixture = TestBed.createComponent(DashboardComponent);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Recent activities');
-    expect(fixture.nativeElement.textContent).toContain('New employee profile added');
-    expect(fixture.nativeElement.textContent).toContain('Invoices pending');
-    expect(fixture.nativeElement.textContent).toContain('Active customers');
+    expect(fixture.nativeElement.textContent).toContain('Activités récentes');
+    expect(fixture.nativeElement.textContent).toContain("Nouvelle fiche d'employé ajoutée");
+    expect(fixture.nativeElement.textContent).toContain('Factures en attente');
+    expect(fixture.nativeElement.textContent).toContain('Clients actifs');
   });
 });

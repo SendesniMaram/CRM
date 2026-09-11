@@ -1,0 +1,144 @@
+:host {
+  display: block;
+}
+
+.employees-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0.5rem 0 2rem;
+}
+
+.page-header {
+  align-items: center;
+  background: linear-gradient(115deg, #123b5d, #176b73);
+  border-radius: 10px;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.page-header h1 {
+  letter-spacing: 0;
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 650;
+}
+
+.eyebrow {
+  color: #b7e4df;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #d5e8ed;
+  margin: 0.65rem 0 0;
+}
+
+.header-icon {
+  font-size: 2.5rem;
+  height: 2.5rem;
+  margin-right: 1rem;
+  width: 2.5rem;
+}
+
+.directory-card {
+  border: 1px solid #e2e9ed;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgb(32 61 76 / 6%);
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.search-field {
+  flex: 1;
+  max-width: 520px;
+}
+
+.toolbar button mat-icon {
+  margin-right: 0.35rem;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  min-width: 980px;
+  width: 100%;
+}
+
+th.mat-mdc-header-cell {
+  color: #516572;
+  font-weight: 700;
+}
+
+td.mat-mdc-cell,
+th.mat-mdc-header-cell {
+  white-space: nowrap;
+}
+
+mat-paginator {
+  margin-top: 0.5rem;
+}
+
+.error-message {
+  background: #fff1f0;
+  border-left: 4px solid var(--mat-sys-error);
+  color: var(--mat-sys-error);
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.loading-state,
+.empty-state {
+  align-items: center;
+  color: #5f7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 260px;
+  text-align: center;
+}
+
+.empty-state mat-icon {
+  color: #6d8a96;
+  font-size: 2rem;
+  height: 2rem;
+  width: 2rem;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .header-icon {
+    display: none;
+  }
+
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-field {
+    max-width: none;
+    width: 100%;
+  }
+}

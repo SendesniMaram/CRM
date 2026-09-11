@@ -3,51 +3,51 @@ import { DashboardStat, DashboardSummary, RecentActivity } from './dashboard.mod
 // Temporary presentation data. These values will be replaced by microservice APIs.
 export const DASHBOARD_STATS: DashboardStat[] = [
   {
-    title: 'Employees',
+    title: 'Employés',
     value: '248',
-    description: '+12 this month',
+    description: '+12 ce mois-ci',
     icon: 'groups',
     accent: 'blue'
   },
   {
-    title: 'Customers',
+    title: 'Clients',
     value: '1,284',
-    description: '+8.4% from last month',
+    description: '+8,4 % par rapport au mois dernier',
     icon: 'business',
     accent: 'teal'
   },
   {
-    title: 'Departments',
+    title: 'Départements',
     value: '18',
-    description: 'Across 4 locations',
+    description: 'Répartis sur 4 sites',
     icon: 'account_tree',
     accent: 'amber'
   },
   {
-    title: 'Invoices',
+    title: 'Factures',
     value: '€86.4K',
-    description: 'Issued this month',
+    description: 'Émises ce mois-ci',
     icon: 'receipt_long',
     accent: 'coral'
   },
   {
-    title: 'Payroll',
+    title: 'Paie',
     value: '€214K',
-    description: 'Next run in 6 days',
+    description: 'Prochaine exécution dans 6 jours',
     icon: 'payments',
     accent: 'violet'
   },
   {
-    title: 'Human resources',
+    title: 'Ressources humaines',
     value: '14',
-    description: 'Requests to review',
+    description: 'Demandes à examiner',
     icon: 'volunteer_activism',
     accent: 'green'
   },
   {
-    title: 'Fees & expenses',
+    title: 'Honoraires et dépenses',
     value: '€12.8K',
-    description: 'Awaiting approval',
+    description: "En attente d'approbation",
     icon: 'account_balance_wallet',
     accent: 'slate'
   }
@@ -55,45 +55,45 @@ export const DASHBOARD_STATS: DashboardStat[] = [
 
 export const RECENT_ACTIVITIES: RecentActivity[] = [
   {
-    type: 'Employee',
-    description: 'New employee profile added to Engineering',
+    type: 'Employé',
+    description: "Nouvelle fiche d'employé ajoutée à l'équipe Ingénierie",
     user: 'Sophie Martin',
-    date: 'Today, 09:42',
-    status: 'Completed'
+    date: "Aujourd'hui, 09:42",
+    status: 'Terminée'
   },
   {
-    type: 'Customer',
-    description: 'New customer account created',
+    type: 'Client',
+    description: 'Nouveau compte client créé',
     user: 'Thomas Bernard',
-    date: 'Today, 08:17',
-    status: 'Completed'
+    date: "Aujourd'hui, 08:17",
+    status: 'Terminée'
   },
   {
-    type: 'Invoice',
-    description: 'Invoice #INV-2026-0184 issued',
-    user: 'Finance team',
-    date: 'Yesterday, 16:28',
-    status: 'Pending'
+    type: 'Facture',
+    description: 'Facture n° INV-2026-0184 émise',
+    user: 'Équipe Finance',
+    date: 'Hier, 16:28',
+    status: 'En attente'
   },
   {
-    type: 'HR request',
-    description: 'Leave request submitted for approval',
+    type: 'Demande RH',
+    description: 'Demande de congé soumise pour approbation',
     user: 'Lucas Petit',
-    date: 'Yesterday, 14:05',
-    status: 'In review'
+    date: 'Hier, 14:05',
+    status: 'En cours d’examen'
   },
   {
-    type: 'Payroll',
-    description: 'Monthly payroll preparation completed',
-    user: 'Payroll team',
-    date: '12 Sep 2026, 11:30',
-    status: 'Completed'
+    type: 'Paie',
+    description: 'Préparation mensuelle de la paie terminée',
+    user: 'Équipe Paie',
+    date: '12 sept. 2026, 11:30',
+    status: 'Terminée'
   }
 ];
 
 export const DASHBOARD_SUMMARY: DashboardSummary[] = [
-  { label: 'Invoices pending', value: '24', detail: 'Needs attention', icon: 'pending_actions' },
-  { label: 'HR requests pending', value: '14', detail: 'Across all teams', icon: 'event_note' },
-  { label: 'Active employees', value: '232', detail: '93.5% of workforce', icon: 'person_check' },
-  { label: 'Active customers', value: '1,146', detail: '89.2% of portfolio', icon: 'verified_user' }
+  { label: 'Factures en attente', value: '24', detail: 'À traiter', icon: 'pending_actions' },
+  { label: 'Demandes RH en attente', value: '14', detail: 'Tous les services', icon: 'event_note' },
+  { label: 'Employés actifs', value: '232', detail: '93,5 % des effectifs', icon: 'person_check' },
+  { label: 'Clients actifs', value: '1 146', detail: '89,2 % du portefeuille', icon: 'verified_user' }
 ];

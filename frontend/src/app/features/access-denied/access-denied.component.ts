@@ -14,7 +14,7 @@ import { Router } from '@angular/router';
           <mat-card-title>Accès refusé</mat-card-title>
         </mat-card-header>
         <mat-card-content>
-          <p>Vous n'avez pas les autorisations nécessaires pour accéder à cette page.</p>
+          <p>Vous n'avez pas l'autorisation d'accéder à cette page.</p>
         </mat-card-content>
         <mat-card-actions>
           <button mat-flat-button color="primary" type="button" (click)="goToDashboard()">

@@ -50,7 +50,7 @@ describe('RegisterComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Créer un compte');
     expect(fixture.nativeElement.querySelector('form')).toBeTruthy();
-    expect(fixture.nativeElement.textContent).toContain('Déjà un compte ?');
+    expect(fixture.nativeElement.textContent).toContain('Vous avez déjà un compte ?');
   });
 
   it('validates required fields when the form is empty', () => {
@@ -60,7 +60,7 @@ describe('RegisterComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Le prénom est obligatoire.');
-    expect(fixture.nativeElement.textContent).toContain("L'email est obligatoire.");
+    expect(fixture.nativeElement.textContent).toContain("L'e-mail est obligatoire.");
     expect(fixture.nativeElement.textContent).toContain('Le mot de passe est obligatoire.');
     expect(registrationService.register).not.toHaveBeenCalled();
   });
@@ -79,7 +79,7 @@ describe('RegisterComponent', () => {
     fixture.componentInstance['submit']();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Saisissez une adresse email valide.');
+    expect(fixture.nativeElement.textContent).toContain('Saisissez une adresse e-mail valide.');
     expect(fixture.nativeElement.textContent).toContain('Le mot de passe doit contenir au moins 6 caractères.');
     expect(registrationService.register).not.toHaveBeenCalled();
   });

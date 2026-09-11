@@ -36,16 +36,16 @@ export class SidebarComponent {
   private readonly authService = inject(AuthService);
 
   private readonly navigationItems: NavigationItem[] = [
-    { label: 'Dashboard', route: '/dashboard', icon: 'dashboard', roles: [] },
-    { label: 'Employees', route: '/employees', icon: 'badge', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Customers', route: '/customers', icon: 'groups', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Departments', route: '/departments', icon: 'corporate_fare', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'HR', route: '/hr', icon: 'people', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Payroll', route: '/payroll', icon: 'payments', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Fees', route: '/fees', icon: 'receipt_long', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Invoices', route: '/invoices', icon: 'description', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Employee area', route: '/employee-area', icon: 'work', roles: [CrmRole.EMPLOYEE] },
-    { label: 'Client area', route: '/client-area', icon: 'person', roles: [CrmRole.CLIENT] }
+    { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard', roles: [] },
+    { label: 'Employés', route: '/employees', icon: 'badge', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Clients', route: '/customers', icon: 'groups', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Départements', route: '/departments', icon: 'corporate_fare', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Ressources humaines', route: '/hr', icon: 'people', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Paie', route: '/payroll', icon: 'payments', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Honoraires et dépenses', route: '/fees', icon: 'receipt_long', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Factures', route: '/invoices', icon: 'description', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Espace employé', route: '/employee-area', icon: 'work', roles: [CrmRole.EMPLOYEE] },
+    { label: 'Espace client', route: '/client-area', icon: 'person', roles: [CrmRole.CLIENT] }
   ];
 
   protected visibleItems(): NavigationItem[] {

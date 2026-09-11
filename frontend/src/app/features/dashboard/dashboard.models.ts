@@ -6,7 +6,10 @@ export interface DashboardStat {
   accent: 'blue' | 'teal' | 'amber' | 'coral' | 'violet' | 'green' | 'slate';
 }
 
-export type ActivityStatus = 'Completed' | 'Pending' | 'In review';
+export type ActivityStatus =
+  'Terminée' |
+  'En attente' |
+  'En cours d’examen';
 
 export interface RecentActivity {
   type: string;

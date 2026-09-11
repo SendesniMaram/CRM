@@ -52,8 +52,8 @@ describe('LoginComponent', () => {
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Username or email is required.');
-    expect(fixture.nativeElement.textContent).toContain('Password is required.');
+    expect(fixture.nativeElement.textContent).toContain("Le nom d'utilisateur ou l'e-mail est obligatoire.");
+    expect(fixture.nativeElement.textContent).toContain('Le mot de passe est obligatoire.');
     expect(authService.login).not.toHaveBeenCalled();
   });
 
@@ -65,7 +65,7 @@ describe('LoginComponent', () => {
     fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Password is required.');
+    expect(fixture.nativeElement.textContent).toContain('Le mot de passe est obligatoire.');
     expect(authService.login).not.toHaveBeenCalled();
   });
 
@@ -80,7 +80,7 @@ describe('LoginComponent', () => {
     fixture.componentInstance['submit']();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Login failed');
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Échec de la connexion');
     expect(router.navigate).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-access-token');
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-refresh-token');

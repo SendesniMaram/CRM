@@ -244,9 +244,15 @@ mat-chip {
   font-weight: 650;
 }
 
-.status-completed { --mdc-chip-label-text-color: #28704f; --mdc-chip-elevated-container-color: #e8f5ee; }
-.status-pending { --mdc-chip-label-text-color: #9a651c; --mdc-chip-elevated-container-color: #fff4df; }
-.status-in-review { --mdc-chip-label-text-color: #4d6490; --mdc-chip-elevated-container-color: #edf1fb; }
+.status-completed,
+.status-terminée,
+.status-terminee { --mdc-chip-label-text-color: #28704f; --mdc-chip-elevated-container-color: #e8f5ee; }
+.status-pending,
+.status-en-attente { --mdc-chip-label-text-color: #9a651c; --mdc-chip-elevated-container-color: #fff4df; }
+.status-in-review,
+.status-en-cours-d’examen,
+.status-en-cours-d-examen,
+.status-en-cours-d\'examen { --mdc-chip-label-text-color: #4d6490; --mdc-chip-elevated-container-color: #edf1fb; }
 
 .summary-card mat-card-content {
   padding: 0.35rem 1.1rem;

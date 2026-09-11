@@ -28,7 +28,7 @@ describe('AccessDeniedComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Accès refusé');
-    expect(fixture.nativeElement.textContent).toContain('Vous n\'avez pas les autorisations nécessaires');
+    expect(fixture.nativeElement.textContent).toContain("Vous n'avez pas l'autorisation d'accéder à cette page.");
   });
 
   it('navigates to the dashboard', () => {

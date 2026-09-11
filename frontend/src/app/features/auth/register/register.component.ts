@@ -66,12 +66,12 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
             </mat-form-field>
 
             <mat-form-field appearance="outline">
-              <mat-label>Email</mat-label>
+              <mat-label>E-mail</mat-label>
               <input matInput type="email" formControlName="email" autocomplete="email" />
               @if (registerForm.controls.email.hasError('required')) {
-                <mat-error>L'email est obligatoire.</mat-error>
+                <mat-error>L'e-mail est obligatoire.</mat-error>
               } @else if (registerForm.controls.email.hasError('email')) {
-                <mat-error>Saisissez une adresse email valide.</mat-error>
+                <mat-error>Saisissez une adresse e-mail valide.</mat-error>
               }
             </mat-form-field>
 
@@ -110,11 +110,11 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
             }
 
             <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
-              {{ loading() ? 'Création en cours...' : 'Créer mon compte' }}
+              {{ loading() ? 'Création en cours...' : 'Créer un compte' }}
             </button>
           </form>
 
-          <p class="login-link">Déjà un compte ? <a routerLink="/login">Se connecter</a></p>
+          <p class="login-link">Vous avez déjà un compte ? <a routerLink="/login">Se connecter</a></p>
         </mat-card-content>
       </mat-card>
     </main>
@@ -171,7 +171,7 @@ export class RegisterComponent {
 
   private getErrorMessage(status?: number): string {
     if (status === 409) {
-      return 'Ce nom d’utilisateur ou cette adresse email existe déjà.';
+      return 'Ce nom d’utilisateur ou cette adresse e-mail existe déjà.';
     }
     if (status === 400) {
       return 'Vérifiez les informations saisies puis réessayez.';
