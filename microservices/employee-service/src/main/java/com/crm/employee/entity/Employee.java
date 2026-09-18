@@ -65,6 +65,9 @@ public class Employee {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "department_id")
+    private Long departmentId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

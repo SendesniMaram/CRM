@@ -53,5 +53,7 @@ public class EmployeeRequest {
 
     @Size(max = 50, message = "Status must be at most 50 characters")
     private String status;
+
+    private Long departmentId;
 }
 

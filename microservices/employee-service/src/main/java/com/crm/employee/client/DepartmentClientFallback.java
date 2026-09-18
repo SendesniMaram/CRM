@@ -19,7 +19,7 @@ public class DepartmentClientFallback implements DepartmentClient {
 
     @Override
     public DepartmentResponse getDepartmentById(Long id) {
-        log.warn("Fallback: department-service is unavailable. Returning null department for employee id: {}. Cause: {}",
+        log.warn("Fallback: department-service is unavailable. Returning null department for department id: {}. Cause: {}",
                 id, cause.getMessage());
         return null;
     }

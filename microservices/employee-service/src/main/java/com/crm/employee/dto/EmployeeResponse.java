@@ -39,6 +39,8 @@ public class EmployeeResponse {
 
     private String status;
 
+    private Long departmentId;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

@@ -27,6 +27,7 @@ public class EmployeeMapper {
         response.setDateOfBirth(employee.getDateOfBirth());
         response.setGender(employee.getGender());
         response.setStatus(employee.getStatus());
+        response.setDepartmentId(employee.getDepartmentId());
         response.setCreatedAt(employee.getCreatedAt());
         response.setUpdatedAt(employee.getUpdatedAt());
 
@@ -51,6 +52,7 @@ public class EmployeeMapper {
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setGender(request.getGender());
         employee.setStatus(request.getStatus());
+        employee.setDepartmentId(request.getDepartmentId());
 
         return employee;
     }
@@ -71,6 +73,7 @@ public class EmployeeMapper {
         employee.setDateOfBirth(request.getDateOfBirth());
         employee.setGender(request.getGender());
         employee.setStatus(request.getStatus());
+        employee.setDepartmentId(request.getDepartmentId());
     }
 }
 

@@ -128,7 +128,9 @@ public class EmployeeServiceImpl implements IEmployeeService {
         // - Si department-service répond -> département retourné
         // - Si department-service indisponible -> fallback retourne null
         // - Si département inexistant (404) -> FeignException propagée à GlobalExceptionHandler
-        DepartmentResponse department = departmentClient.getDepartmentById(id);
+        DepartmentResponse department = employee.getDepartmentId() == null
+                ? null
+                : departmentClient.getDepartmentById(employee.getDepartmentId());
         return new EmployeeWithDepartmentResponse(employee, department);
     }
 }
