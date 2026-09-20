@@ -49,7 +49,7 @@ services:
     restart: unless-stopped
 
     environment:
-      MYSQL_ROOT_PASSWORD: Root123@
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       MYSQL_DATABASE: crm_db
       MYSQL_ROOT_HOST: '%'
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
@@ -120,7 +120,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/identity_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -144,7 +145,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -172,7 +174,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -200,7 +203,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -228,7 +232,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -256,7 +261,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -284,7 +290,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
@@ -312,7 +319,8 @@ services:
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: Root123@
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
     depends_on:
       discovery-service:
