@@ -9,7 +9,9 @@ import { MatPaginatorIntl, MatPaginatorModule, PageEvent } from '@angular/materi
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import {
   EmployeePageParams,
@@ -51,7 +53,9 @@ export function getFrenchPaginatorIntl(): MatPaginatorIntl {
     MatProgressSpinnerModule,
     MatSortModule,
     MatTableModule,
-    ReactiveFormsModule
+    MatTooltipModule,
+    ReactiveFormsModule,
+    RouterLink
   ],
   providers: [
     { provide: MatPaginatorIntl, useFactory: getFrenchPaginatorIntl }
@@ -80,7 +84,8 @@ export class EmployeesPageComponent implements OnInit {
     'jobTitle',
     'hireDate',
     'salary',
-    'status'
+    'status',
+    'actions'
   ];
   protected readonly pageSizeOptions = [10, 25, 50];
 

@@ -42,7 +42,7 @@ export interface DepartmentResponse {
 
 export interface EmployeeWithDepartmentResponse {
   employee: EmployeeResponse;
-  department: DepartmentResponse;
+  department: DepartmentResponse | null;
 }
 
 export interface EmployeePageParams {

@@ -5,6 +5,15 @@ export const EMPLOYEES_ROUTES: Routes = [
   {
     path: '',
     component: EmployeesPageComponent,
+    pathMatch: 'full',
     title: 'Employés'
+  },
+  {
+    path: ':id',
+    title: "Détail de l'employé",
+    loadComponent: () =>
+      import('./pages/employee-detail/employee-detail.component').then(
+        ({ EmployeeDetailComponent }) => EmployeeDetailComponent
+      )
   }
 ];

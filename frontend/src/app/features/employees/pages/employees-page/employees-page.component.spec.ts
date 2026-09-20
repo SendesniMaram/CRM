@@ -2,6 +2,7 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
+import { provideRouter } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { EmployeePage, EmployeeResponse } from '../../models/employee.models';
 import { EmployeeService } from '../../services/employee.service';
@@ -51,6 +52,7 @@ describe('EmployeesPageComponent', () => {
       imports: [EmployeesPageComponent],
       providers: [
         { provide: EmployeeService, useValue: employeeService },
+        provideRouter([]),
         provideZonelessChangeDetection()
       ]
     }).compileComponents();
@@ -84,6 +86,14 @@ describe('EmployeesPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Doe');
     expect(fixture.nativeElement.textContent).toContain('Software Engineer');
     expect(fixture.nativeElement.textContent).toContain('ACTIVE');
+  });
+
+  it('provides a link to the employee detail page', () => {
+    fixture.detectChanges();
+
+    const detailLink = fixture.nativeElement.querySelector('a[aria-label="Voir le détail de EMP001"]');
+
+    expect(detailLink.getAttribute('href')).toBe('/employees/1');
   });
 
   it('shows the loading state while the request is pending', () => {

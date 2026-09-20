@@ -1,0 +1,150 @@
+:host {
+  display: block;
+}
+
+.employee-detail-page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0.5rem 0 2rem;
+}
+
+.page-header {
+  align-items: center;
+  background: linear-gradient(115deg, #123b5d, #176b73);
+  border-radius: 10px;
+  color: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 650;
+  margin: 0;
+}
+
+.page-header button {
+  background: #fff;
+  flex: 0 0 auto;
+}
+
+.page-header button mat-icon {
+  margin-right: 0.35rem;
+}
+
+.eyebrow {
+  color: #b7e4df;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  color: #d5e8ed;
+  margin: 0.65rem 0 0;
+}
+
+.details-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-card {
+  border: 1px solid #e2e9ed;
+  box-shadow: 0 4px 16px rgb(32 61 76 / 6%);
+}
+
+.department-card {
+  grid-column: 1 / -1;
+}
+
+.information-list {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 1.5rem 0 0;
+}
+
+.information-list div {
+  border-bottom: 1px solid #e7edf0;
+  min-width: 0;
+  padding-bottom: 0.75rem;
+}
+
+.information-list .full-width {
+  grid-column: 1 / -1;
+}
+
+dt {
+  color: #627783;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.loading-state,
+.feedback-card,
+.no-department {
+  align-items: center;
+  color: #5f7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  justify-content: center;
+  min-height: 220px;
+  text-align: center;
+}
+
+.feedback-card {
+  padding: 2rem;
+}
+
+.feedback-card h2,
+.feedback-card p {
+  margin: 0;
+}
+
+.feedback-card mat-icon,
+.no-department mat-icon {
+  color: #6d8a96;
+}
+
+.error-card {
+  border-left: 4px solid var(--mat-sys-error);
+  color: var(--mat-sys-error);
+}
+
+.no-department {
+  flex-direction: row;
+  justify-content: flex-start;
+  margin: 1.5rem 0 0;
+  min-height: auto;
+  text-align: left;
+}
+
+@media (max-width: 760px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .details-grid,
+  .information-list {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header button {
+    width: 100%;
+  }
+}

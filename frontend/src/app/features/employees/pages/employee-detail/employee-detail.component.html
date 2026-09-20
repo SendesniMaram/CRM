@@ -1,0 +1,88 @@
+<section class="employee-detail-page" aria-labelledby="employee-detail-title" [attr.aria-busy]="loading()">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Annuaire du personnel</p>
+      <h1 id="employee-detail-title">Informations de l'employé</h1>
+      <p class="subtitle">Consultez les informations détaillées de cette fiche.</p>
+    </div>
+    <button mat-stroked-button type="button" (click)="goBackToEmployees()">
+      <mat-icon aria-hidden="true">arrow_back</mat-icon>
+      Retour aux employés
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div class="loading-state" role="status">
+      <mat-spinner diameter="40" />
+      <span>Chargement de l'employé...</span>
+    </div>
+  } @else if (notFound()) {
+    <mat-card class="feedback-card" role="status">
+      <mat-icon aria-hidden="true">person_off</mat-icon>
+      <h2>Employé introuvable</h2>
+      <p>La fiche demandée n'existe pas ou n'est plus disponible.</p>
+    </mat-card>
+  } @else if (errorMessage()) {
+    <mat-card class="feedback-card error-card" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <p>{{ errorMessage() }}</p>
+    </mat-card>
+  } @else if (employee(); as currentEmployee) {
+    <div class="details-grid">
+      <mat-card class="detail-card personal-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar aria-hidden="true">person</mat-icon>
+          <mat-card-title>Informations personnelles</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <dl class="information-list">
+            <div><dt>Prénom</dt><dd>{{ currentEmployee.firstName || '-' }}</dd></div>
+            <div><dt>Nom</dt><dd>{{ currentEmployee.lastName || '-' }}</dd></div>
+            <div><dt>E-mail</dt><dd>{{ currentEmployee.email || '-' }}</dd></div>
+            <div><dt>Téléphone</dt><dd>{{ currentEmployee.phone || '-' }}</dd></div>
+            <div><dt>Date de naissance</dt><dd>{{ currentEmployee.dateOfBirth ? (currentEmployee.dateOfBirth | date: 'mediumDate') : '-' }}</dd></div>
+            <div><dt>Genre</dt><dd>{{ currentEmployee.gender || '-' }}</dd></div>
+            <div class="full-width"><dt>Adresse</dt><dd>{{ currentEmployee.address || '-' }}</dd></div>
+          </dl>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="detail-card professional-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar aria-hidden="true">badge</mat-icon>
+          <mat-card-title>Informations professionnelles</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <dl class="information-list">
+            <div><dt>Code employé</dt><dd>{{ currentEmployee.employeeCode }}</dd></div>
+            <div><dt>Poste</dt><dd>{{ currentEmployee.jobTitle || '-' }}</dd></div>
+            <div><dt>Date d'embauche</dt><dd>{{ currentEmployee.hireDate ? (currentEmployee.hireDate | date: 'mediumDate') : '-' }}</dd></div>
+            <div><dt>Salaire</dt><dd>{{ currentEmployee.salary | number: '1.2-2' }}</dd></div>
+            <div><dt>Statut</dt><dd>{{ currentEmployee.status || '-' }}</dd></div>
+          </dl>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="detail-card department-card">
+        <mat-card-header>
+          <mat-icon mat-card-avatar aria-hidden="true">corporate_fare</mat-icon>
+          <mat-card-title>Département</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (department(); as currentDepartment) {
+            <dl class="information-list department-information">
+              <div><dt>Nom du département</dt><dd>{{ currentDepartment.name }}</dd></div>
+              <div><dt>Code</dt><dd>{{ currentDepartment.code }}</dd></div>
+              <div class="full-width"><dt>Description</dt><dd>{{ currentDepartment.description || '-' }}</dd></div>
+            </dl>
+          } @else {
+            <p class="no-department">
+              <mat-icon aria-hidden="true">info</mat-icon>
+              Aucun département associé
+            </p>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</section>
