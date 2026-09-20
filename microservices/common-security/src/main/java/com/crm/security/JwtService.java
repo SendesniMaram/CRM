@@ -33,46 +33,13 @@ public class JwtService {
     public static final String CLAIM_ENABLED = "enabled";
 
     private static final long ONE_HOUR_MS = 1000L * 60 * 60;
-    private static final String SECRET_ENV_VAR = "APP_JWT_SECRET";
-    public static final String DEFAULT_SECRET = "crm-secret-key-0123456789abcdef0123456789abcdef";
-
     private final SecretKey secretKey;
 
     public JwtService(String secret) {
-        this.secretKey = Keys.hmacShaKeyFor(resolveSecret(secret).getBytes(StandardCharsets.UTF_8));
-    }
-
-    public JwtService() {
-        this(resolveSecretFromEnvironment());
-    }
-
-    /**
-     * Returns a valid HS256 secret, falling back to {@link #DEFAULT_SECRET} when the
-     * configured value is null, blank or too short to be a secure HMAC key.
-     */
-    private static String resolveSecret(String secret) {
-        if (secret == null || secret.isBlank()) {
-            return DEFAULT_SECRET;
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("app.jwt.secret must contain at least 32 bytes");
         }
-        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (bytes.length < 32) {
-            return DEFAULT_SECRET;
-        }
-        return secret;
-    }
-
-    private static String resolveSecretFromEnvironment() {
-        String secret = System.getenv(SECRET_ENV_VAR);
-        if (secret == null || secret.isBlank()) {
-            secret = System.getProperty("app.jwt.secret");
-        }
-        if (secret == null || secret.isBlank()) {
-            secret = System.getProperty(SECRET_ENV_VAR);
-        }
-        if (secret == null || secret.isBlank()) {
-            return DEFAULT_SECRET;
-        }
-        return secret;
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
