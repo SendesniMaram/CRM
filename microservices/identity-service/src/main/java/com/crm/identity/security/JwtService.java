@@ -26,30 +26,14 @@ public class JwtService {
     public static final String CLAIM_EMAIL = "email";
     public static final String CLAIM_ENABLED = "enabled";
 
-    private static final String SECRET_ENV_VAR = "APP_JWT_SECRET";
-    private static final String DEFAULT_SECRET = "0123456789abcdef0123456789abcdef";
+    public static final long ACCESS_TOKEN_DURATION_MS = 1000L * 60 * 60;
 
     private final SecretKey secretKey;
 
-    public JwtService() {
-        this(resolveSecretFromEnvironment());
-    }
-
-    private static String resolveSecretFromEnvironment() {
-        String secret = System.getenv(SECRET_ENV_VAR);
-        if (secret == null || secret.isBlank()) {
-            secret = System.getProperty("app.jwt.secret");
-        }
-        if (secret == null || secret.isBlank()) {
-            secret = System.getProperty(SECRET_ENV_VAR);
-        }
-        if (secret == null || secret.isBlank()) {
-            return DEFAULT_SECRET;
-        }
-        return secret;
-    }
-
     public JwtService(String secret) {
+        if (secret == null || secret.isBlank() || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("app.jwt.secret must contain at least 32 bytes");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -59,7 +43,7 @@ public class JwtService {
 
     public String generateToken(String username, String email, boolean enabled, Collection<String> roles) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + 1000L * 60 * 60); // 1 hour
+        Date expiry = new Date(now.getTime() + ACCESS_TOKEN_DURATION_MS);
 
         return Jwts.builder()
                 .subject(username)

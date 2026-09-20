@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.crm.identity.dto.LoginRequest;
 import com.crm.identity.dto.LoginResponse;
@@ -27,6 +28,7 @@ import com.crm.identity.service.IAuthenticationService;
  * Authentication service implementation.
  */
 @Service
+@Transactional
 public class AuthenticationServiceImpl implements IAuthenticationService {
 
     private static final long REFRESH_TOKEN_DURATION_MS = 7 * 24 * 60 * 60 * 1000L; // 7 days
@@ -106,7 +108,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         response.setRoles(user.getRole().stream()
                 .map(r -> r.getRoleType().name())
                 .toList());
-        response.setExpiration(86400000L); // 24 heures, aligné sur le backend
+        response.setExpiration(JwtService.ACCESS_TOKEN_DURATION_MS);
         response.setRefreshToken(refreshToken.getToken());
         return response;
     }
@@ -203,7 +205,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         response.setRoles(user.getRole().stream()
                 .map(r -> r.getRoleType().name())
                 .toList());
-        response.setExpiration(86400000L);
+        response.setExpiration(JwtService.ACCESS_TOKEN_DURATION_MS);
 
         return response;
     }

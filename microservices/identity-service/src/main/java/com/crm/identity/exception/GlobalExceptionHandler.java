@@ -3,6 +3,8 @@ package com.crm.identity.exception;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +22,8 @@ import jakarta.validation.ConstraintViolationException;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, WebRequest request) {
@@ -115,6 +119,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
+        Throwable cause = ex.getCause();
+        logger.error(
+            "Unhandled exception for endpoint {}: type={}, message={}, causeType={}, causeMessage={}",
+            getPath(request),
+            ex.getClass().getName(),
+            ex.getMessage(),
+            cause != null ? cause.getClass().getName() : "none",
+            cause != null ? cause.getMessage() : "none"
+        );
         ApiError body = new ApiError(
                 500,
                 "Internal Server Error",
