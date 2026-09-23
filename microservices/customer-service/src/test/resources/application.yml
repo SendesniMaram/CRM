@@ -10,6 +10,11 @@ spring:
     database-platform: org.hibernate.dialect.H2Dialect
     show-sql: false
 
+app:
+  jwt:
+    # Test-only key — not a real secret, never used in production
+    secret: "this-is-a-test-only-secret-key-not-used-in-production-crm-2024"
+
 eureka:
   client:
     register-with-eureka: false
