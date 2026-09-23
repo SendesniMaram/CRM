@@ -10,7 +10,10 @@ import org.junit.jupiter.api.Test;
 
 class JwtServiceTest {
 
-    private final JwtService jwtService = new JwtService();
+    private static final String TEST_SECRET = "test-secret-for-jwt-service-at-least-32-bytes";
+    private static final String OTHER_TEST_SECRET = "other-test-secret-for-jwt-service-at-least-32-bytes";
+
+    private final JwtService jwtService = new JwtService(TEST_SECRET);
 
     @Test
     void generateToken_shouldContainUsernameEmailAndRoles() {
@@ -41,7 +44,7 @@ class JwtServiceTest {
 
     @Test
     void tokenSignedWithDifferentSecret_shouldBeRejected() {
-        JwtService other = new JwtService("another-secret-another-secret-another-secret!!");
+        JwtService other = new JwtService(OTHER_TEST_SECRET);
         String token = other.generateToken("bob", "bob@example.com", true, List.of("ROLE_CLIENT"));
 
         assertFalse(jwtService.isTokenValid(token));
