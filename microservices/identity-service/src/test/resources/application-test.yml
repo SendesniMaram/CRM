@@ -15,5 +15,6 @@ spring:
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:0123456789abcdef0123456789abcdef}
+    # Test-only key — not a real secret, never used in production
+    secret: "test-only-secret-key-not-for-production-crm2024"
 

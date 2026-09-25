@@ -13,6 +13,11 @@ spring:
       hibernate:
         format_sql: false
 
+app:
+  jwt:
+    # Test-only key — not a real secret, never used in production
+    secret: "test-only-secret-key-not-for-production-crm2024"
+
 eureka:
   client:
     register-with-eureka: false
