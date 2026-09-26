@@ -422,7 +422,12 @@ environment {
                     // 3. Validation de la syntaxe / configuration.
                     //    BLOQUANT : si `docker compose config` échoue (YAML ou
                     //    configuration invalide), le pipeline s'arrête.
-                    bat 'docker compose config'
+                    withCredentials([
+                        string(credentialsId: 'crm-jwt-secret', variable: 'APP_JWT_SECRET'),
+                        string(credentialsId: 'crm-mysql-root-password', variable: 'MYSQL_ROOT_PASSWORD')
+                    ]) {
+                        bat 'docker compose config --quiet'
+                    }
 
                     echo 'OK : la configuration Docker Compose est valide.'
                     echo '==================================================='
@@ -461,6 +466,10 @@ environment {
         // =====================================================================
 stage('Docker Compose Integration Test') {
             steps {
+                withCredentials([
+                    string(credentialsId: 'crm-jwt-secret', variable: 'APP_JWT_SECRET'),
+                    string(credentialsId: 'crm-mysql-root-password', variable: 'MYSQL_ROOT_PASSWORD')
+                ]) {
                 script {
                     echo '========= DOCKER COMPOSE INTEGRATION TEST =========='
 
@@ -636,6 +645,7 @@ exit 0
                         echo 'Environnement arrêté et nettoyé.'
                     }
                     echo '==================================================='
+                }
                 }
             }
         }
