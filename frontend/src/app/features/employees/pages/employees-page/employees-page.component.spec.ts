@@ -9,6 +9,11 @@ import { EmployeeService } from '../../services/employee.service';
 import { EmployeesPageComponent } from './employees-page.component';
 
 describe('EmployeesPageComponent', () => {
+  it('links to employee creation and editing', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('a[href="/employees/new"]').textContent).toContain('Nouvel employé');
+    expect(fixture.nativeElement.querySelector('a[aria-label="Modifier EMP001"]').getAttribute('href')).toBe('/employees/1/edit');
+  });
   const employee: EmployeeResponse = {
     id: 1,
     employeeCode: 'EMP001',

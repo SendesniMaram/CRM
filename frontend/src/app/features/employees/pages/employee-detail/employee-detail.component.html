@@ -28,6 +28,7 @@
       <p>{{ errorMessage() }}</p>
     </mat-card>
   } @else if (employee(); as currentEmployee) {
+    <button mat-flat-button type="button" (click)="editEmployee()">Modifier</button>
     <div class="details-grid">
       <mat-card class="detail-card personal-card">
         <mat-card-header>

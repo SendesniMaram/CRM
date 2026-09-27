@@ -1,0 +1,79 @@
+<section class="employee-form-page" aria-labelledby="form-title" [attr.aria-busy]="loading() || saving()">
+  <header class="page-header">
+    <p>Annuaire du personnel</p>
+    <h1 id="form-title">{{ editing() ? 'Modifier l’employé' : 'Nouvel employé' }}</h1>
+  </header>
+  @if (loading()) {
+    <div class="loading-state" role="status"><mat-spinner diameter="40" />Chargement de l’employé...</div>
+  }
+  @if (notFound()) {
+    <p role="alert">Employé introuvable. La fiche demandée n’existe pas ou n’est plus disponible.</p>
+  }
+  @if (errorMessage()) {
+    <p class="error-message" role="alert">{{ errorMessage() }}</p>
+  }
+  @if (ready() && !notFound()) {
+    <mat-card>
+      <mat-card-content>
+        <form [formGroup]="form" (ngSubmit)="submit()">
+          <fieldset [disabled]="saving()">
+            <legend>Informations de l’employé</legend>
+            <div class="form-grid">
+              @for (field of textFields; track field.name) {
+                <mat-form-field appearance="outline">
+                  <mat-label>{{ field.label }}</mat-label>
+                  <input matInput [formControlName]="field.name" [required]="field.name === 'employeeCode'"
+                    [type]="field.name === 'email' ? 'email' : 'text'" />
+                  @if (form.controls[field.name].hasError('required')) {
+                    <mat-error>Le code employé est obligatoire et ne peut pas être vide.</mat-error>
+                  } @else if (form.controls[field.name].hasError('maxlength')) {
+                    <mat-error>Maximum {{ field.max }} caractères.</mat-error>
+                  } @else if (form.controls[field.name].hasError('email')) {
+                    <mat-error>Saisissez une adresse e-mail valide.</mat-error>
+                  }
+                </mat-form-field>
+              }
+              <mat-form-field appearance="outline">
+                <mat-label>Date d’embauche</mat-label>
+                <input matInput type="date" formControlName="hireDate" />
+                <mat-error>La date d’embauche doit être passée ou présente.</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Salaire</mat-label>
+                <input matInput type="number" formControlName="salary" required min="0" step="any" />
+                @if (form.controls.salary.hasError('required')) {
+                  <mat-error>Le salaire est obligatoire.</mat-error>
+                } @else {
+                  <mat-error>Le salaire doit être un nombre supérieur ou égal à zéro.</mat-error>
+                }
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Date de naissance</mat-label>
+                <input matInput type="date" formControlName="dateOfBirth" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Identifiant du département</mat-label>
+                <input matInput type="number" formControlName="departmentId" step="1" />
+                <mat-hint>Facultatif</mat-hint>
+                <mat-error>Saisissez un entier strictement positif.</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Adresse</mat-label>
+                <textarea matInput formControlName="address" rows="3"></textarea>
+                <mat-error>Maximum 500 caractères.</mat-error>
+              </mat-form-field>
+            </div>
+          </fieldset>
+          <div class="actions">
+            <button mat-flat-button type="submit" [disabled]="form.invalid || saving()">Enregistrer</button>
+            <a mat-stroked-button [routerLink]="employeeId() ? ['/employees', employeeId()] : ['/employees']"
+              [disabled]="saving()">Annuler</a>
+            @if (saving()) { <span role="status">Enregistrement en cours...</span> }
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    <a mat-stroked-button routerLink="/employees">Annuler</a>
+  }
+</section>

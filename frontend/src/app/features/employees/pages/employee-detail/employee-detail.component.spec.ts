@@ -129,4 +129,12 @@ describe('EmployeeDetailComponent', () => {
 
     expect(router.navigate).toHaveBeenCalledWith(['/employees']);
   });
+
+  it('opens the edit page for the loaded employee', async () => {
+    await createComponent();
+    fixture.detectChanges();
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
+    buttons.find((button) => button.textContent?.trim() === 'Modifier')!.click();
+    expect(router.navigate).toHaveBeenCalledWith(['/employees', 12, 'edit']);
+  });
 });

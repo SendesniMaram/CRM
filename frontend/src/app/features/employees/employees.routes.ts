@@ -9,6 +9,20 @@ export const EMPLOYEES_ROUTES: Routes = [
     title: 'Employés'
   },
   {
+    path: 'new',
+    title: 'Nouvel employé',
+    loadComponent: () => import('./pages/employee-form/employee-form.component').then(
+      ({ EmployeeFormComponent }) => EmployeeFormComponent
+    )
+  },
+  {
+    path: ':id/edit',
+    title: 'Modifier l’employé',
+    loadComponent: () => import('./pages/employee-form/employee-form.component').then(
+      ({ EmployeeFormComponent }) => EmployeeFormComponent
+    )
+  },
+  {
     path: ':id',
     title: "Détail de l'employé",
     loadComponent: () =>

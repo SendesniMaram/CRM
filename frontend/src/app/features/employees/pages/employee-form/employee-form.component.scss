@@ -1,0 +1,21 @@
+:host { display: block; }
+.employee-form-page { max-width: 1180px; margin: 0 auto; padding: 0.5rem 0 2rem; }
+.page-header {
+  background: linear-gradient(115deg, #123b5d, #176b73);
+  border-radius: 10px;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); }
+.page-header p { color: #b7e4df; }
+mat-card { border: 1px solid #e2e9ed; }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { padding: 1rem 0; font-weight: 600; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.full-width { grid-column: 1 / -1; }
+mat-form-field { width: 100%; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-top: 1rem; }
+.loading-state { display: flex; align-items: center; gap: 1rem; padding: 2rem; }
+.error-message { background: #fff1f0; color: var(--mat-sys-error); padding: 1rem; border-left: 4px solid currentColor; }
+@media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }

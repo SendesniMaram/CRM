@@ -52,6 +52,11 @@ export class EmployeeDetailComponent implements OnInit {
     void this.router.navigate(['/employees']);
   }
 
+  protected editEmployee(): void {
+    const employee = this.employee();
+    if (employee) void this.router.navigate(['/employees', employee.id, 'edit']);
+  }
+
   private loadEmployee(id: number): void {
     this.loading.set(true);
     this.errorMessage.set('');

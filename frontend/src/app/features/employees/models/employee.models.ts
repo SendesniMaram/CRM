@@ -1,4 +1,5 @@
 export interface EmployeeRequest {
+  departmentId?: number;
   employeeCode: string;
   firstName?: string;
   lastName?: string;
@@ -14,6 +15,7 @@ export interface EmployeeRequest {
 }
 
 export interface EmployeeResponse {
+  departmentId?: number;
   id: number;
   employeeCode: string;
   firstName?: string;
