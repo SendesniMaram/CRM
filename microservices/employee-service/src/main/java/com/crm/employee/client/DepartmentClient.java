@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @FeignClient(
     name = "department-service",
     path = "/api/departments",
+    configuration = DepartmentClientConfiguration.class,
     fallbackFactory = DepartmentClientFallbackFactory.class
 )
 public interface DepartmentClient {
