@@ -95,12 +95,6 @@ public class EmployeeServiceImpl implements IEmployeeService {
         Employee existing = employeeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
-        // Validation : employeeCode unique (exclure l'employé courant)
-        if (!existing.getEmployeeCode().equals(request.getEmployeeCode())
-                && employeeRepository.existsByEmployeeCode(request.getEmployeeCode())) {
-            throw new IllegalArgumentException(
-                    "Employee code already exists: " + request.getEmployeeCode());
-        }
         // Validation : email unique (exclure l'employé courant, si email renseigné)
         if (StringUtils.hasText(request.getEmail())
                 && !request.getEmail().equals(existing.getEmail())

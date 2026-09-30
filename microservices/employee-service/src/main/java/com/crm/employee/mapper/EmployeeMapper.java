@@ -61,7 +61,7 @@ public class EmployeeMapper {
         if (request == null) {
             return;
         }
-        employee.setEmployeeCode(request.getEmployeeCode());
+        // employeeCode is assigned at creation and must remain immutable.
         employee.setFirstName(request.getFirstName());
         employee.setLastName(request.getLastName());
         employee.setEmail(request.getEmail());

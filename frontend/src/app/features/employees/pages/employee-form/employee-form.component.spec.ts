@@ -1,5 +1,7 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormControlName } from '@angular/forms';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
 import { EmployeeResponse } from '../../models/employee.models';
@@ -17,6 +19,11 @@ describe('EmployeeFormComponent', () => {
   let fixture: ComponentFixture<EmployeeFormComponent>;
   let router: Router;
   let params: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+
+  function inputFor(name: string): HTMLInputElement {
+    return fixture.debugElement.queryAll(By.directive(FormControlName))
+      .find((element) => element.injector.get(FormControlName).name === name)!.nativeElement;
+  }
 
   async function create(id?: string) {
     params = new BehaviorSubject(convertToParamMap(id === undefined ? {} : { id }));
@@ -44,6 +51,7 @@ describe('EmployeeFormComponent', () => {
     const component = await create();
     expect(fixture.nativeElement.textContent).toContain('Nouvel employé');
     expect(component['form'].controls.employeeCode.value).toBe('');
+    expect(inputFor('employeeCode').readOnly).toBeFalse();
     expect(component['form'].controls.salary.value).toBeNull();
     expect(component['form'].controls.employeeCode.hasError('required')).toBeTrue();
     expect(component['form'].controls.salary.hasError('required')).toBeTrue();
@@ -53,12 +61,18 @@ describe('EmployeeFormComponent', () => {
     expect(service.getEmployeeById).not.toHaveBeenCalled();
   });
 
-  it('loads and prefills every editable field including departmentId', async () => {
+  it('loads the form with a visible read-only code and editable other fields', async () => {
     const component = await create('12');
     expect(service.getEmployeeById).toHaveBeenCalledWith(12);
     expect(fixture.nativeElement.textContent).toContain('Modifier l’employé');
     const { id, ...fields } = employee;
     expect(component['form'].getRawValue()).toEqual(fields);
+    const codeInput = inputFor('employeeCode');
+    expect(codeInput.value).toBe('EMP012');
+    expect(codeInput.readOnly).toBeTrue();
+    expect(codeInput.disabled).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('Le code employé ne peut pas être modifié après la création.');
+    expect(inputFor('firstName').readOnly).toBeFalse();
   });
 
   it('rejects whitespace code, negative salary and accepts zero', async () => {
@@ -125,7 +139,7 @@ describe('EmployeeFormComponent', () => {
     const component = await create('12');
     component['form'].controls.firstName.setValue('Anne');
     component['submit']();
-    expect(service.updateEmployee).toHaveBeenCalledWith(12, jasmine.objectContaining({ firstName: 'Anne', departmentId: 2 }));
+    expect(service.updateEmployee).toHaveBeenCalledWith(12, jasmine.objectContaining({ employeeCode: 'EMP012', firstName: 'Anne', departmentId: 2 }));
     expect(service.createEmployee).not.toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/employees', 12]);
   });
@@ -135,6 +149,22 @@ describe('EmployeeFormComponent', () => {
     component['form'].controls.departmentId.setValue(null);
     component['submit']();
     expect(service.updateEmployee.calls.mostRecent().args[1].departmentId).toBeUndefined();
+  });
+
+  it('preserves the exact existing code in the update payload', async () => {
+    service.getEmployeeById.and.returnValue(of({ ...employee, employeeCode: ' EMP012 ' }));
+    const component = await create('12');
+    component['submit']();
+    expect(service.updateEmployee.calls.mostRecent().args[1].employeeCode).toBe(' EMP012 ');
+  });
+
+  it('makes the code editable again when navigating from edit to creation', async () => {
+    await create('12');
+    params.next(convertToParamMap({}));
+    fixture.detectChanges();
+    const codeInput = inputFor('employeeCode');
+    expect(codeInput.readOnly).toBeFalse();
+    expect(codeInput.value).toBe('');
   });
 
   it('blocks duplicate submissions and displays pending state', async () => {

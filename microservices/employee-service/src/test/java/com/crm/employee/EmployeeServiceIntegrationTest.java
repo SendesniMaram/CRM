@@ -6,8 +6,11 @@ import com.crm.employee.dto.EmployeeResponse;
 import com.crm.employee.repository.EmployeeRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,6 +45,9 @@ class EmployeeServiceIntegrationTest {
 
     @Autowired
     private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @MockBean
     private DepartmentClient departmentClient;
@@ -266,8 +272,9 @@ class EmployeeServiceIntegrationTest {
                 .andExpect(jsonPath("$.path").value("/api/employees/99999"));
     }
 
-    @Test
-    void updateEmployee_ShouldReturnUpdatedEmployee() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"EMP001", "EMP-CHANGED", "EMP-TAKEN"})
+    void updateEmployee_ShouldPreserveCodeAndPersistOtherChanges(String submittedCode) throws Exception {
         String createJson = mockMvc.perform(post("/api/employees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
@@ -278,25 +285,51 @@ class EmployeeServiceIntegrationTest {
 
         EmployeeResponse created = objectMapper.readValue(createJson, EmployeeResponse.class);
 
+        // A code belonging to another employee must also be ignored on update.
+        EmployeeRequest otherRequest = new EmployeeRequest();
+        otherRequest.setEmployeeCode("EMP-TAKEN");
+        otherRequest.setSalary(new BigDecimal("50000.00"));
+        mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(otherRequest)))
+                .andExpect(status().isCreated());
+        entityManager.flush();
+        entityManager.clear();
+
         EmployeeRequest updateRequest = new EmployeeRequest();
-        updateRequest.setEmployeeCode("EMP001"); // Same code
+        updateRequest.setEmployeeCode(submittedCode);
         updateRequest.setFirstName("JohnUpdated");
         updateRequest.setLastName("DoeUpdated");
         updateRequest.setEmail("john.updated@example.com");
         updateRequest.setSalary(new BigDecimal("65000.00"));
 
-        mockMvc.perform(put("/api/employees/{id}", created.getId())
+        String updateJson = mockMvc.perform(put("/api/employees/{id}", created.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
+                .andExpect(jsonPath("$.employeeCode").value("EMP001"))
                 .andExpect(jsonPath("$.firstName").value("JohnUpdated"))
                 .andExpect(jsonPath("$.lastName").value("DoeUpdated"))
                 .andExpect(jsonPath("$.email").value("john.updated@example.com"))
-                .andExpect(jsonPath("$.salary").value(65000.0));
+                .andExpect(jsonPath("$.salary").value(65000.0))
+                .andReturn().getResponse().getContentAsString();
 
-        // Verify persistence
-        assertTrue(employeeRepository.existsByEmail("john.updated@example.com"));
+        // Force SQL execution and discard managed entities before checking persistence.
+        entityManager.flush();
+        entityManager.clear();
+        var persisted = employeeRepository.findById(created.getId()).orElseThrow();
+        var updated = objectMapper.readValue(updateJson, EmployeeResponse.class);
+        assertEquals("EMP001", persisted.getEmployeeCode());
+        assertEquals(persisted.getEmployeeCode(), updated.getEmployeeCode());
+        assertEquals("JohnUpdated", persisted.getFirstName());
+        assertEquals("DoeUpdated", persisted.getLastName());
+        assertEquals("john.updated@example.com", persisted.getEmail());
+        assertEquals(0, new BigDecimal("65000.00").compareTo(persisted.getSalary()));
+        mockMvc.perform(get("/api/employees/{id}", created.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.employeeCode").value("EMP001"))
+                .andExpect(jsonPath("$.firstName").value("JohnUpdated"));
     }
 
     @Test

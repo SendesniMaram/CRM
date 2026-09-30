@@ -135,7 +135,7 @@ export class EmployeeFormComponent implements OnInit {
     const value = this.form.getRawValue();
     const optional = (text: string): string | undefined => text.trim() || undefined;
     const payload: EmployeeRequest = {
-      employeeCode: value.employeeCode.trim(), salary: Number(value.salary),
+      employeeCode: this.editing() ? value.employeeCode : value.employeeCode.trim(), salary: Number(value.salary),
       firstName: optional(value.firstName), lastName: optional(value.lastName),
       email: optional(value.email), phone: optional(value.phone),
       jobTitle: optional(value.jobTitle), hireDate: optional(value.hireDate),

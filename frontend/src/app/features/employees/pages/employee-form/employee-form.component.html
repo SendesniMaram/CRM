@@ -23,7 +23,11 @@
                 <mat-form-field appearance="outline">
                   <mat-label>{{ field.label }}</mat-label>
                   <input matInput [formControlName]="field.name" [required]="field.name === 'employeeCode'"
+                    [readonly]="editing() && field.name === 'employeeCode'"
                     [type]="field.name === 'email' ? 'email' : 'text'" />
+                  @if (editing() && field.name === 'employeeCode') {
+                    <mat-hint>Le code employé ne peut pas être modifié après la création.</mat-hint>
+                  }
                   @if (form.controls[field.name].hasError('required')) {
                     <mat-error>Le code employé est obligatoire et ne peut pas être vide.</mat-error>
                   } @else if (form.controls[field.name].hasError('maxlength')) {
