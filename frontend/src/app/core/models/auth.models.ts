@@ -23,3 +23,11 @@ export interface AuthSession {
   refreshToken: string;
   user: Omit<LoginResponse, 'token' | 'refreshToken'>;
 }
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  type: string;
+  roles: CrmRole[];
+  expiration: number;
+}

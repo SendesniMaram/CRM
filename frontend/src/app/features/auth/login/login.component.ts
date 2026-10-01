@@ -4,7 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { safeReturnUrl } from '../../../core/services/auth-navigation';
 import { finalize } from 'rxjs';
 import { LoginRequest } from '../../../core/models/auth.models';
 import { AuthService } from '../../../core/services/auth.service';
@@ -69,6 +70,7 @@ export class LoginComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly loading = signal(false);
   protected readonly errorMessage = signal('');
@@ -78,6 +80,7 @@ export class LoginComponent {
   });
 
   protected submit(): void {
+    if (this.loading()) return;
     if (this.loginForm.invalid) {
       this.loginForm.markAllAsTouched();
       return;
@@ -94,7 +97,7 @@ export class LoginComponent {
     this.errorMessage.set('');
 
     this.authService.login(request).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: () => void this.router.navigate(['/dashboard']),
+      next: () => void this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
       error: () => this.errorMessage.set('Échec de la connexion. Vérifiez vos identifiants et réessayez.')
     });
   }

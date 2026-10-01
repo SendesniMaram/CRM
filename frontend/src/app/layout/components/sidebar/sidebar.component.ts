@@ -25,6 +25,7 @@ interface NavigationItem {
         </a>
       }
     </mat-nav-list>
+    <button type="button" (click)="logout()">Se déconnecter</button>
   `,
   styles: `
     :host { display: block; padding: 1rem 0.75rem; }
@@ -34,6 +35,8 @@ interface NavigationItem {
 })
 export class SidebarComponent {
   private readonly authService = inject(AuthService);
+
+  protected logout(): void { this.authService.logout(); }
 
   private readonly navigationItems: NavigationItem[] = [
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard', roles: [] },

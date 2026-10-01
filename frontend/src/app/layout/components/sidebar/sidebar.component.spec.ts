@@ -9,7 +9,7 @@ describe('SidebarComponent', () => {
   let authService: jasmine.SpyObj<AuthService>;
 
   beforeEach(async () => {
-    authService = jasmine.createSpyObj<AuthService>('AuthService', ['hasAnyRole']);
+    authService = jasmine.createSpyObj<AuthService>('AuthService', ['hasAnyRole', 'logout']);
     await TestBed.configureTestingModule({
       imports: [SidebarComponent],
       providers: [
@@ -49,5 +49,15 @@ describe('SidebarComponent', () => {
 
   it('shows Client area to a CLIENT', () => {
     expect(renderFor([CrmRole.CLIENT])).toContain('Espace client');
+  });
+
+  it('provides an accessible logout action', () => {
+    authService.hasAnyRole.and.returnValue(true);
+    const fixture = TestBed.createComponent(SidebarComponent);
+    fixture.detectChanges();
+    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
+    expect(button.textContent).toContain('Se déconnecter');
+    button.click();
+    expect(authService.logout).toHaveBeenCalledTimes(1);
   });
 });

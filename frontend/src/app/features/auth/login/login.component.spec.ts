@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { Observable, Subject, throwError } from 'rxjs';
 import { LoginResponse } from '../../../core/models/auth.models';
 import { CrmRole } from '../../../core/models/role.model';
@@ -20,13 +20,16 @@ describe('LoginComponent', () => {
     roles: [CrmRole.ADMIN],
     expiration: 3600
   };
+  let returnUrl: string | null;
   let authService: jasmine.SpyObj<AuthService>;
   let router: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
+    returnUrl = null;
     authService = jasmine.createSpyObj<AuthService>('AuthService', ['login']);
-    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate', 'navigateByUrl']);
     router.navigate.and.resolveTo(true);
+    router.navigateByUrl.and.resolveTo(true);
 
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
@@ -34,7 +37,8 @@ describe('LoginComponent', () => {
         provideHttpClient(),
         provideZonelessChangeDetection(),
         { provide: AuthService, useValue: authService },
-        { provide: Router, useValue: router }
+        { provide: Router, useValue: router },
+        { provide: ActivatedRoute, useValue: { snapshot: { get queryParamMap() { return convertToParamMap({ returnUrl }); } } } }
       ]
     }).compileComponents();
   });
@@ -81,7 +85,7 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Échec de la connexion');
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-access-token');
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-refresh-token');
   });
@@ -101,7 +105,7 @@ describe('LoginComponent', () => {
       email: 'unit@example.test',
       password: 'synthetic-password'
     });
-    expect(router.navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
   });
 
   it('keeps loading active while the login request is pending', () => {
@@ -140,4 +144,41 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-password');
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-access-token');
   });
+
+  for (const [destination, expected] of [
+    ['/employees', '/employees'],
+    ['/employees?page=2', '/employees?page=2'],
+    ['/employees/12#details', '/employees/12#details'],
+    ['/employees/12/edit?view=full#form', '/employees/12/edit?view=full#form'],
+    ['http://evil.example', '/dashboard'], ['data:text/html,fictitious', '/dashboard'],
+    ['\\evil.example', '/dashboard'], ['/%252f%252fevil.example', '/dashboard'],
+    ['%2F%2Fevil.example', '/dashboard'], ['%252F%252Fevil.example', '/dashboard'],
+    [' /employees', '/dashboard'], ['/employees ', '/dashboard'],
+    ['/employees\t', '/dashboard'], ['/employees\n', '/dashboard'],
+    ['/employees\u0000', '/dashboard'],
+    ['https://example.com', '/dashboard'], ['//example.com', '/dashboard'],
+    ['/\\example.com', '/dashboard'], ['/%2f%2fexample.com', '/dashboard'],
+    ['/employees/../login', '/dashboard'], ['/login?returnUrl=/login', '/dashboard'],
+    ['/unknown', '/dashboard'], ['javascript:alert(1)', '/dashboard'],
+    ['/employees(aux:login)', '/dashboard']
+  ]) {
+    it('handles returnUrl safely: ' + destination, () => {
+      returnUrl = destination;
+      authService.login.and.returnValue(new Observable((subscriber) => subscriber.next(loginResponse)));
+      const fixture = TestBed.createComponent(LoginComponent);
+      fixture.componentInstance['loginForm'].setValue({ identifier: 'unit', password: 'fictitious' });
+      fixture.componentInstance['submit']();
+      expect(router.navigateByUrl).toHaveBeenCalledWith(expected);
+    });
+  }
+
+  it('does not submit login twice while pending', () => {
+    authService.login.and.returnValue(new Subject<LoginResponse>());
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.componentInstance['loginForm'].setValue({ identifier: 'unit', password: 'fictitious' });
+    fixture.componentInstance['submit']();
+    fixture.componentInstance['submit']();
+    expect(authService.login).toHaveBeenCalledTimes(1);
+  });
+
 });
