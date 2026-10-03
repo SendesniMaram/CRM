@@ -94,6 +94,17 @@
                   matTooltip="Modifier" [attr.aria-label]="'Modifier ' + employee.employeeCode">
                   <mat-icon aria-hidden="true">edit</mat-icon>
                 </a>
+                @if (canDelete()) {
+                  <button mat-icon-button type="button" (click)="deleteEmployee(employee)"
+                    [disabled]="confirming() || deletingId() !== null || loading()"
+                    matTooltip="Supprimer l’employé"
+                    [attr.aria-label]="'Supprimer ' + employee.employeeCode">
+                    <mat-icon aria-hidden="true">delete</mat-icon>
+                  </button>
+                  @if (deletingId() === employee.id) {
+                    <span role="status">Suppression en cours...</span>
+                  }
+                }
               </td>
             </ng-container>
 
