@@ -56,11 +56,29 @@
                 <input matInput type="date" formControlName="dateOfBirth" />
               </mat-form-field>
               <mat-form-field appearance="outline">
-                <mat-label>Identifiant du département</mat-label>
-                <input matInput type="number" formControlName="departmentId" step="1" />
+                <mat-label>Département</mat-label>
+                <mat-select formControlName="departmentId" [canSelectNullableOptions]="true">
+                  <mat-option [value]="null">Aucun département</mat-option>
+                  @if (unavailableDepartmentId(); as id) {
+                    <mat-option [value]="id" disabled>Département indisponible — ID {{ id }}</mat-option>
+                  }
+                  @for (department of departments(); track department.id) {
+                    <mat-option [value]="department.id">{{ department.name }}</mat-option>
+                  }
+                </mat-select>
                 <mat-hint>Facultatif</mat-hint>
                 <mat-error>Saisissez un entier strictement positif.</mat-error>
               </mat-form-field>
+              @if (departmentsLoading()) {
+                <p role="status">Chargement des départements...</p>
+              } @else if (departmentsError()) {
+                <div>
+                  <p role="alert">Impossible de charger les départements. La valeur actuelle est conservée.</p>
+                  <button mat-stroked-button type="button" [disabled]="saving()" (click)="loadDepartments()">Réessayer</button>
+                </div>
+              } @else if (departments().length === 0) {
+                <p role="status">Aucun département disponible.</p>
+              }
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Adresse</mat-label>
                 <textarea matInput formControlName="address" rows="3"></textarea>

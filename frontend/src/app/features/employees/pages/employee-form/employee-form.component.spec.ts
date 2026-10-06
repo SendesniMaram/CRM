@@ -2,9 +2,12 @@ import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormControlName } from '@angular/forms';
 import { By } from '@angular/platform-browser';
+import { TestbedHarnessEnvironment } from '@angular/cdk/testing/testbed';
+import { MatSelectHarness } from '@angular/material/select/testing';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
-import { EmployeeResponse } from '../../models/employee.models';
+import { DepartmentResponse, EmployeeResponse } from '../../models/employee.models';
+import { DepartmentService } from '../../../departments/services/department.service';
 import { EmployeeService } from '../../services/employee.service';
 import { EmployeeFormComponent } from './employee-form.component';
 
@@ -16,6 +19,11 @@ describe('EmployeeFormComponent', () => {
     dateOfBirth: '1990-01-01', gender: 'F', status: 'ACTIF', departmentId: 2
   } satisfies EmployeeResponse;
   let service: jasmine.SpyObj<EmployeeService>;
+  let departmentService: jasmine.SpyObj<DepartmentService>;
+  const departments: DepartmentResponse[] = [
+    { id: 2, name: 'Engineering', code: 'ENG', description: '', createdAt: '', updatedAt: '' },
+    { id: 5, name: 'Finance', code: 'FIN', description: '', createdAt: '', updatedAt: '' }
+  ];
   let fixture: ComponentFixture<EmployeeFormComponent>;
   let router: Router;
   let params: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
@@ -31,6 +39,7 @@ describe('EmployeeFormComponent', () => {
       imports: [EmployeeFormComponent],
       providers: [provideZonelessChangeDetection(), provideRouter([]),
         { provide: EmployeeService, useValue: service },
+        { provide: DepartmentService, useValue: departmentService },
         { provide: ActivatedRoute, useValue: { paramMap: params, snapshot: { paramMap: params.value } } }]
     }).compileComponents();
     router = TestBed.inject(Router);
@@ -41,6 +50,8 @@ describe('EmployeeFormComponent', () => {
   }
 
   beforeEach(() => {
+    departmentService = jasmine.createSpyObj<DepartmentService>('DepartmentService', ['getDepartments']);
+    departmentService.getDepartments.and.returnValue(of(departments));
     service = jasmine.createSpyObj<EmployeeService>('EmployeeService', ['getEmployeeById', 'createEmployee', 'updateEmployee']);
     service.getEmployeeById.and.returnValue(of(employee));
     service.createEmployee.and.returnValue(of(employee));
@@ -254,6 +265,161 @@ describe('EmployeeFormComponent', () => {
     service.getEmployeeById.and.returnValue(pending);
     params.next(convertToParamMap({ id: '13' }));
     expect(service.getEmployeeById).toHaveBeenCalledWith(13);
+    expect(pending.observed).toBeTrue();
+    fixture.destroy();
+    expect(pending.observed).toBeFalse();
+  });
+
+  function select() {
+    return TestbedHarnessEnvironment.loader(fixture).getHarness(MatSelectHarness);
+  }
+
+  it('loads named options in creation without selecting a department and sends the selected numeric ID', async () => {
+    const component = await create();
+    const selector = await select();
+    expect(departmentService.getDepartments).toHaveBeenCalledTimes(1);
+    expect(component['form'].controls.departmentId.value).toBeNull();
+    expect(await selector.getValueText()).toBe('Aucun département');
+    await selector.open();
+    expect(await Promise.all((await selector.getOptions()).map((option) => option.getText())))
+      .toEqual(['Aucun département', 'Engineering', 'Finance']);
+    await selector.clickOptions({ text: 'Finance' });
+    expect(component['form'].controls.departmentId.value).toBe(5);
+    component['form'].patchValue({ employeeCode: 'EMP', salary: 1 });
+    component['submit']();
+    expect(service.createEmployee).toHaveBeenCalledWith(jasmine.objectContaining({ departmentId: 5 }));
+  });
+
+  it('preselects the existing department and allows explicit clearing through the select', async () => {
+    const component = await create('12');
+    const selector = await select();
+    expect(await selector.getValueText()).toBe('Engineering');
+    await selector.open();
+    await selector.clickOptions({ text: 'Aucun département' });
+    expect(component['form'].controls.departmentId.value).toBeNull();
+    component['submit']();
+    expect(service.updateEmployee.calls.mostRecent().args[1].departmentId).toBeUndefined();
+  });
+
+  for (const employeeFirst of [true, false]) {
+    it(`preselects correctly when ${employeeFirst ? 'Employee' : 'Departments'} arrives first`, async () => {
+      const employeePending = new Subject<EmployeeResponse>();
+      const departmentPending = new Subject<DepartmentResponse[]>();
+      service.getEmployeeById.and.returnValue(employeePending);
+      departmentService.getDepartments.and.returnValue(departmentPending);
+      const component = await create('12');
+      if (employeeFirst) {
+        employeePending.next(employee);
+        employeePending.complete();
+        const selector = await select();
+        expect(await selector.isDisabled()).toBeTrue();
+        expect(fixture.nativeElement.textContent).toContain('Chargement des départements');
+        expect(component['form'].getRawValue().departmentId).toBe(2);
+        departmentPending.next(departments);
+        departmentPending.complete();
+      } else {
+        departmentPending.next(departments);
+        departmentPending.complete();
+        employeePending.next(employee);
+        employeePending.complete();
+      }
+      const selector = await select();
+      expect(await selector.getValueText()).toBe('Engineering');
+      expect(await selector.isDisabled()).toBeFalse();
+      expect(component['form'].getRawValue().departmentId).toBe(2);
+    });
+  }
+
+  it('represents a missing department and preserves its ID when another field changes', async () => {
+    service.getEmployeeById.and.returnValue(of({ ...employee, departmentId: 7 }));
+    const component = await create('12');
+    const selector = await select();
+    expect(await selector.getValueText()).toBe('Département indisponible — ID 7');
+    component['form'].controls.firstName.setValue('Anne');
+    component['submit']();
+    expect(service.updateEmployee).toHaveBeenCalledWith(12, jasmine.objectContaining({ firstName: 'Anne', departmentId: 7 }));
+  });
+
+  it('preserves the form on Department failure, hides backend details and retries only Departments', async () => {
+    const secret = 'SQL stack trace http://internal-server/private';
+    departmentService.getDepartments.and.returnValue(throwError(() => ({ status: 500, error: { message: secret } })));
+    const component = await create('12');
+    const selector = await select();
+    component['form'].controls.firstName.setValue('Anne');
+    expect(await selector.isDisabled()).toBeTrue();
+    expect(await selector.getValueText()).toBe('Département indisponible — ID 2');
+    expect(fixture.nativeElement.textContent).toContain('Impossible de charger les départements');
+    expect(fixture.nativeElement.textContent).not.toContain(secret);
+    const save = new Subject<EmployeeResponse>();
+    service.updateEmployee.and.returnValue(save);
+    component['submit']();
+    expect(service.updateEmployee).toHaveBeenCalledWith(12, jasmine.objectContaining({ firstName: 'Anne', departmentId: 2 }));
+    save.error({ status: 500 });
+    expect(await selector.isDisabled()).toBeTrue();
+    const pending = new Subject<DepartmentResponse[]>();
+    departmentService.getDepartments.and.returnValue(pending);
+    const retry = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>)
+      .find((button) => button.textContent?.includes('Réessayer'))!;
+    retry.click();
+    fixture.detectChanges();
+    component['loadDepartments']();
+    expect(departmentService.getDepartments).toHaveBeenCalledTimes(2);
+    expect(await selector.isDisabled()).toBeTrue();
+    pending.next(departments);
+    pending.complete();
+    expect(await selector.getValueText()).toBe('Engineering');
+    expect(await selector.isDisabled()).toBeFalse();
+    expect(component['form'].controls.firstName.value).toBe('Anne');
+    expect(service.getEmployeeById).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows creation without a department when the list is empty', async () => {
+    departmentService.getDepartments.and.returnValue(of([]));
+    const component = await create();
+    const selector = await select();
+    expect(await selector.isDisabled()).toBeFalse();
+    expect(await selector.getValueText()).toBe('Aucun département');
+    expect(fixture.nativeElement.textContent).toContain('Aucun département disponible');
+    component['form'].patchValue({ employeeCode: 'EMP', salary: 1 });
+    expect(component['form'].valid).toBeTrue();
+    component['submit']();
+    expect(service.createEmployee.calls.mostRecent().args[0].departmentId).toBeUndefined();
+  });
+
+  it('disables the select during saving, preserves the ID and restores it after an Employee error', async () => {
+    const pending = new Subject<EmployeeResponse>();
+    service.updateEmployee.and.returnValue(pending);
+    const component = await create('12');
+    const selector = await select();
+    component['submit']();
+    expect(await selector.isDisabled()).toBeTrue();
+    expect(service.updateEmployee.calls.mostRecent().args[1].departmentId).toBe(2);
+    pending.error({ status: 400 });
+    expect(await selector.isDisabled()).toBeFalse();
+    expect(await selector.getValueText()).toBe('Engineering');
+  });
+
+  it('keeps the select disabled if Departments finish loading during a save', async () => {
+    const departmentsPending = new Subject<DepartmentResponse[]>();
+    const savePending = new Subject<EmployeeResponse>();
+    departmentService.getDepartments.and.returnValue(departmentsPending);
+    service.updateEmployee.and.returnValue(savePending);
+    const component = await create('12');
+    component['submit']();
+    departmentsPending.next(departments);
+    departmentsPending.complete();
+    const selector = await select();
+    expect(await selector.isDisabled()).toBeTrue();
+    expect(service.updateEmployee.calls.mostRecent().args[1].departmentId).toBe(2);
+    savePending.next(employee);
+    savePending.complete();
+    expect(await selector.isDisabled()).toBeFalse();
+  });
+
+  it('cancels a pending Department subscription when the form is destroyed', async () => {
+    const pending = new Subject<DepartmentResponse[]>();
+    departmentService.getDepartments.and.returnValue(pending);
+    await create();
     expect(pending.observed).toBeTrue();
     fixture.destroy();
     expect(pending.observed).toBeFalse();

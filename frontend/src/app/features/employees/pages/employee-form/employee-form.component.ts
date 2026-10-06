@@ -7,8 +7,10 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { EMPTY, catchError, finalize, switchMap, tap } from 'rxjs';
-import { EmployeeRequest } from '../../models/employee.models';
+import { DepartmentResponse, EmployeeRequest } from '../../models/employee.models';
+import { DepartmentService } from '../../../departments/services/department.service';
 import { EmployeeService } from '../../services/employee.service';
 
 const notBlank: ValidatorFn = (control) =>
@@ -33,7 +35,7 @@ const pastOrPresent: ValidatorFn = (control) => {
   selector: 'app-employee-form',
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule,
-    MatFormFieldModule, MatInputModule, MatProgressSpinnerModule],
+    MatFormFieldModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule],
   templateUrl: './employee-form.component.html',
   styleUrl: './employee-form.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -43,6 +45,7 @@ export class EmployeeFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(EmployeeService);
+  private readonly departmentService = inject(DepartmentService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly employeeId = signal<number | null>(null);
@@ -52,6 +55,9 @@ export class EmployeeFormComponent implements OnInit {
   protected readonly ready = signal(false);
   protected readonly notFound = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly departments = signal<DepartmentResponse[]>([]);
+  protected readonly departmentsLoading = signal(false);
+  protected readonly departmentsError = signal(false);
   protected readonly textFields = [
     { name: 'employeeCode', label: 'Code employé', max: 255 },
     { name: 'firstName', label: 'Prénom', max: 255 },
@@ -80,6 +86,7 @@ export class EmployeeFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadDepartments();
     this.route.paramMap.pipe(
       switchMap((params) => {
         this.form.reset();
@@ -125,6 +132,37 @@ export class EmployeeFormComponent implements OnInit {
     ).subscribe();
   }
 
+  protected loadDepartments(): void {
+    if (this.departmentsLoading() || this.saving()) return;
+    this.departmentsLoading.set(true);
+    this.departmentsError.set(false);
+    this.updateDepartmentControl();
+    this.departmentService.getDepartments().pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => {
+        this.departmentsLoading.set(false);
+        this.updateDepartmentControl();
+      })
+    ).subscribe({
+      next: (departments) => this.departments.set(departments),
+      error: () => this.departmentsError.set(true)
+    });
+  }
+
+  protected unavailableDepartmentId(): number | null {
+    const id = this.form.controls.departmentId.value;
+    return id !== null && !this.departments().some((department) => department.id === id) ? id : null;
+  }
+
+  private updateDepartmentControl(): void {
+    const control = this.form.controls.departmentId;
+    if (this.departmentsLoading() || this.departmentsError() || this.saving()) {
+      control.disable({ emitEvent: false });
+    } else {
+      control.enable({ emitEvent: false });
+    }
+  }
+
   protected submit(): void {
     if (this.saving() || !this.ready() || this.notFound()) return;
     this.form.controls.hireDate.updateValueAndValidity();
@@ -145,9 +183,13 @@ export class EmployeeFormComponent implements OnInit {
     };
     const id = this.employeeId();
     this.saving.set(true);
+    this.updateDepartmentControl();
     this.errorMessage.set('');
     const request = id === null ? this.service.createEmployee(payload) : this.service.updateEmployee(id, payload);
-    request.pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.saving.set(false))).subscribe({
+    request.pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
+      this.saving.set(false);
+      this.updateDepartmentControl();
+    })).subscribe({
       next: (employee) => void this.router.navigate(['/employees', employee.id]),
       error: (error: { status?: number }) => {
         if (id !== null && error.status === 404) {
