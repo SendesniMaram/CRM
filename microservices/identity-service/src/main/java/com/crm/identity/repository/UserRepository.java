@@ -11,6 +11,8 @@ import com.crm.identity.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
 
+    boolean existsByRole_RoleTypeIn(java.util.Collection<com.crm.identity.enums.RoleType> roleTypes);
+
     Optional<User> findByUsername(String username);
 
     Optional<User> findByEmail(String email);

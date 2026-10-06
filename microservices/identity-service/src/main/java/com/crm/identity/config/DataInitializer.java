@@ -2,12 +2,14 @@ package com.crm.identity.config;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.core.annotation.Order;
 
 import com.crm.identity.entity.Role;
 import com.crm.identity.enums.RoleType;
 import com.crm.identity.repository.RoleRepository;
 
 @Component
+@Order(0)
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
