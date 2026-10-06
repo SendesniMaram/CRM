@@ -5,7 +5,7 @@ spring:
   application:
     name: payroll-service
   datasource:
-    url: jdbc:mysql://localhost:3306/payroll_db
+    url: jdbc:mysql://localhost:3307/payroll_db
     username: root
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
