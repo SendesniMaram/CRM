@@ -31,13 +31,14 @@ describe('Login returnUrl with application routes and real AuthService', () => {
     sessionStorage.clear();
   });
 
-  it('returns to the protected destination including query and fragment after submitting login', async () => {
-    const destination = '/dashboard?view=summary#stats';
+  for (const destination of ['/dashboard?view=summary#stats', '/departments', '/departments/new', '/departments/12/edit', '/login']) {
+  it(`returns to ${destination} after submitting login with real guards`, async () => {
     const router = TestBed.inject(Router);
     const auth = TestBed.inject(AuthService);
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(destination, LoginComponent);
-    expect(router.parseUrl(router.url).queryParams['returnUrl']).toBe(destination);
+    const expectedDestination = destination === '/login' ? '/dashboard' : destination;
+    expect(router.parseUrl(router.url).queryParams['returnUrl']).toBe(destination === '/login' ? undefined : destination);
     expect(router.url.split('?')[0]).toBe('/login');
     expect(auth.isAuthenticated()).toBeFalse();
 
@@ -55,13 +56,22 @@ describe('Login returnUrl with application routes and real AuthService', () => {
     const navigation = firstValueFrom(router.events.pipe(filter((event) => event instanceof NavigationEnd)));
     login.flush(testLogin());
     await navigation;
+    harness.detectChanges();
+    if (destination === '/departments') {
+      http.expectOne('http://localhost:8080/department/api/departments').flush([]);
+    } else if (destination === '/departments/12/edit') {
+      http.expectOne('http://localhost:8080/department/api/departments/12').flush({ id: 12, name: 'Informatique', code: null, description: null });
+    }
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(router.url).toBe(destination);
+    expect(router.url).toBe(expectedDestination);
     expect(auth.isAuthenticated()).toBeTrue();
-    expect(harness.routeNativeElement?.querySelector('app-dashboard')).not.toBeNull();
-    expect(harness.routeNativeElement?.querySelector('app-login')).toBeNull();
+    const selector = expectedDestination.startsWith('/dashboard') ? 'app-dashboard'
+      : destination === '/departments' ? 'app-departments-page' : 'app-department-form';
+    expect(harness.routeNativeElement?.querySelector(selector)).not.toBeNull();
+    expect(harness.routeNativeElement?.textContent).not.toContain('Connexion CRM');
     http.expectNone('http://localhost:8080/identity/api/auth/refresh');
   });
+  }
 });
