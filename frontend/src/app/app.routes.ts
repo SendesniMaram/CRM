@@ -31,6 +31,13 @@ export const routes: Routes = [
 						({ EMPLOYEES_ROUTES }) => EMPLOYEES_ROUTES
 					)
 			},
+			{
+				path: 'departments',
+				canActivate: [authGuard, roleGuard],
+				data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/departments/departments.routes').then(
+					({ DEPARTMENTS_ROUTES }) => DEPARTMENTS_ROUTES)
+			},
 			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
 		]
 	},

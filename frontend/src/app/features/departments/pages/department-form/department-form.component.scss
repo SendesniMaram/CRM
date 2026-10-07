@@ -1,0 +1,9 @@
+:host { display: block; }
+section { max-width: 960px; margin: 0 auto; padding-bottom: 2rem; }
+header { padding: 1rem 0; color: #123b5d; }
+fieldset { border: 0; padding: 0; display: grid; gap: 1rem; }
+legend { margin-bottom: 1rem; font-weight: 600; }
+mat-form-field { width: 100%; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.state { display: flex; align-items: center; gap: 1rem; margin: 1rem 0; }
+.error-message { background: #fff1f0; color: var(--mat-sys-error); padding: 1rem; }

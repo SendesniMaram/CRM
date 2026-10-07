@@ -32,6 +32,14 @@ describe('application routes', () => {
     expect(employeesRoute?.loadChildren).toEqual(jasmine.any(Function));
   });
 
+  it('protects Department management with admin roles and lazy loads its routes', () => {
+    const departmentRoute = privateShell?.children?.find((route) => route.path === 'departments');
+    expect(departmentRoute?.canActivate).toContain(authGuard);
+    expect(departmentRoute?.canActivate).toContain(roleGuard);
+    expect(departmentRoute?.data?.['roles']).toEqual(['SUPER_ADMIN', 'ADMIN']);
+    expect(departmentRoute?.loadChildren).toEqual(jasmine.any(Function));
+  });
+
   it('exposes access denied as a public route', () => {
     expect(accessDeniedRoute?.component).toBe(AccessDeniedComponent);
     expect(accessDeniedRoute?.canActivate).toBeUndefined();

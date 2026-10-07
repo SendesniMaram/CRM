@@ -37,4 +37,42 @@ describe('DepartmentService', () => {
     http.expectOne(url).flush('Unavailable', { status: 503, statusText: 'Service Unavailable' });
     expect(failure?.status).toBe(503);
   });
+
+  it('gets a department by numeric ID', () => {
+    let result: DepartmentResponse | undefined;
+    service.getDepartmentById(5).subscribe((value) => result = value);
+    const request = http.expectOne(`${url}/5`);
+    expect(request.request.method).toBe('GET');
+    request.flush({ id: 5, name: 'Finance' });
+    expect(result?.id).toBe(5);
+  });
+
+  it('posts the creation DTO and reads the 201 response', () => {
+    const payload = { name: 'Informatique', code: 'IT', description: null };
+    let result: DepartmentResponse | undefined;
+    service.createDepartment(payload).subscribe((value) => result = value);
+    const request = http.expectOne(url);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(payload);
+    request.flush({ id: 1, ...payload }, { status: 201, statusText: 'Created' });
+    expect(result?.id).toBe(1);
+  });
+
+  it('puts the update DTO to the selected ID', () => {
+    const payload = { name: 'Informatique', code: null, description: 'Support' };
+    service.updateDepartment(5, payload).subscribe();
+    const request = http.expectOne(`${url}/5`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual(payload);
+    request.flush({ id: 5, ...payload });
+  });
+
+  it('deletes by ID and accepts a 204 response', () => {
+    let completed = false;
+    service.deleteDepartment(5).subscribe({ complete: () => completed = true });
+    const request = http.expectOne(`${url}/5`);
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    expect(completed).toBeTrue();
+  });
 });

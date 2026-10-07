@@ -1,0 +1,34 @@
+<section aria-labelledby="departments-title" [attr.aria-busy]="loading()">
+  <header class="page-header">
+    <div><p>Organisation du personnel</p><h1 id="departments-title">Départements</h1></div>
+    @if (canManage()) { <a mat-flat-button routerLink="/departments/new">Nouveau département</a> }
+  </header>
+  <mat-card><mat-card-content>
+    @if (loading()) {
+      <div class="state" role="status"><mat-spinner diameter="40" />Chargement des départements...</div>
+    } @else if (errorMessage()) {
+      <p class="error-message" role="alert">{{ errorMessage() }}</p>
+      <button mat-stroked-button (click)="loadDepartments()">Réessayer</button>
+    } @else if (departments().length === 0) {
+      <p class="state" role="status">Aucun département disponible.</p>
+    } @else {
+      <div class="table-container">
+        <table mat-table [dataSource]="departments()" aria-label="Départements">
+          <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef>Nom</th><td mat-cell *matCellDef="let department">{{ department.name }}</td></ng-container>
+          <ng-container matColumnDef="code"><th mat-header-cell *matHeaderCellDef>Code</th><td mat-cell *matCellDef="let department">{{ department.code || '—' }}</td></ng-container>
+          <ng-container matColumnDef="description"><th mat-header-cell *matHeaderCellDef>Description</th><td mat-cell *matCellDef="let department">{{ department.description || '—' }}</td></ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let department">
+              @if (canManage()) {
+                <a mat-button [routerLink]="['/departments', department.id, 'edit']" [disabled]="confirming() || deletingId() !== null" [attr.aria-label]="'Modifier ' + department.name">Modifier</a>
+                <button mat-button [disabled]="confirming() || deletingId() !== null" (click)="deleteDepartment(department)" [attr.aria-label]="'Supprimer ' + department.name">{{ deletingId() === department.id ? 'Suppression...' : 'Supprimer' }}</button>
+              }
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    }
+  </mat-card-content></mat-card>
+</section>
