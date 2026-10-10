@@ -17,6 +17,34 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(LeaveAssociationConflictException.class)
+    public ResponseEntity<ApiError> handleAssociationConflict(LeaveAssociationConflictException ex, WebRequest request) {
+        return ResponseEntity.status(409).body(new ApiError(409, "Conflict", ex.getMessage(), getPath(request)));
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleLeaveAccessDenied(org.springframework.security.access.AccessDeniedException ex, WebRequest request) {
+        return ResponseEntity.status(403).body(new ApiError(403, "Forbidden", ex.getMessage(), getPath(request)));
+    }
+
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiError> handleLeaveConflict(Exception ex, WebRequest request) {
+        return ResponseEntity.status(409).body(new ApiError(409, "Conflict", "The request has already changed; reload it", getPath(request)));
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleLeaveDirectory(org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        int status = ex.getStatusCode().value();
+        String message = switch (status) {
+            case 403 -> "Leave directory access denied";
+            case 404 -> "Directory resource not found";
+            case 502 -> "Leave directory communication failed";
+            default -> "Leave directory unavailable";
+        };
+        String error = org.springframework.http.HttpStatus.valueOf(status).getReasonPhrase();
+        return ResponseEntity.status(status).body(new ApiError(status, error, message, getPath(request)));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
         ApiError body = new ApiError(

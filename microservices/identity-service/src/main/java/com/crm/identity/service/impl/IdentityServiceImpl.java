@@ -11,6 +11,12 @@ import com.crm.identity.entity.User;
 import com.crm.identity.exception.ResourceNotFoundException;
 import com.crm.identity.repository.UserRepository;
 import com.crm.identity.service.IIdentityService;
+import com.crm.identity.dto.RegisterRequest;
+import com.crm.identity.enums.RoleType;
+import com.crm.identity.repository.RoleRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 /**
  * Implementation of identity business logic (user consultation).
@@ -20,9 +26,37 @@ import com.crm.identity.service.IIdentityService;
 public class IdentityServiceImpl implements IIdentityService {
 
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public IdentityServiceImpl(UserRepository userRepository) {
+    public IdentityServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
+                               PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Override
+    @Transactional
+    public void createEmployee(RegisterRequest request) {
+        if (userRepository.existsByUsername(request.getUsername())
+                || userRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalStateException("Username or email already exists");
+        }
+        var role = roleRepository.findByRoleType(RoleType.EMPLOYEE)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE, "Employee role unavailable"));
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPhone(request.getPhone());
+        user.setEnabled(true);
+        user.setAccountNonLocked(true);
+        user.getRole().add(role);
+        userRepository.saveAndFlush(user);
     }
 
     @Override

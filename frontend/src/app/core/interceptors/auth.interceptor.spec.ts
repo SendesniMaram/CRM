@@ -214,6 +214,61 @@ describe('authInterceptor with real AuthService', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/access-denied']);
   });
 
+  const associationError = { status: 403, message: 'Employee account is not associated for leave requests' };
+  function employeeSession(): void {
+    auth.clearSession();
+    const value = testLogin();
+    auth.login({ username: 'unit', email: null, password: 'fictitious' }).subscribe();
+    http.expectOne(base + '/login').flush({ ...value, role: CrmRole.EMPLOYEE, roles: [CrmRole.EMPLOYEE] });
+  }
+
+  for (const path of ['/hr/api/leaves', '/hr/api/leaves/mine', '/hr/api/leaves/mine/1', '/hr/api/leaves/1']) {
+    it(`lets Leave handle the missing association at ${path}`, () => {
+      employeeSession();
+      let received: HttpErrorResponse | undefined;
+      client.get('http://localhost:8080' + path).subscribe({ error: error => received = error });
+      http.expectOne('http://localhost:8080' + path).flush(associationError, { status: 403, statusText: 'Forbidden' });
+      expect(received?.status).toBe(403);
+      expect(auth.isAuthenticated()).toBeTrue();
+      expect(router.navigate).not.toHaveBeenCalled();
+      http.expectNone(base + '/refresh');
+    });
+  }
+
+  for (const path of ['/employee/api/employees', '/hr/api/leaves/associations', '/hr/api/leaves/1/approve']) {
+    it(`keeps global 403 navigation outside personal Leave at ${path}`, () => {
+      employeeSession();
+      get('http://localhost:8080' + path);
+      http.expectOne('http://localhost:8080' + path).flush(associationError, { status: 403, statusText: 'Forbidden' });
+      expect(router.navigate).toHaveBeenCalledWith(['/access-denied']);
+    });
+  }
+
+  it('does not suppress an ordinary Leave forbidden response', () => {
+    employeeSession();
+    get('http://localhost:8080/hr/api/leaves');
+    http.expectOne('http://localhost:8080/hr/api/leaves').flush({ status: 403, message: 'Access denied' },
+      { status: 403, statusText: 'Forbidden' });
+    expect(router.navigate).toHaveBeenCalledWith(['/access-denied']);
+  });
+
+  it('does not suppress association-shaped errors for CLIENT', () => {
+    auth.login({ username: 'unit', email: null, password: 'fictitious' }).subscribe();
+    http.expectOne(base + '/login').flush({ ...testLogin(), role: CrmRole.CLIENT, roles: [CrmRole.CLIENT] });
+    get('http://localhost:8080/hr/api/leaves');
+    http.expectOne('http://localhost:8080/hr/api/leaves').flush(associationError, { status: 403, statusText: 'Forbidden' });
+    expect(router.navigate).toHaveBeenCalledWith(['/access-denied']);
+  });
+
+  it('does not refresh or expire the session for a remote directory authentication failure', () => {
+    get('http://localhost:8080/hr/api/leaves/associations/options');
+    http.expectOne('http://localhost:8080/hr/api/leaves/associations/options').flush({},
+      { status: 502, statusText: 'Bad Gateway' });
+    expect(auth.getToken()).toBe(oldToken);
+    expect(router.navigate).not.toHaveBeenCalled();
+    http.expectNone(base + '/refresh');
+  });
+
   it('keeps the refreshed session when the replay returns 403', () => {
     get();
     http.expectOne(api).flush({}, unauthorized);

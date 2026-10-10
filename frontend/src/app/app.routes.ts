@@ -5,6 +5,7 @@ import { AccessDeniedComponent } from './features/access-denied/access-denied.co
 import { LoginComponent } from './features/auth/login/login.component';
 import { RegisterComponent } from './features/auth/register/register.component';
 import { LayoutComponent } from './layout/components/layout/layout.component';
+import { NotFoundComponent } from './features/not-found/not-found.component';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },
@@ -14,6 +15,9 @@ export const routes: Routes = [
 		path: '',
 		component: LayoutComponent,
 		children: [
+			{ path: 'hr', pathMatch: 'full', redirectTo: 'leaves' },
+			{ path: 'leaves', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
+				loadChildren: () => import('./features/leaves/leaves.routes').then(m => m.LEAVES_ROUTES) },
 			{
 				path: 'dashboard',
 				canActivate: [authGuard, roleGuard],
@@ -41,5 +45,5 @@ export const routes: Routes = [
 			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
 		]
 	},
-	{ path: '**', redirectTo: 'login' }
+	{ path: '**', component: NotFoundComponent }
 ];

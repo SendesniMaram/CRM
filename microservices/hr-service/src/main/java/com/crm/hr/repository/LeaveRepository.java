@@ -11,6 +11,7 @@ import java.util.List;
 public interface LeaveRepository extends JpaRepository<LeaveRequest, Long>, JpaSpecificationExecutor<LeaveRequest> {
 
     List<LeaveRequest> findByEmployeeId(String employeeId);
+    boolean existsByEmployeeId(String employeeId);
 
     List<LeaveRequest> findByStatus(LeaveRequest.LeaveStatus status);
 }

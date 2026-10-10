@@ -1,0 +1,17 @@
+<mat-card><mat-card-header><mat-card-title>{{ id() === null ? 'Nouvelle demande de congé' : 'Modifier la demande' }}</mat-card-title></mat-card-header>
+<mat-card-content>
+  @if (loading()) { <p role="status">Chargement de la demande…</p> }
+  @if (error()) { <p role="alert">{{ error() }}</p> }
+  @if (ready()) {
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <mat-form-field><mat-label>Date début</mat-label><input matInput type="date" formControlName="startDate" required><mat-error>Date obligatoire</mat-error></mat-form-field>
+      <mat-form-field><mat-label>Date fin</mat-label><input matInput type="date" formControlName="endDate" required><mat-error>Date obligatoire</mat-error></mat-form-field>
+      <mat-form-field><mat-label>Motif</mat-label><textarea matInput formControlName="reason" maxlength="500"></textarea><mat-error>500 caractères maximum</mat-error></mat-form-field>
+      @if (form.hasError('dateRange')) { <p role="alert">La date fin doit être postérieure ou égale à la date début.</p> }
+      @if (form.hasError('pastDate')) { <p role="alert">Les dates doivent être aujourd’hui ou dans le futur.</p> }
+      @if (form.hasError('invalidDate')) { <p role="alert">Vérifiez le format des dates.</p> }
+      <button mat-flat-button type="submit" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+    </form>
+  }
+  <a mat-button routerLink="/leaves">Retour aux demandes</a>
+</mat-card-content></mat-card>

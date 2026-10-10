@@ -60,4 +60,42 @@ describe('SidebarComponent', () => {
     button.click();
     expect(authService.logout).toHaveBeenCalledTimes(1);
   });
+
+  for (const role of [CrmRole.SUPER_ADMIN, CrmRole.ADMIN, CrmRole.EMPLOYEE]) {
+    it(`groups a single Leave link under a non-navigable HR heading for ${role}`, () => {
+      authService.hasAnyRole.and.callFake(required => required.includes(role));
+      const fixture = TestBed.createComponent(SidebarComponent);
+      fixture.detectChanges();
+      const section: HTMLElement = fixture.nativeElement.querySelector('section[aria-labelledby="hr-navigation-title"]');
+      expect(section.querySelector('h3')?.textContent).toBe('Ressources humaines');
+      expect(section.querySelectorAll('a').length).toBe(role === CrmRole.EMPLOYEE ? 1 : 2);
+      expect(section.querySelector('a')?.getAttribute('href')).toBe('/leaves');
+      expect(fixture.nativeElement.querySelectorAll('a[href="/leaves"]').length).toBe(1);
+      expect(fixture.nativeElement.querySelector('a[href="/hr"]')).toBeNull();
+      expect(section.textContent).not.toContain('Formations');
+      expect(section.textContent).not.toContain('Évaluations');
+      expect(section.textContent).not.toContain('Recrutement');
+    });
+  }
+
+  it('hides the HR group from CLIENT', () => {
+    const text = renderFor([CrmRole.CLIENT]);
+    expect(text).not.toContain('Ressources humaines');
+    expect(text).not.toContain('Congés');
+  });
+
+  for (const role of [CrmRole.SUPER_ADMIN, CrmRole.ADMIN, CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
+    it(`does not expose unimplemented destinations for ${role}`, () => {
+      authService.hasAnyRole.and.callFake(required => required.includes(role));
+      const fixture = TestBed.createComponent(SidebarComponent);
+      fixture.detectChanges();
+      for (const path of ['/customers', '/payroll', '/fees', '/invoices', '/employee-area', '/client-area']) {
+        expect(fixture.nativeElement.querySelector(`a[href="${path}"]`)).toBeNull();
+      }
+      expect(fixture.nativeElement.textContent).toContain('Non disponible');
+      const link = fixture.nativeElement.querySelector('a[href="/leaves#associations"]');
+      if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(link).toBeTruthy();
+      else expect(link).toBeNull();
+    });
+  }
 });

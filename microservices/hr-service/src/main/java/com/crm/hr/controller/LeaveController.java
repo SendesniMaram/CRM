@@ -26,13 +26,16 @@ import java.util.List;
 public class LeaveController {
 
     private final ILeaveService leaveService;
+    private final com.crm.hr.service.LeaveAccess access;
 
-    public LeaveController(ILeaveService leaveService) {
+    public LeaveController(ILeaveService leaveService, com.crm.hr.service.LeaveAccess access) {
         this.leaveService = leaveService;
+        this.access = access;
     }
 
     @PostMapping
     public ResponseEntity<LeaveResponse> createLeave(@Valid @RequestBody LeaveRequestDto request) {
+        access.requireAdmin();
         LeaveResponse response = leaveService.createLeave(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -64,6 +67,7 @@ public class LeaveController {
     public ResponseEntity<LeaveResponse> updateLeave(
             @PathVariable Long id,
             @Valid @RequestBody LeaveRequestDto request) {
+        access.requireAdmin();
         LeaveResponse response = leaveService.updateLeave(id, request);
         return ResponseEntity.ok(response);
     }
@@ -84,5 +88,16 @@ public class LeaveController {
     public ResponseEntity<Void> deleteLeave(@PathVariable Long id) {
         leaveService.deleteLeave(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/mine")
+    public ResponseEntity<LeaveResponse> createOwn(@Valid @RequestBody com.crm.hr.dto.PersonalLeaveRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(leaveService.createLeave(request.forEmployee(access.ownEmployeeId())));
+    }
+
+    @PutMapping("/mine/{id}")
+    public ResponseEntity<LeaveResponse> updateOwn(@PathVariable Long id,
+            @Valid @RequestBody com.crm.hr.dto.PersonalLeaveRequest request) {
+        return ResponseEntity.ok(leaveService.updateLeave(id, request.forEmployee(access.ownEmployeeId())));
     }
 }

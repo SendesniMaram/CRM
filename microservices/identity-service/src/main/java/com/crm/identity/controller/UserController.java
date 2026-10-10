@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.crm.identity.dto.UserResponse;
 import com.crm.identity.service.IIdentityService;
+import com.crm.identity.dto.RegisterRequest;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 
 /**
  * REST controller for user consultation endpoints.
@@ -23,6 +27,12 @@ public class UserController {
 
     public UserController(IIdentityService identityService) {
         this.identityService = identityService;
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> createEmployee(@Valid @RequestBody RegisterRequest request) {
+        identityService.createEmployee(request);
+        return ResponseEntity.status(201).build();
     }
 
     /**

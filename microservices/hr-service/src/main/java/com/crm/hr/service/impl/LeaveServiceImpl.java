@@ -24,14 +24,17 @@ public class LeaveServiceImpl implements ILeaveService {
 
     private final LeaveRepository leaveRepository;
     private final LeaveMapper leaveMapper;
+    private final com.crm.hr.service.LeaveAccess access;
 
-    public LeaveServiceImpl(LeaveRepository leaveRepository, LeaveMapper leaveMapper) {
+    public LeaveServiceImpl(LeaveRepository leaveRepository, LeaveMapper leaveMapper, com.crm.hr.service.LeaveAccess access) {
         this.leaveRepository = leaveRepository;
         this.leaveMapper = leaveMapper;
+        this.access = access;
     }
 
     @Override
     public LeaveResponse createLeave(LeaveRequestDto request) {
+        access.checkEmployee(request.getEmployeeId());
         // Validate date range
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after or equal to start date");
@@ -46,12 +49,13 @@ public class LeaveServiceImpl implements ILeaveService {
     public LeaveResponse getLeaveById(Long id) {
         LeaveRequest leaveRequest = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
+        access.checkEmployee(leaveRequest.getEmployeeId());
         return leaveMapper.toResponse(leaveRequest);
     }
 
     @Override
     public List<LeaveResponse> getAllLeaves() {
-        return leaveRepository.findAll().stream()
+        return (access.isAdmin() ? leaveRepository.findAll() : leaveRepository.findByEmployeeId(access.ownEmployeeId())).stream()
                 .map(leaveMapper::toResponse)
                 .toList();
     }
@@ -65,12 +69,14 @@ public class LeaveServiceImpl implements ILeaveService {
 
         Page<LeaveRequest> leavePage;
 
-        if (StringUtils.hasText(keyword)) {
-            leavePage = leaveRepository.findAll(
-                    LeaveSpecification.searchByKeyword(keyword), pageable);
-        } else {
-            leavePage = leaveRepository.findAll(pageable);
+        org.springframework.data.jpa.domain.Specification<LeaveRequest> specification =
+                (root, query, builder) -> builder.conjunction();
+        if (!access.isAdmin()) {
+            String employeeId = access.ownEmployeeId();
+            specification = specification.and((root, query, builder) -> builder.equal(root.get("employeeId"), employeeId));
         }
+        if (StringUtils.hasText(keyword)) specification = specification.and(LeaveSpecification.searchByKeyword(keyword));
+        leavePage = leaveRepository.findAll(specification, pageable);
 
         return leavePage.map(leaveMapper::toResponse);
     }
@@ -80,6 +86,8 @@ public class LeaveServiceImpl implements ILeaveService {
         LeaveRequest existing = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
 
+        access.checkEmployee(existing.getEmployeeId());
+        access.checkEmployee(request.getEmployeeId());
         // Prevent modification of already approved or rejected requests
         if (existing.getStatus() == LeaveRequest.LeaveStatus.APPROVED) {
             throw new IllegalArgumentException("Cannot modify an already approved leave request");
@@ -100,6 +108,7 @@ public class LeaveServiceImpl implements ILeaveService {
 
     @Override
     public LeaveResponse approveLeave(Long id) {
+        access.requireAdmin();
         LeaveRequest existing = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
 
@@ -111,12 +120,14 @@ public class LeaveServiceImpl implements ILeaveService {
         }
 
         existing.setStatus(LeaveRequest.LeaveStatus.APPROVED);
+        existing.setValidatorUsername(access.authentication().getName());
         LeaveRequest saved = leaveRepository.save(existing);
         return leaveMapper.toResponse(saved);
     }
 
     @Override
     public LeaveResponse rejectLeave(Long id) {
+        access.requireAdmin();
         LeaveRequest existing = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
 
@@ -128,6 +139,7 @@ public class LeaveServiceImpl implements ILeaveService {
         }
 
         existing.setStatus(LeaveRequest.LeaveStatus.REJECTED);
+        existing.setValidatorUsername(access.authentication().getName());
         LeaveRequest saved = leaveRepository.save(existing);
         return leaveMapper.toResponse(saved);
     }
@@ -136,6 +148,9 @@ public class LeaveServiceImpl implements ILeaveService {
     public void deleteLeave(Long id) {
         LeaveRequest leaveRequest = leaveRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Leave request not found with id: " + id));
+        access.checkEmployee(leaveRequest.getEmployeeId());
+        if (leaveRequest.getStatus() != LeaveRequest.LeaveStatus.PENDING)
+            throw new IllegalArgumentException("Only a pending leave request can be deleted");
         leaveRepository.delete(leaveRequest);
     }
 }

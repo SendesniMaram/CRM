@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
+import { CrmRole } from '../models/role.model';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const url = new URL(request.url, window.location.origin);
@@ -20,7 +21,13 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const fail = (error: HttpErrorResponse) => {
     if (generation === auth.sessionGeneration) {
       if (error.status === 401) auth.expireSession(router.url, generation);
-      else if (error.status === 403) void router.navigate(['/access-denied']);
+      else if (error.status === 403) {
+        const missingLeaveAssociation = auth.hasRole(CrmRole.EMPLOYEE)
+          && /^\/hr\/api\/leaves(?:\/(?:mine(?:\/[1-9]\d*)?|[1-9]\d*))?$/.test(url.pathname)
+          && error.error?.status === 403
+          && error.error?.message === 'Employee account is not associated for leave requests';
+        if (!missingLeaveAssociation) void router.navigate(['/access-denied']);
+      }
     }
     return throwError(() => error);
   };

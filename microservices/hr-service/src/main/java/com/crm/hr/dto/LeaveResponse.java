@@ -24,6 +24,8 @@ public class LeaveResponse {
 
     private String status;
 
+    private String validatorUsername;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

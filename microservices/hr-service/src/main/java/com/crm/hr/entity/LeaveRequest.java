@@ -50,6 +50,13 @@ public class LeaveRequest {
     @Column(name = "status", nullable = false, length = 20)
     private LeaveStatus status = LeaveStatus.PENDING;
 
+    @Column(name = "validator_username", length = 100)
+    private String validatorUsername;
+
+    @jakarta.persistence.Version
+    @Column(nullable = false, columnDefinition = "bigint default 0")
+    private Long version;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

@@ -16,6 +16,7 @@ public class LeaveMapper {
         LeaveResponse response = new LeaveResponse();
         response.setId(leaveRequest.getId());
         response.setEmployeeId(leaveRequest.getEmployeeId());
+        response.setValidatorUsername(leaveRequest.getValidatorUsername());
         response.setStartDate(leaveRequest.getStartDate());
         response.setEndDate(leaveRequest.getEndDate());
         response.setReason(leaveRequest.getReason());

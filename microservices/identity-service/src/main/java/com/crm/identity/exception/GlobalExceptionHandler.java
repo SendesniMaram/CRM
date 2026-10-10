@@ -25,6 +25,21 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDuplicate(org.springframework.dao.DataIntegrityViolationException ex,
+                                                   WebRequest request) {
+        return ResponseEntity.status(409).body(new ApiError(
+                409, "Conflict", "Username or email already exists", getPath(request)));
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleStatus(org.springframework.web.server.ResponseStatusException ex,
+                                                WebRequest request) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).body(new ApiError(
+                status, "Service Unavailable", "Employee role unavailable", getPath(request)));
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, WebRequest request) {
         ApiError body = new ApiError(

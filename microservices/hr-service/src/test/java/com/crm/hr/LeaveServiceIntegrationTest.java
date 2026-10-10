@@ -45,6 +45,9 @@ class LeaveServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("leave-admin", null,
+                        java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))));
         leaveRepository.deleteAll();
 
         validRequest = new LeaveRequestDto();
@@ -53,6 +56,9 @@ class LeaveServiceIntegrationTest {
         validRequest.setEndDate(LocalDate.now().plusDays(5));
         validRequest.setReason("Annual vacation");
     }
+
+    @org.junit.jupiter.api.AfterEach
+    void clearAuthentication() { org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
 
     @Test
     void createLeave_ShouldReturn201AndPersist() throws Exception {

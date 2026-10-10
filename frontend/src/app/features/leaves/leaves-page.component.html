@@ -1,0 +1,51 @@
+<mat-card>
+  <mat-card-header><mat-card-title>Demandes de congé</mat-card-title></mat-card-header>
+  <mat-card-content>
+    @if (isEmployee()) { <a mat-flat-button routerLink="/leaves/new">Nouvelle demande</a> }
+    <button mat-button (click)="load()" [disabled]="loading() || busy()">Recharger</button>
+    @if (loading()) { <p role="status">Chargement des demandes…</p> }
+    @if (error()) { <p role="alert">{{ error() }}</p> }
+    @if (notice()) { <p role="status">{{ notice() }}</p> }
+    @if (!loading() && !error() && leaves().length === 0) { <p>Aucune demande de congé.</p> }
+    @if (leaves().length > 0) {
+      <div style="overflow-x:auto">
+      <table mat-table [dataSource]="leaves()">
+        <ng-container matColumnDef="employee"><th mat-header-cell *matHeaderCellDef>Référence employé</th><td mat-cell *matCellDef="let row">{{ row.employeeId }}</td></ng-container>
+        <ng-container matColumnDef="start"><th mat-header-cell *matHeaderCellDef>Début</th><td mat-cell *matCellDef="let row">{{ row.startDate }}</td></ng-container>
+        <ng-container matColumnDef="end"><th mat-header-cell *matHeaderCellDef>Fin</th><td mat-cell *matCellDef="let row">{{ row.endDate }}</td></ng-container>
+        <ng-container matColumnDef="reason"><th mat-header-cell *matHeaderCellDef>Motif</th><td mat-cell *matCellDef="let row">{{ row.reason || '—' }}</td></ng-container>
+        <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Statut</th><td mat-cell *matCellDef="let row">{{ row.status }}</td></ng-container>
+        <ng-container matColumnDef="validator"><th mat-header-cell *matHeaderCellDef>Validateur</th><td mat-cell *matCellDef="let row">{{ row.validatorUsername || '—' }}</td></ng-container>
+        <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
+          @if (row.status === 'PENDING') {
+            @if (isAdmin()) {
+              <button mat-button (click)="act(row, 'approve')" [disabled]="busy() || loading()">Approuver</button>
+              <button mat-button (click)="act(row, 'reject')" [disabled]="busy() || loading()">Refuser</button>
+            }
+            @if (isEmployee()) {
+              <a mat-button [routerLink]="['/leaves', row.id, 'edit']" [disabled]="busy() || loading()">Modifier</a>
+              <button mat-button (click)="act(row, 'delete')" [disabled]="busy() || loading()">Supprimer</button>
+            }
+          }
+        </td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table></div>
+    }
+    @if (isAdmin()) {
+      <h2 id="associations">Association des comptes pour les congés</h2>
+      <button mat-button (click)="loadDirectory()" [disabled]="directoryLoading() || busy()">Charger les comptes et employés</button>
+      @if (directoryLoading()) { <p role="status">Chargement des associations…</p> }
+      @if (directoryError()) { <p role="alert">{{ directoryError() }}</p> }
+      @if (directory(); as options) {
+        @if (!options.users.length) { <p>Aucun compte avec le rôle EMPLOYEE disponible.</p> }
+        @if (!options.employees.length) { <p>Aucun employé disponible.</p> }
+        <form [formGroup]="linkForm" (ngSubmit)="associate()">
+          <mat-form-field><mat-label>Compte EMPLOYEE</mat-label><mat-select formControlName="userId">@for (user of options.users; track user.id) { <mat-option [value]="user.id">{{ user.label }}</mat-option> }</mat-select></mat-form-field>
+          <mat-form-field><mat-label>Employé</mat-label><mat-select formControlName="employeeId">@for (employee of options.employees; track employee.id) { <mat-option [value]="employee.id">{{ employee.label }}</mat-option> }</mat-select></mat-form-field>
+          <button mat-flat-button type="submit" [disabled]="busy() || directoryLoading() || linkForm.invalid">Associer</button>
+        </form>
+        @for (link of links(); track link.username) { <p>{{ link.username }} → employé {{ link.employeeId }}</p> }
+      }
+    }
+  </mat-card-content>
+</mat-card>

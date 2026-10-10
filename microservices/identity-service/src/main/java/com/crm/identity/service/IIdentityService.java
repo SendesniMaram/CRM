@@ -3,11 +3,14 @@ package com.crm.identity.service;
 import java.util.List;
 
 import com.crm.identity.dto.UserResponse;
+import com.crm.identity.dto.RegisterRequest;
 
 /**
  * Contract for Identity business logic (user consultation).
  */
 public interface IIdentityService {
+
+    void createEmployee(RegisterRequest request);
 
     /**
      * Retrieve all users as DTOs.
