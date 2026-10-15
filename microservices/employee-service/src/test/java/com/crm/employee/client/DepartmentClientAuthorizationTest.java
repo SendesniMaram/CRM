@@ -29,6 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "spring.cloud.openfeign.client.config.department-service.url=http://department.test"
 })
 @Import(DepartmentClientAuthorizationTest.TransportConfiguration.class)
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(
+        print = org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint.NONE)
 class DepartmentClientAuthorizationTest {
 
     @Autowired
@@ -39,6 +41,37 @@ class DepartmentClientAuthorizationTest {
 
     @Autowired
     private ApplicationContext applicationContext;
+
+    @Autowired
+    private org.springframework.test.web.servlet.MockMvc mvc;
+
+    @Autowired
+    private com.crm.security.JwtService jwt;
+
+    @Autowired
+    private com.crm.employee.repository.EmployeeRepository employees;
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
+    @org.springframework.transaction.annotation.Transactional
+    void administrativeDetailsStillForwardJwtToDepartment(String role) throws Exception {
+        var employee = new com.crm.employee.entity.Employee();
+        employee.setEmployeeCode("SECURITY-" + role);
+        employee.setSalary(java.math.BigDecimal.ZERO);
+        employee.setDepartmentId(7L);
+        Long id = employees.saveAndFlush(employee).getId();
+        String bearer = "Bearer " + jwt.generateToken("test-admin", "", true, List.of(role));
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .get("/api/employees/" + id + "/details")
+                        .header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.department.id").value(7));
+
+        org.junit.jupiter.api.Assertions.assertTrue(
+                transport.request.headers().get(HttpHeaders.AUTHORIZATION).contains(bearer),
+                "The administrator authorization must be forwarded to Department");
+    }
 
     @AfterEach
     void clearRequestContext() {

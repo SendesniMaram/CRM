@@ -25,7 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {"spring.cloud.service-registry.auto-registration.enabled=false", "eureka.client.enabled=false"})
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint.NONE)
 @Transactional
 class LeaveSecurityIntegrationTest {
     @Autowired MockMvc mvc;
@@ -140,6 +140,27 @@ class LeaveSecurityIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("employee-c")).andExpect(jsonPath("$.employeeId").value("103"));
         assertTrue(links.existsById("employee-c"));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
+    void associationOptionsStillReadBothDirectoriesWithAdministrativeAuthorization(String role) throws Exception {
+        String bearer = auth("test-admin", role);
+        when(directory.read(eq("identity-service"), eq("/api/users"), anyString()))
+                .thenReturn(json.readTree("[{\"id\":1,\"username\":\"employee-a\",\"roleType\":\"EMPLOYEE\"}]"));
+        when(directory.read(eq("employee-service"), eq("/api/employees"), anyString()))
+                .thenReturn(json.readTree("[{\"id\":101,\"employeeCode\":\"TEST-101\"}]"));
+
+        mvc.perform(get("/api/leaves/associations/options").header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.users[0].id").value(1))
+                .andExpect(jsonPath("$.employees[0].id").value(101));
+
+        var authorization = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(directory).read(eq("identity-service"), eq("/api/users"), authorization.capture());
+        verify(directory).read(eq("employee-service"), eq("/api/employees"), authorization.capture());
+        assertTrue(authorization.getAllValues().stream().allMatch(bearer::equals),
+                "Both directory calls must preserve the administrator authorization");
+    }
+
     @Test void associationRejectsClientAccountOrAlreadyLinkedEmployee() throws Exception {
         String admin = auth("admin", "ADMIN");
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
