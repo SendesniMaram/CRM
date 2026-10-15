@@ -61,12 +61,13 @@ describe('application routing audit with restored sessions', () => {
     expect(harness.routeNativeElement?.querySelector<HTMLInputElement>('input[formControlName="name"]')?.value).toBe('Informatique');
   });
 
-  it('redirects root to dashboard and unknown paths to login without a loop', async () => {
+  it('redirects root to dashboard and preserves unknown paths as not found without losing the session', async () => {
     storeTestSession(); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl('/');
     expect(TestBed.inject(Router).url).toBe('/dashboard');
     for (const path of ['/route-qui-nexiste-pas', '/departments/12/unknown']) {
-      await harness.navigateByUrl(path); expect(TestBed.inject(Router).url).toBe('/login');
-      expect(harness.routeNativeElement?.textContent).toContain('Connexion CRM');
+      await harness.navigateByUrl(path); expect(TestBed.inject(Router).url).toBe(path);
+      expect(harness.routeNativeElement?.textContent).toContain('Page introuvable');
+      expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
     }
   });
 

@@ -39,7 +39,7 @@ describe('available CRM navigation', () => {
       session(role);
       const saved = sessionStorage.getItem('crm.auth.session');
       const harness = await RouterTestingHarness.create();
-      for (const path of ['/unknown', '/customers', '/payroll', '/fees', '/invoices', '/employee-area', '/client-area']) {
+      for (const path of ['/unknown', '/customers/1/unknown', '/payroll', '/fees', '/invoices/1/unknown', '/employee-area', '/client-area']) {
         await harness.navigateByUrl(path);
         expect(TestBed.inject(Router).url).toBe(path);
         expect(harness.routeNativeElement?.textContent).toContain('Page introuvable');

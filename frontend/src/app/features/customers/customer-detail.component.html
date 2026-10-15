@@ -1,0 +1,21 @@
+<section class="customer-page narrow" aria-labelledby="customer-detail-title">
+  <a mat-button routerLink="/customers"><mat-icon>arrow_back</mat-icon>Retour aux clients</a>
+  <header class="page-header"><div><p class="eyebrow">Relation client</p><h1 id="customer-detail-title">{{ customer()?.name || 'Fiche client' }}</h1>
+    <p class="subtitle">Coordonnées et informations du client.</p></div>
+    @if (customer(); as row) { <a mat-flat-button [routerLink]="['/customers', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }
+  </header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement du client…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (customer(); as row) {
+      <dl class="details-grid">
+        <div><dt>Société</dt><dd>{{ row.company || 'Non renseignée' }}</dd></div>
+        <div><dt>E-mail</dt><dd>{{ row.email || 'Non renseigné' }}</dd></div>
+        <div><dt>Téléphone</dt><dd>{{ row.phone || 'Non renseigné' }}</dd></div>
+        <div><dt>Adresse</dt><dd class="address">{{ row.address || 'Non renseignée' }}</dd></div>
+        <div><dt>Créé le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div><dt>Modifié le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+      </dl>
+    }
+  </mat-card-content></mat-card>
+</section>

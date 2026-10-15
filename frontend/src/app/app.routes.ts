@@ -15,6 +15,10 @@ export const routes: Routes = [
 		path: '',
 		component: LayoutComponent,
 		children: [
+			{ path: 'invoices', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES) },
+			{ path: 'customers', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/customers/customers.routes').then(m => m.CUSTOMERS_ROUTES) },
 			{ path: 'hr', pathMatch: 'full', redirectTo: 'leaves' },
 			{ path: 'leaves', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
 				loadChildren: () => import('./features/leaves/leaves.routes').then(m => m.LEAVES_ROUTES) },

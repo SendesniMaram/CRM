@@ -73,11 +73,11 @@ export class SidebarComponent {
   private readonly navigationItems: NavigationItem[] = [
     { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard', roles: [] },
     { label: 'Employés', route: '/employees', icon: 'badge', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Clients', route: '', icon: 'groups', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Clients', route: '/customers', icon: 'groups', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
     { label: 'Départements', route: '/departments', icon: 'corporate_fare', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
     { label: 'Paie', route: '', icon: 'payments', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
     { label: 'Honoraires et dépenses', route: '', icon: 'receipt_long', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
-    { label: 'Factures', route: '', icon: 'description', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
+    { label: 'Factures', route: '/invoices', icon: 'description', roles: [CrmRole.SUPER_ADMIN, CrmRole.ADMIN] },
     { label: 'Espace employé', route: '', icon: 'work', roles: [CrmRole.EMPLOYEE] },
     { label: 'Espace client', route: '', icon: 'person', roles: [CrmRole.CLIENT] }
   ];

@@ -89,10 +89,16 @@ describe('SidebarComponent', () => {
       authService.hasAnyRole.and.callFake(required => required.includes(role));
       const fixture = TestBed.createComponent(SidebarComponent);
       fixture.detectChanges();
-      for (const path of ['/customers', '/payroll', '/fees', '/invoices', '/employee-area', '/client-area']) {
+      for (const path of ['/payroll', '/fees', '/employee-area', '/client-area']) {
         expect(fixture.nativeElement.querySelector(`a[href="${path}"]`)).toBeNull();
       }
       expect(fixture.nativeElement.textContent).toContain('Non disponible');
+      const customersLink = fixture.nativeElement.querySelector('a[href="/customers"]');
+      const invoicesLink = fixture.nativeElement.querySelector('a[href="/invoices"]');
+      if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(invoicesLink).toBeTruthy();
+      else expect(invoicesLink).toBeNull();
+      if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(customersLink).toBeTruthy();
+      else expect(customersLink).toBeNull();
       const link = fixture.nativeElement.querySelector('a[href="/leaves#associations"]');
       if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(link).toBeTruthy();
       else expect(link).toBeNull();
