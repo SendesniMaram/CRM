@@ -60,6 +60,25 @@ class FeesServiceIntegrationTest {
     }
 
     @Test
+    void descriptionAccepts500CharactersAndRejects501() throws Exception {
+        validRequest.setDescription("a".repeat(500));
+        String responseJson = mockMvc.perform(post("/api/fees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readValue(responseJson, FeeResponse.class).getId();
+        feeRepository.flush();
+        assertEquals("a".repeat(500), feeRepository.findById(id).orElseThrow().getDescription());
+
+        validRequest.setDescription("a".repeat(501));
+        mockMvc.perform(put("/api/fees/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void createFee_ShouldReturn201AndPersist() throws Exception {
         String responseJson = mockMvc.perform(post("/api/fees")
                         .contentType(MediaType.APPLICATION_JSON)
