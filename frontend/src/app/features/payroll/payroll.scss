@@ -1,0 +1,3 @@
+@use '../customers/customers';
+.amount { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.status-badge { display: inline-block; padding: .3rem .75rem; border-radius: 20px; background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); overflow-wrap: anywhere; }

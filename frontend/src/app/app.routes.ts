@@ -15,6 +15,8 @@ export const routes: Routes = [
 		path: '',
 		component: LayoutComponent,
 		children: [
+			{ path: 'payroll', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/payroll/payroll.routes').then(m => m.PAYROLL_ROUTES) },
 			{ path: 'fees', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
 				loadChildren: () => import('./features/fees/fees.routes').then(m => m.FEES_ROUTES) },
 			{ path: 'invoices', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },

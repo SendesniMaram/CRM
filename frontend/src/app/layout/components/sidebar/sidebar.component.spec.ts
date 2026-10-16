@@ -89,13 +89,17 @@ describe('SidebarComponent', () => {
       authService.hasAnyRole.and.callFake(required => required.includes(role));
       const fixture = TestBed.createComponent(SidebarComponent);
       fixture.detectChanges();
-      for (const path of ['/payroll', '/employee-area', '/client-area']) {
+      for (const path of ['/employee-area', '/client-area']) {
         expect(fixture.nativeElement.querySelector(`a[href="${path}"]`)).toBeNull();
       }
-      expect(fixture.nativeElement.textContent).toContain('Non disponible');
+      if (role === CrmRole.EMPLOYEE || role === CrmRole.CLIENT)
+        expect(fixture.nativeElement.textContent).toContain('Non disponible');
       const customersLink = fixture.nativeElement.querySelector('a[href="/customers"]');
       const invoicesLink = fixture.nativeElement.querySelector('a[href="/invoices"]');
       const feesLink = fixture.nativeElement.querySelector('a[href="/fees"]');
+      const payrollLink = fixture.nativeElement.querySelector('a[href="/payroll"]');
+      if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(payrollLink).toBeTruthy();
+      else expect(payrollLink).toBeNull();
       if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(feesLink).toBeTruthy();
       else expect(feesLink).toBeNull();
       if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(invoicesLink).toBeTruthy();
