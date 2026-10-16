@@ -13,7 +13,7 @@
             @else { <mat-error>Maximum 255 caractères.</mat-error> }
           </mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Code</mat-label><input matInput formControlName="code" /><mat-hint>Facultatif</mat-hint><mat-error>Maximum 50 caractères.</mat-error></mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Description</mat-label><textarea matInput formControlName="description" rows="4"></textarea><mat-hint>Facultatif</mat-hint><mat-error>Maximum 500 caractères.</mat-error></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Description</mat-label><textarea matInput formControlName="description" rows="4"></textarea><mat-hint>Facultatif</mat-hint><mat-error>Maximum 255 caractères.</mat-error></mat-form-field>
         </fieldset>
         <div class="actions"><button mat-flat-button type="submit" [disabled]="form.invalid || saving()">Enregistrer</button><a mat-stroked-button routerLink="/departments" [disabled]="saving()">Annuler</a>
           @if (saving()) { <span role="status">Enregistrement en cours...</span> }

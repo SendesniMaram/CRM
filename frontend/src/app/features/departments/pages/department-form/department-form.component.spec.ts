@@ -12,6 +12,21 @@ describe('DepartmentFormComponent', () => {
   let fixture: ComponentFixture<DepartmentFormComponent>;
   let router: Router;
 
+  it('accepts 255 characters and empty description but blocks 256 characters before HTTP', async () => {
+    const component = await create();
+    component['form'].controls.name.setValue('Boundary');
+    const control = component['form'].controls.description;
+    control.setValue('é'.repeat(255));
+    expect(control.valid).toBeTrue();
+    expect(component['form'].valid).toBeTrue();
+    control.setValue('é'.repeat(256));
+    expect(control.hasError('maxlength')).toBeTrue();
+    component['submit']();
+    expect(service.createDepartment).not.toHaveBeenCalled();
+    control.setValue('');
+    expect(control.valid).toBeTrue();
+  });
+
   beforeEach(() => {
     service = jasmine.createSpyObj<DepartmentService>('DepartmentService', ['getDepartmentById', 'createDepartment', 'updateDepartment']);
     service.getDepartmentById.and.returnValue(of(department));
@@ -40,7 +55,7 @@ describe('DepartmentFormComponent', () => {
 
   it('enforces exactly the backend maximum lengths', async () => {
     const component = await create();
-    for (const [field, max] of [['name', 255], ['code', 50], ['description', 500]] as const) {
+    for (const [field, max] of [['name', 255], ['code', 50], ['description', 255]] as const) {
       component['form'].controls[field].setValue('x'.repeat(max + 1));
       expect(component['form'].controls[field].hasError('maxlength')).withContext(field).toBeTrue();
       component['form'].controls[field].setValue('x'.repeat(max));

@@ -31,7 +31,7 @@ export class DepartmentFormComponent implements OnInit {
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(255), (control: AbstractControl) => control.value.trim() ? null : { required: true }]],
     code: ['', Validators.maxLength(50)],
-    description: ['', Validators.maxLength(500)]
+    description: ['', Validators.maxLength(255)]
   });
 
   ngOnInit(): void {

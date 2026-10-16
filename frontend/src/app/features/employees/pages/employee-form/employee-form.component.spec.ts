@@ -49,6 +49,21 @@ describe('EmployeeFormComponent', () => {
     return fixture.componentInstance;
   }
 
+  it('accepts 255 characters and empty address but blocks 256 characters before HTTP', async () => {
+    const component = await create();
+    component['form'].patchValue({ employeeCode: 'BOUNDARY', salary: 1000 });
+    const control = component['form'].controls.address;
+    control.setValue('é'.repeat(255));
+    expect(control.valid).toBeTrue();
+    expect(component['form'].valid).toBeTrue();
+    control.setValue('é'.repeat(256));
+    expect(control.hasError('maxlength')).toBeTrue();
+    component['submit']();
+    expect(service.createEmployee).not.toHaveBeenCalled();
+    control.setValue('');
+    expect(control.valid).toBeTrue();
+  });
+
   beforeEach(() => {
     departmentService = jasmine.createSpyObj<DepartmentService>('DepartmentService', ['getDepartments']);
     departmentService.getDepartments.and.returnValue(of(departments));
@@ -103,7 +118,7 @@ describe('EmployeeFormComponent', () => {
       expect(control.hasError('maxlength')).withContext(field.name).toBeTrue();
       control.setValue('');
     }
-    component['form'].controls.address.setValue('x'.repeat(501));
+    component['form'].controls.address.setValue('x'.repeat(256));
     expect(component['form'].controls.address.hasError('maxlength')).toBeTrue();
     component['form'].controls.email.setValue('invalid');
     expect(component['form'].controls.email.hasError('email')).toBeTrue();
