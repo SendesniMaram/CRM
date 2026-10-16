@@ -1,3 +1,4 @@
+import { dashboardNavigationStub } from '../../../core/testing/dashboard-fixture';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -20,7 +21,7 @@ describe('Login returnUrl with application routes and real AuthService', () => {
       provideZonelessChangeDetection(),
       provideRouter(routes),
       provideHttpClient(withInterceptors([authInterceptor])),
-      provideHttpClientTesting()
+      provideHttpClientTesting(), dashboardNavigationStub
     ] });
     http = TestBed.inject(HttpTestingController);
   });

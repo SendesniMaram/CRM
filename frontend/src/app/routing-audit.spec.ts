@@ -1,3 +1,4 @@
+import { dashboardNavigationStub } from './core/testing/dashboard-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -16,7 +17,7 @@ describe('application routing audit with restored sessions', () => {
   beforeEach(() => {
     sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [
-      provideZonelessChangeDetection(), provideRouter(routes), provideHttpClient(), provideHttpClientTesting(),
+      provideZonelessChangeDetection(), provideRouter(routes), provideHttpClient(), provideHttpClientTesting(), dashboardNavigationStub,
       { provide: DepartmentService, useValue: {
         getDepartments: () => of([]),
         getDepartmentById: () => of({ id: 12, name: 'Informatique', code: null, description: null })
