@@ -75,4 +75,14 @@ describe('responsive LayoutComponent', () => {
     fixture.nativeElement.querySelector('app-sidebar button[aria-label="Mon compte"]').click();fixture.detectChanges();await fixture.whenStable();await settle();fixture.detectChanges();
     expect(fixture.componentInstance['mobileOpen']()).toBeFalse();expect(dialog.open).toHaveBeenCalledTimes(1);
   });
+
+  it('moves skip-link focus to content without navigating through the base URL', async () => {
+    const fixture = await create();
+    const main = fixture.nativeElement.querySelector('#crm-content');
+    const focus = spyOn(main, 'focus');
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+    fixture.nativeElement.querySelector('.skip-link').dispatchEvent(event);
+    expect(event.defaultPrevented).toBeTrue();
+    expect(focus).toHaveBeenCalled();
+  });
 });

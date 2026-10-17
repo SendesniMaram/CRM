@@ -33,6 +33,13 @@ describe('RegisterComponent', () => {
     return fixture;
   }
 
+  it('explains the existing client registration policy without offering role selection', () => {
+    const fixture = createFixture();
+    expect(fixture.nativeElement.textContent).toContain('L’inscription crée un compte client');
+    expect(fixture.nativeElement.querySelector('[formControlName="role"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('a[href="/welcome"]')).not.toBeNull();
+  });
+
   function fillValidForm(fixture: ReturnType<typeof createFixture>): void {
     fixture.componentInstance['registerForm'].setValue({
       firstName: 'Ada',

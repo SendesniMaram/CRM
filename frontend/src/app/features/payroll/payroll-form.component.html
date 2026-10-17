@@ -10,7 +10,7 @@
       <p class="muted">Le salaire net sera disponible après enregistrement. La période, la devise et le statut sont libres.</p>
       <button mat-stroked-button type="button" (click)="lookup.set(!lookup())" [disabled]="saving()">Choisir un employé</button>
       @if (lookup()) { <app-fee-reference-picker kind="employee" [disabled]="saving()" (referenceSelected)="selectEmployee($event)" /> }
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
           <mat-form-field appearance="outline"><mat-label>Référence employé</mat-label><input matInput formControlName="employeeId" required maxlength="50" />
             <mat-hint>Identifiant sélectionné ou référence existante.</mat-hint>

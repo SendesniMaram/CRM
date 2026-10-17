@@ -15,7 +15,7 @@
   @if (ready() && !notFound()) {
     <mat-card>
       <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="submit()">
+        <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
           <fieldset [disabled]="saving()">
             <legend>Informations de l’employé</legend>
             <div class="form-grid">

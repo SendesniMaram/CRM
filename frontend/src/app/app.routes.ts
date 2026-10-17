@@ -8,6 +8,8 @@ import { LayoutComponent } from './layout/components/layout/layout.component';
 import { NotFoundComponent } from './features/not-found/not-found.component';
 
 export const routes: Routes = [
+	{ path: 'welcome', title: 'CRM Workspace — Votre activité, en un regard',
+		loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
 	{ path: 'login', component: LoginComponent },
 	{ path: 'register', component: RegisterComponent },
 	{ path: 'access-denied', component: AccessDeniedComponent },

@@ -27,6 +27,13 @@ describe('application routes', () => {
     expect(loginRoute?.canActivate).toBeUndefined();
   });
 
+  it('exposes the public presentation separately from authenticated home', () => {
+    const presentation = routes.find(route => route.path === 'welcome');
+    expect(presentation?.loadComponent).toEqual(jasmine.any(Function));
+    expect(presentation?.canActivate).toBeUndefined();
+    expect(privateShell?.children?.find(route => route.path === 'home')?.canActivate).toContain(authGuard);
+  });
+
   it('protects dashboard with authGuard', () => {
     expect(dashboardRoute?.canActivate).toContain(authGuard);
     expect(dashboardRoute?.canActivate).toContain(roleGuard);

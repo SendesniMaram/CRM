@@ -1,13 +1,13 @@
-<section class="dashboard" aria-labelledby="dashboard-title">
+<section class="dashboard" aria-labelledby="dashboard-title" [attr.aria-busy]="loading()">
   <header class="hero">
     <div><p class="eyebrow">Vue d’ensemble du CRM</p><h1 id="dashboard-title">Tableau de bord</h1>
       <p>Les principales informations accessibles à votre rôle, issues des services CRM.</p>
       @if (auth.getCurrentUser(); as user) { <p class="welcome">Bonjour {{ user.username }}</p> }
     </div>
-    <button mat-flat-button (click)="refresh()" [disabled]="loading()"><mat-icon>refresh</mat-icon>Actualiser</button>
+    <button mat-flat-button (click)="refresh()" [disabled]="loading()"><mat-icon>{{ loading() ? 'hourglass_top' : 'refresh' }}</mat-icon>{{ loading() ? 'Actualisation…' : 'Actualiser' }}</button>
   </header>
   @if (loading()) { <mat-progress-bar mode="indeterminate" aria-label="Chargement du tableau de bord" /><p role="status">Chargement des données…</p> }
-  @if (refreshedAt(); as date) { <p class="muted">Dernière actualisation : {{ date | date:'dd/MM/yyyy HH:mm:ss' }}</p> }
+  @if (refreshedAt(); as date) { <p class="muted" role="status">Dernière actualisation : {{ date | date:'dd/MM/yyyy HH:mm:ss' }}</p> }
   @if (failed()) { <p role="alert" class="error">Impossible de charger le tableau de bord. Réessayez.</p> }
   @if (scope() === 'client') {
     <mat-card><mat-card-content><h2>Votre espace</h2>

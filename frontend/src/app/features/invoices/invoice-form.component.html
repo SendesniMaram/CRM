@@ -24,7 +24,7 @@
       </div>
       @if (customerNotice()) { <p role="status">{{ customerNotice() }}</p> }
       <p class="muted">Numéro, client, sous-total et statut sont obligatoires. Le total sera affiché après enregistrement.</p>
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
           <mat-form-field appearance="outline"><mat-label>Numéro de facture</mat-label><input matInput formControlName="invoiceNumber" required maxlength="50" />
             @if (form.controls.invoiceNumber.invalid) { <mat-error>Numéro obligatoire, unique et limité à 50 caractères.</mat-error> }</mat-form-field>

@@ -1,16 +1,16 @@
 <section class="home" aria-labelledby="home-title">
   <header class="welcome">
     <div class="welcome-copy">
-      <p class="eyebrow">Votre espace de travail</p>
+      <div class="welcome-message"><p class="eyebrow">Votre espace de travail</p>
       <h1 id="home-title">{{ greeting() }}, {{ auth.getCurrentUser()?.username }}.</h1>
       <p class="intro">{{ introduction() }}</p>
-      <div class="identity"><mat-icon aria-hidden="true">verified_user</mat-icon><span>{{ navigation.roleLabel() }}</span></div>
+      </div><div class="welcome-details"><div class="identity"><mat-icon aria-hidden="true">verified_user</mat-icon><span>{{ navigation.roleLabel() }}</span></div>
       <div class="hero-actions">
         @if (navigation.actions()[0]; as action) { <a mat-flat-button [routerLink]="action.route">{{ action.label }}<mat-icon iconPositionEnd>arrow_forward</mat-icon></a> }
         @else { <button mat-flat-button (click)="openAccount()">Consulter mon compte<mat-icon iconPositionEnd>person_outline</mat-icon></button> }
         @if (dashboard()) { <a mat-stroked-button routerLink="/dashboard">Voir le tableau de bord</a> }
       </div>
-    </div>
+    </div></div>
   </header>
 
   <section class="discovery" aria-labelledby="discovery-title"><p class="eyebrow">Un espace, vos outils</p><h2 id="discovery-title">Découvrez votre espace CRM</h2><p>{{ introduction() }} Choisissez une fonctionnalité pour commencer.</p></section>

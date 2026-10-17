@@ -121,7 +121,7 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance['loading']()).toBeTrue();
-    expect(fixture.nativeElement.querySelector('button').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('button[type="submit"]').disabled).toBeTrue();
 
     pendingLogin.error(new Error('request failed'));
     fixture.detectChanges();
@@ -179,6 +179,20 @@ describe('LoginComponent', () => {
     fixture.componentInstance['submit']();
     fixture.componentInstance['submit']();
     expect(authService.login).toHaveBeenCalledTimes(1);
+  });
+
+  it('toggles password visibility without submitting the form', () => {
+    const fixture = TestBed.createComponent(LoginComponent); fixture.detectChanges();
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('input[formControlName="password"]');
+    const toggle: HTMLButtonElement = fixture.nativeElement.querySelector('button[matSuffix]');
+    expect(input.type).toBe('password');
+    toggle.click(); fixture.detectChanges();
+    expect(input.type).toBe('text');
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle.getAttribute('aria-label')).toBe('Masquer le mot de passe');
+    toggle.click(); fixture.detectChanges();
+    expect(input.type).toBe('password');
+    expect(authService.login).not.toHaveBeenCalled();
   });
 
 });

@@ -8,7 +8,7 @@
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     @if (ready()) {
       <p class="muted">Le nom du client est obligatoire. Les autres informations sont facultatives.</p>
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
           @for (field of fields; track field.key) {
             <mat-form-field appearance="outline">

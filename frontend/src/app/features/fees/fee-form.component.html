@@ -14,7 +14,7 @@
       </div>
       @if (lookup() === 'employee') { <app-fee-reference-picker kind="employee" [disabled]="saving()" (referenceSelected)="selectReference('employee', $event)" /> }
       @if (lookup() === 'customer') { <app-fee-reference-picker kind="customer" [disabled]="saving()" (referenceSelected)="selectReference('customer', $event)" /> }
-      <form [formGroup]="form" (ngSubmit)="submit()">
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
           <mat-form-field appearance="outline"><mat-label>Référence employé</mat-label><input matInput formControlName="employeeId" required maxlength="50" />
             <mat-hint>Identifiant sélectionné ou référence existante.</mat-hint>
