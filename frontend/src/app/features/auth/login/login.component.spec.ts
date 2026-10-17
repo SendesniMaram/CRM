@@ -90,7 +90,7 @@ describe('LoginComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('synthetic-refresh-token');
   });
 
-  it('navigates to the dashboard after a successful login', () => {
+  it('navigates to home after a successful login', () => {
     authService.login.and.returnValue(new Observable((subscriber) => subscriber.next(loginResponse)));
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.componentInstance['loginForm'].setValue({
@@ -105,7 +105,7 @@ describe('LoginComponent', () => {
       email: 'unit@example.test',
       password: 'synthetic-password'
     });
-    expect(router.navigateByUrl).toHaveBeenCalledWith('/dashboard');
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/home');
   });
 
   it('keeps loading active while the login request is pending', () => {
@@ -150,17 +150,17 @@ describe('LoginComponent', () => {
     ['/employees?page=2', '/employees?page=2'],
     ['/employees/12#details', '/employees/12#details'],
     ['/employees/12/edit?view=full#form', '/employees/12/edit?view=full#form'],
-    ['http://evil.example', '/dashboard'], ['data:text/html,fictitious', '/dashboard'],
-    ['\\evil.example', '/dashboard'], ['/%252f%252fevil.example', '/dashboard'],
-    ['%2F%2Fevil.example', '/dashboard'], ['%252F%252Fevil.example', '/dashboard'],
-    [' /employees', '/dashboard'], ['/employees ', '/dashboard'],
-    ['/employees\t', '/dashboard'], ['/employees\n', '/dashboard'],
-    ['/employees\u0000', '/dashboard'],
-    ['https://example.com', '/dashboard'], ['//example.com', '/dashboard'],
-    ['/\\example.com', '/dashboard'], ['/%2f%2fexample.com', '/dashboard'],
-    ['/employees/../login', '/dashboard'], ['/login?returnUrl=/login', '/dashboard'],
-    ['/unknown', '/dashboard'], ['javascript:alert(1)', '/dashboard'],
-    ['/employees(aux:login)', '/dashboard']
+    ['http://evil.example', '/home'], ['data:text/html,fictitious', '/home'],
+    ['\\evil.example', '/home'], ['/%252f%252fevil.example', '/home'],
+    ['%2F%2Fevil.example', '/home'], ['%252F%252Fevil.example', '/home'],
+    [' /employees', '/home'], ['/employees ', '/home'],
+    ['/employees\t', '/home'], ['/employees\n', '/home'],
+    ['/employees\u0000', '/home'],
+    ['https://example.com', '/home'], ['//example.com', '/home'],
+    ['/\\example.com', '/home'], ['/%2f%2fexample.com', '/home'],
+    ['/employees/../login', '/home'], ['/login?returnUrl=/login', '/home'],
+    ['/unknown', '/home'], ['javascript:alert(1)', '/home'],
+    ['/employees(aux:login)', '/home']
   ]) {
     it('handles returnUrl safely: ' + destination, () => {
       returnUrl = destination;

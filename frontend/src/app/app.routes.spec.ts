@@ -15,6 +15,13 @@ describe('application routes', () => {
   const dashboardRoute = privateShell?.children?.find((route) => route.path === 'dashboard');
   const employeesRoute = privateShell?.children?.find((route) => route.path === 'employees');
 
+  it('lazy loads authenticated home and redirects the root to home', () => {
+    const home = privateShell?.children?.find(route => route.path === 'home');
+    expect(home?.loadComponent).toEqual(jasmine.any(Function));
+    expect(home?.canActivate).toContain(authGuard);
+    expect(privateShell?.children?.find(route => route.path === '')?.redirectTo).toBe('home');
+  });
+
   it('exposes login as a public route', () => {
     expect(loginRoute?.component).toBe(LoginComponent);
     expect(loginRoute?.canActivate).toBeUndefined();

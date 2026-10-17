@@ -15,6 +15,8 @@ export const routes: Routes = [
 		path: '',
 		component: LayoutComponent,
 		children: [
+			{ path: 'home', canActivate: [authGuard, roleGuard],
+				loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
 			{ path: 'payroll', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
 				loadChildren: () => import('./features/payroll/payroll.routes').then(m => m.PAYROLL_ROUTES) },
 			{ path: 'fees', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
@@ -50,7 +52,7 @@ export const routes: Routes = [
 				loadChildren: () => import('./features/departments/departments.routes').then(
 					({ DEPARTMENTS_ROUTES }) => DEPARTMENTS_ROUTES)
 			},
-			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
+			{ path: '', pathMatch: 'full', redirectTo: 'home' }
 		]
 	},
 	{ path: '**', component: NotFoundComponent }
