@@ -1,6 +1,7 @@
 package com.crm.security.jwt;
 
 import java.security.Key;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,15 +14,24 @@ import org.springframework.stereotype.Service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret:crm-secret-key-for-development-only-1234567890}")
+    @Value("${jwt.secret}")
     private String secretKey;
 
     @Value("${jwt.expiration:86400000}")
     private long jwtExpiration;
+
+    @PostConstruct
+    void validateSecretConfiguration() {
+        if (secretKey == null || secretKey.isBlank()
+                || secretKey.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("jwt.secret must contain at least 32 bytes");
+        }
+    }
 
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -68,7 +78,7 @@ public class JwtService {
     }
 
     private Key getSigningKey() {
-        byte[] keyBytes = secretKey.getBytes();
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

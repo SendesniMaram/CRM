@@ -120,28 +120,7 @@ jobs:
       run:
         working-directory: backend
 
-    services:
-      # MySQL 8.0 est requis par les tests @SpringBootTest du backend
-      # (jdbc:mysql://localhost:3306/crm_db, root / Root123@).
-      # MYSQL_ROOT_HOST='%' autorise les connexions root du runner
-      # (l'IP source vue depuis le conteneur est '%' côté Docker bridge),
-      # indispensable pour Hibernate (ddl-auto=update) et le DataInitializer.
-      # Le healthcheck (mysqladmin ping) fait attendre GitHub Actions jusqu'à
-      # ce que MySQL soit réellement prêt avant d'exécuter les steps.
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: Root123@
-          MYSQL_DATABASE: crm_db
-          MYSQL_ROOT_HOST: '%'
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pRoot123@ --silent"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-          --health-start-period=30s
+    # Backend tests use H2 in memory; no MySQL credentials are required.
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5

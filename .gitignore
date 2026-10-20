@@ -94,9 +94,10 @@ Icon
 # ===========================
 # Environment / Local config
 # ===========================
-.env
-.env.local
 *.env
+.env
+.env.*
+!.env.example
 application-local.*
 application-dev.*
 *.local.properties
