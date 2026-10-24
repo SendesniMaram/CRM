@@ -1,5 +1,7 @@
 # Jeu de démonstration TechNova Consulting
 
+Les noms, sociétés et adresses de `technova.json` sont explicitement synthétiques. Les 11 téléphones utilisent uniquement `+1 202 555 0100–0199`, plage fictive non opérationnelle réservée par [NANPA](https://nanpa.com/numbering/555-line-numbers). Les e-mails restent en `example.invalid`. Les références techniques et les montants sont conservés. Cette version ne doit pas servir à écraser des enregistrements existants : les anciens contenus restent bloquants pour l'import idempotent et subsistent dans l'historique Git tant qu'un nettoyage distinct n'a pas été autorisé.
+
 Les données de `technova.json` reprennent les 40 enregistrements validés : 3 départements, 6 employés, 5 clients, 6 congés, 8 factures, 6 honoraires, 6 paies. Les huit factures totalisent **30 583 TND**. Les taxes et paies sont fictives.
 
 ## Préparation et vérification sans écriture

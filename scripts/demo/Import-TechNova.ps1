@@ -45,7 +45,7 @@ function Read-DemoPlan([string]$Path) {
         Assert-Demo ($row.payload.employeeCode -like 'DEMO-TNC-*' -and $row.payload.email -like '*@example.invalid' -and [decimal]$row.payload.salary -ge 0) 'Employe invalide.'
         Assert-Demo ([datetime]$row.payload.hireDate -le [datetime]::Today) 'Embauche future interdite.'
     }
-    foreach ($row in $plan.customers) { Assert-Demo ($row.payload.name -like '[[]D*' -and $row.payload.email -like '*@example.invalid' -and $row.payload.phone -match '^\+216\d{8}$') 'Client invalide.' }
+    foreach ($row in $plan.customers) { Assert-Demo ($row.payload.name -like '[[]D*' -and $row.payload.email -like '*@example.invalid' -and $row.payload.phone -match '^\+120255501\d{2}$') 'Client invalide.' }
     foreach ($row in $plan.leaves) {
         Assert-Demo ($row.targetStatus -cin @('PENDING','APPROVED','REJECTED')) 'Statut de conge invalide.'
         Assert-Demo ([datetime]$row.payload.startDate -ge [datetime]::Today -and [datetime]$row.payload.endDate -ge [datetime]$row.payload.startDate) 'Dates de conge expirees ou invalides : revoir le plan avant insertion.'

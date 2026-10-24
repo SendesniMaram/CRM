@@ -3,6 +3,12 @@ $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'Import-TechNova.ps1')
 $realApi = ${function:Invoke-DemoApi}
 $plan = Read-DemoPlan (Join-Path $PSScriptRoot 'technova.json')
+$demoPeople = @($plan.employees) + @($plan.customers)
+Assert-Demo (@($demoPeople | Where-Object { $_.payload.phone -notmatch '^\+120255501\d{2}$' }).Count -eq 0) 'Demo phones must use reserved fictitious numbers.'
+Assert-Demo (@($demoPeople.payload.phone | Select-Object -Unique).Count -eq 11) 'Demo phones must remain unique.'
+Assert-Demo (@($demoPeople | Where-Object { $_.payload.address -notlike 'ADRESSE FICTIVE *' }).Count -eq 0) 'Demo addresses must be explicitly fictitious.'
+Assert-Demo (@($plan.employees | Where-Object { $_.payload.firstName -notlike 'PrenomDemo*' -or $_.payload.lastName -notlike 'EmployeFictif*' }).Count -eq 0) 'Demo employee names must be synthetic.'
+Assert-Demo (@($plan.customers | Where-Object { $_.payload.name -notlike '[[]DEMO SYNTHETIQUE]*' -or $_.payload.company -notlike 'ENTREPRISE FICTIVE *' }).Count -eq 0) 'Demo customers must be synthetic.'
 $script:Store = @{}; $script:Writes = 0; $script:Patches = 0; $script:Reads = 0
 foreach ($module in $script:Paths.Keys) { $script:Store[$module] = @() }
 function Invoke-DemoApi([string]$Method, [string]$Path, $Body = $null) {

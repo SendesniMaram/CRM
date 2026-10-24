@@ -31,14 +31,14 @@
       "departmentRef": "DEV",
       "payload": {
         "employeeCode": "DEMO-TNC-E01",
-        "firstName": "Amine",
-        "lastName": "Ben Salem",
+        "firstName": "PrenomDemo01",
+        "lastName": "EmployeFictif01",
         "email": "demo.tnc.e01@example.invalid",
-        "phone": "+21600000101",
+        "phone": "+12025550100",
         "jobTitle": "Développeur backend",
         "hireDate": "2024-02-01",
         "salary": 3200,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E01 - Site de demonstration sans localisation reelle"
       }
     },
     {
@@ -46,14 +46,14 @@
       "departmentRef": "DEV",
       "payload": {
         "employeeCode": "DEMO-TNC-E02",
-        "firstName": "Mariem",
-        "lastName": "Trabelsi",
+        "firstName": "PrenomDemo02",
+        "lastName": "EmployeFictif02",
         "email": "demo.tnc.e02@example.invalid",
-        "phone": "+21600000102",
+        "phone": "+12025550101",
         "jobTitle": "Développeuse Angular",
         "hireDate": "2024-06-03",
         "salary": 3000,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E02 - Site de demonstration sans localisation reelle"
       }
     },
     {
@@ -61,14 +61,14 @@
       "departmentRef": "DEV",
       "payload": {
         "employeeCode": "DEMO-TNC-E03",
-        "firstName": "Youssef",
-        "lastName": "Mansour",
+        "firstName": "PrenomDemo03",
+        "lastName": "EmployeFictif03",
         "email": "demo.tnc.e03@example.invalid",
-        "phone": "+21600000103",
+        "phone": "+12025550102",
         "jobTitle": "Ingénieur QA",
         "hireDate": "2025-01-06",
         "salary": 2600,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E03 - Site de demonstration sans localisation reelle"
       }
     },
     {
@@ -76,14 +76,14 @@
       "departmentRef": "RH",
       "payload": {
         "employeeCode": "DEMO-TNC-E04",
-        "firstName": "Inès",
-        "lastName": "Gharbi",
+        "firstName": "PrenomDemo04",
+        "lastName": "EmployeFictif04",
         "email": "demo.tnc.e04@example.invalid",
-        "phone": "+21600000104",
+        "phone": "+12025550103",
         "jobTitle": "Responsable RH",
         "hireDate": "2023-09-01",
         "salary": 3300,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E04 - Site de demonstration sans localisation reelle"
       }
     },
     {
@@ -91,14 +91,14 @@
       "departmentRef": "FIN",
       "payload": {
         "employeeCode": "DEMO-TNC-E05",
-        "firstName": "Aziz",
-        "lastName": "Kallel",
+        "firstName": "PrenomDemo05",
+        "lastName": "EmployeFictif05",
         "email": "demo.tnc.e05@example.invalid",
-        "phone": "+21600000105",
+        "phone": "+12025550104",
         "jobTitle": "Comptable",
         "hireDate": "2024-03-04",
         "salary": 2800,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E05 - Site de demonstration sans localisation reelle"
       }
     },
     {
@@ -106,14 +106,14 @@
       "departmentRef": "FIN",
       "payload": {
         "employeeCode": "DEMO-TNC-E06",
-        "firstName": "Nour",
-        "lastName": "Chaabane",
+        "firstName": "PrenomDemo06",
+        "lastName": "EmployeFictif06",
         "email": "demo.tnc.e06@example.invalid",
-        "phone": "+21600000106",
+        "phone": "+12025550105",
         "jobTitle": "Assistante administrative",
         "hireDate": "2025-02-03",
         "salary": 2200,
-        "address": "[DÉMO TechNova Consulting] Adresse fictive, Tunis"
+        "address": "ADRESSE FICTIVE E06 - Site de demonstration sans localisation reelle"
       }
     }
   ],
@@ -121,51 +121,51 @@
     {
       "ref": "C01",
       "payload": {
-        "name": "[DÉMO] Carthage Digital Lab",
-        "company": "[DÉMO] Carthage Digital Lab",
+        "name": "[DEMO SYNTHETIQUE] Client fictif 01",
+        "company": "ENTREPRISE FICTIVE 01",
         "email": "demo.tnc.c01@example.invalid",
-        "phone": "+21600000201",
-        "address": "10 rue Démonstration, Tunis"
+        "phone": "+12025550110",
+        "address": "ADRESSE FICTIVE C01 - Site de demonstration sans localisation reelle"
       }
     },
     {
       "ref": "C02",
       "payload": {
-        "name": "[DÉMO] Sahel Agro Innovation",
-        "company": "[DÉMO] Sahel Agro Innovation",
+        "name": "[DEMO SYNTHETIQUE] Client fictif 02",
+        "company": "ENTREPRISE FICTIVE 02",
         "email": "demo.tnc.c02@example.invalid",
-        "phone": "+21600000202",
-        "address": "20 avenue Démonstration, Sousse"
+        "phone": "+12025550111",
+        "address": "ADRESSE FICTIVE C02 - Site de demonstration sans localisation reelle"
       }
     },
     {
       "ref": "C03",
       "payload": {
-        "name": "[DÉMO] Sfax Industrie Conseil",
-        "company": "[DÉMO] Sfax Industrie Conseil",
+        "name": "[DEMO SYNTHETIQUE] Client fictif 03",
+        "company": "ENTREPRISE FICTIVE 03",
         "email": "demo.tnc.c03@example.invalid",
-        "phone": "+21600000203",
-        "address": "30 rue Démonstration, Sfax"
+        "phone": "+12025550112",
+        "address": "ADRESSE FICTIVE C03 - Site de demonstration sans localisation reelle"
       }
     },
     {
       "ref": "C04",
       "payload": {
-        "name": "[DÉMO] Nabeul Éco Tourisme",
-        "company": "[DÉMO] Nabeul Éco Tourisme",
+        "name": "[DEMO SYNTHETIQUE] Client fictif 04",
+        "company": "ENTREPRISE FICTIVE 04",
         "email": "demo.tnc.c04@example.invalid",
-        "phone": "+21600000204",
-        "address": "40 avenue Démonstration, Nabeul"
+        "phone": "+12025550113",
+        "address": "ADRESSE FICTIVE C04 - Site de demonstration sans localisation reelle"
       }
     },
     {
       "ref": "C05",
       "payload": {
-        "name": "[DÉMO] Bizerte Logistique Plus",
-        "company": "[DÉMO] Bizerte Logistique Plus",
+        "name": "[DEMO SYNTHETIQUE] Client fictif 05",
+        "company": "ENTREPRISE FICTIVE 05",
         "email": "demo.tnc.c05@example.invalid",
-        "phone": "+21600000205",
-        "address": "50 rue Démonstration, Bizerte"
+        "phone": "+12025550114",
+        "address": "ADRESSE FICTIVE C05 - Site de demonstration sans localisation reelle"
       }
     }
   ],
