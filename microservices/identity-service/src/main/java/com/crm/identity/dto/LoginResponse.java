@@ -2,11 +2,19 @@ package com.crm.identity.dto;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Authentication login response.
  */
 public class LoginResponse {
+
+    @JsonIgnore
+    private Long authenticatedUserId;
+
+    public Long getAuthenticatedUserId() { return authenticatedUserId; }
+
+    public void setAuthenticatedUserId(Long authenticatedUserId) { this.authenticatedUserId = authenticatedUserId; }
 
     private String username;
     private String email;

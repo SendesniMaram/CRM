@@ -14,6 +14,11 @@ import com.crm.identity.repository.UserRepository;
 import com.crm.identity.security.CustomUserDetailsService;
 import com.crm.identity.security.JwtAuthenticationFilter;
 import com.crm.identity.security.JwtService;
+import com.crm.identity.security.AccessTokenValidationFilter;
+import com.crm.identity.security.AccessTokenValidationService;
+import com.crm.identity.controller.AccessTokenValidationController;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.annotation.Order;
 
 @Configuration
 @EnableWebSecurity
@@ -36,6 +41,22 @@ public class SecurityConfig {
     }
 
     @Bean
+    @Order(1)
+    public SecurityFilterChain internalSecurityFilterChain(HttpSecurity http,
+            AccessTokenValidationService validation, ObjectMapper json) throws Exception {
+        return http
+                .securityMatcher("/api/internal/**")
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, AccessTokenValidationController.PATH).authenticated()
+                        .anyRequest().denyAll())
+                .addFilterBefore(new AccessTokenValidationFilter(validation, json), UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    JwtAuthenticationFilter jwtFilter) throws Exception {
         return http

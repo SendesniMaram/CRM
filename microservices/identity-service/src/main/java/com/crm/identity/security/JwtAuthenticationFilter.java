@@ -11,6 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.crm.identity.entity.Role;
 import com.crm.identity.entity.User;
+import com.crm.identity.exception.InvalidCredentialsException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -52,7 +53,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             boolean valid = username != null && jwtService.isTokenValid(token, username);
 
             if (valid) {
-                User userEntity = customUserDetailsService.loadUserByUsername(username);
+                User userEntity;
+                try {
+                    userEntity = customUserDetailsService.loadUserByUsername(username);
+                } catch (InvalidCredentialsException ex) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                // JWT claims are an issuance snapshot; Identity can check current state.
+                if (!userEntity.isEnabled() || !userEntity.isAccountNonLocked()) {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
 
                 List<SimpleGrantedAuthority> authorities = userEntity.getRole().stream()
                         .map(Role::getRoleType)

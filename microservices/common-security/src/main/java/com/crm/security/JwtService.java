@@ -28,6 +28,34 @@ import io.jsonwebtoken.security.Keys;
  */
 public class JwtService {
 
+    /** Strict consumer contract, aligned with Identity's internal validator. */
+    public AccessTokenClaims parseAccessToken(String token) {
+        Claims claims = extractAllClaims(token);
+        Object uid = claims.get("uid");
+        if (!(uid instanceof String value) || !value.matches("[1-9][0-9]{0,18}")
+                || claims.getSubject() == null || claims.getSubject().isBlank()
+                || !Boolean.TRUE.equals(claims.get(CLAIM_ENABLED))
+                || claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
+            throw new IllegalArgumentException("Invalid access token");
+        }
+        long userId = Long.parseLong(value);
+        if (!(claims.get(CLAIM_ROLES) instanceof List<?> values) || values.isEmpty()) {
+            throw new IllegalArgumentException("Invalid access token");
+        }
+        List<String> roles = values.stream().map(role -> {
+            if (!(role instanceof String name)) throw new IllegalArgumentException("Invalid access token");
+            String normalized = name.startsWith("ROLE_") ? name.substring(5) : name;
+            if (!java.util.Set.of("ADMIN", "SUPER_ADMIN", "EMPLOYEE", "CLIENT").contains(normalized)) {
+                throw new IllegalArgumentException("Invalid access token");
+            }
+            return normalized;
+        }).distinct().toList();
+        return new AccessTokenClaims(userId, claims.getSubject(), roles, claims.getExpiration().toInstant());
+    }
+
+    public record AccessTokenClaims(long userId, String username, List<String> roles,
+                                    java.time.Instant expiresAt) {}
+
     public static final String CLAIM_ROLES = "roles";
     public static final String CLAIM_EMAIL = "email";
     public static final String CLAIM_ENABLED = "enabled";
@@ -108,13 +136,17 @@ public class JwtService {
     }
 
     /**
-     * True if the token has a valid signature and is not expired.
+     * Legacy local inspection helper, insufficient for authenticating a request.
+     * Authentication uses parseAccessToken and AccountValidationClient instead.
+     * The enabled claim is an issuance snapshot, not a live account-status lookup.
      */
     public boolean isTokenValid(String token) {
         try {
             Claims claims = extractAllClaims(token);
             Date expiration = claims.getExpiration();
-            return expiration != null && expiration.after(new Date());
+            return expiration != null && expiration.after(new Date())
+                    && Boolean.TRUE.equals(claims.get(CLAIM_ENABLED))
+                    && claims.getSubject() != null && !claims.getSubject().isBlank();
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

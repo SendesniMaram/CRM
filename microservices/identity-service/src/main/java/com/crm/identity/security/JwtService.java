@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.time.Instant;
 
 import javax.crypto.SecretKey;
 
@@ -12,6 +13,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import com.crm.identity.enums.RoleType;
+import com.crm.identity.exception.InvalidCredentialsException;
 
 /**
  * JWT service for identity-service.
@@ -25,6 +28,7 @@ public class JwtService {
     public static final String CLAIM_ROLES = "roles";
     public static final String CLAIM_EMAIL = "email";
     public static final String CLAIM_ENABLED = "enabled";
+    public static final String CLAIM_USER_ID = "uid";
 
     public static final long ACCESS_TOKEN_DURATION_MS = 1000L * 60 * 60;
 
@@ -42,18 +46,30 @@ public class JwtService {
     }
 
     public String generateToken(String username, String email, boolean enabled, Collection<String> roles) {
+        return buildToken(null, username, email, enabled, roles);
+    }
+
+    /** Production issuance uses the authenticated, persisted User id. */
+    public String generateToken(Long userId, String username, String email, boolean enabled, Collection<String> roles) {
+        if (userId == null || userId <= 0) {
+            throw new IllegalArgumentException("Authenticated user id must be positive");
+        }
+        return buildToken(userId, username, email, enabled, roles);
+    }
+
+    private String buildToken(Long userId, String username, String email, boolean enabled, Collection<String> roles) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + ACCESS_TOKEN_DURATION_MS);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
                 .claim(CLAIM_EMAIL, email)
                 .claim(CLAIM_ENABLED, enabled)
                 .claim(CLAIM_ROLES, roles == null ? List.of() : new ArrayList<>(roles))
                 .issuedAt(now)
-                .expiration(expiry)
-                .signWith(secretKey)
-                .compact();
+                .expiration(expiry);
+        if (userId != null) builder.claim(CLAIM_USER_ID, userId.toString());
+        return builder.signWith(secretKey).compact();
     }
 
     public String extractUsername(String token) {
@@ -92,8 +108,44 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token, String username) {
-        String extracted = extractUsername(token);
-        return extracted != null && extracted.equals(username);
+        try {
+            Claims claims = Jwts.parser().verifyWith(secretKey).build()
+                    .parseSignedClaims(token).getPayload();
+            return username != null && !username.isBlank() && username.equals(claims.getSubject())
+                    && Boolean.TRUE.equals(claims.get(CLAIM_ENABLED))
+                    && claims.getExpiration() != null && claims.getExpiration().after(new Date());
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
+
+    /** Strict validation for the internal access-check contract. */
+    public AccessTokenClaims parseAccessToken(String token) {
+        try {
+            Claims claims = Jwts.parser().verifyWith(secretKey).build()
+                    .parseSignedClaims(token).getPayload();
+            Object uid = claims.get(CLAIM_USER_ID);
+            if (!(uid instanceof String value) || !value.matches("[1-9][0-9]{0,18}")
+                    || claims.getSubject() == null || claims.getSubject().isBlank()
+                    || !Boolean.TRUE.equals(claims.get(CLAIM_ENABLED))
+                    || claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
+                throw new InvalidCredentialsException("Invalid access token");
+            }
+            long userId = Long.parseLong(value);
+            if (!(claims.get(CLAIM_ROLES) instanceof List<?> values) || values.isEmpty()) {
+                throw new InvalidCredentialsException("Invalid access token");
+            }
+            List<String> roles = values.stream().map(role -> {
+                if (!(role instanceof String name)) throw new InvalidCredentialsException("Invalid access token");
+                String normalized = name.startsWith("ROLE_") ? name.substring(5) : name;
+                return RoleType.valueOf(normalized).name();
+            }).distinct().toList();
+            return new AccessTokenClaims(userId, claims.getSubject(), roles, claims.getExpiration().toInstant());
+        } catch (JwtException | IllegalArgumentException ex) {
+            throw new InvalidCredentialsException("Invalid access token");
+        }
+    }
+
+    public record AccessTokenClaims(long userId, String username, List<String> roles, Instant expiresAt) {}
 }
 

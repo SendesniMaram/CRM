@@ -37,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {HrController.class, AttendanceController.class, TrainingController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
-class HrAdministrativeReadSecurityTest {
+class HrAdministrativeReadSecurityTest extends com.crm.hr.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @MockBean IHrService service0;
@@ -89,7 +89,7 @@ class HrAdministrativeReadSecurityTest {
     void administrativeReadsRequireAnAdministrator(String path, String role, int expected) throws Exception {
         var request = get(path);
         if (!role.equals("ANONYMOUS")) {
-            request.header("Authorization", "Bearer " + jwt.generateToken(
+            request.header("Authorization", "Bearer " + com.crm.hr.security.TestIdentitySupport.token(
                     "security-test-user", "", true, List.of(role)));
         }
         var result = mvc.perform(request).andExpect(status().is(expected));

@@ -12,7 +12,9 @@
 # Le monolithe backend/ et la librairie common-security NE sont PAS inclus.
 #
 # Le fichier est compatible avec Docker Compose v2.
-#   docker compose config
+#   Configuration et rotation : docs/ROTATION_SECRETS.md
+#   Les identifiants MySQL du volume existant ne changent pas via .env.
+#   docker compose config --quiet
 #   docker compose up --build
 #   docker compose ps
 #   docker compose logs -f
@@ -145,6 +147,7 @@ services:
     ports:
       - "8083:8083"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -176,6 +179,7 @@ services:
     ports:
       - "8084:8084"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -207,6 +211,7 @@ services:
     ports:
       - "8085:8085"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -238,6 +243,7 @@ services:
     ports:
       - "8086:8086"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -269,6 +275,7 @@ services:
     ports:
       - "8087:8087"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -300,6 +307,7 @@ services:
     ports:
       - "8088:8088"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never
@@ -331,6 +339,7 @@ services:
     ports:
       - "8089:8089"
     environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_SQL_INIT_MODE: never

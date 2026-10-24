@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class InvoiceServiceIntegrationTest {
+class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;

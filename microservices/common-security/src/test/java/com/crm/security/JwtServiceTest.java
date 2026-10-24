@@ -1,6 +1,10 @@
 package com.crm.security;
 
 import java.util.List;
+import java.util.Date;
+import java.nio.charset.StandardCharsets;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -52,13 +56,25 @@ class JwtServiceTest {
 
     @Test
     void expiredToken_shouldBeRejected() {
-        // Manually craft an already-expired token using a short-lived approach:
-        // use the service directly but there is no expiry override, so build a token
-        // with an expiry in the past via reflection is overkill. Instead we verify
-        // that isTokenExpired returns true for a malformed token and that an
-        // empty/garbage token is never considered valid.
-        assertTrue(jwtService.isTokenExpired("garbage"));
-        assertFalse(jwtService.isTokenValid("garbage"));
+        String expired = Jwts.builder().subject("john").claim("enabled", true)
+                .expiration(new Date(System.currentTimeMillis() - 1000))
+                .signWith(Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8))).compact();
+        assertTrue(jwtService.isTokenExpired(expired));
+        assertFalse(jwtService.isTokenValid(expired));
+    }
+
+    @Test
+    void disabledOrMissingEnabledClaimCannotAuthorize() {
+        assertFalse(jwtService.isTokenValid(jwtService.generateToken("john", "", false, List.of("ADMIN"))));
+        String missingClaim = Jwts.builder().subject("john")
+                .expiration(new Date(System.currentTimeMillis() + 60000))
+                .signWith(Keys.hmacShaKeyFor(TEST_SECRET.getBytes(StandardCharsets.UTF_8))).compact();
+        assertFalse(jwtService.isTokenValid(missingClaim));
+    }
+
+    @Test
+    void blankSubjectCannotAuthorize() {
+        assertFalse(jwtService.isTokenValid(jwtService.generateToken(" ", "", true, List.of("ADMIN"))));
     }
 }
 

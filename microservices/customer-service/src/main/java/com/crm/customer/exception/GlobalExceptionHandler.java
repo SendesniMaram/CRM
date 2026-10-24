@@ -16,6 +16,17 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleIntegrity(org.springframework.dao.DataIntegrityViolationException ex, WebRequest request) {
+        return ResponseEntity.status(409).cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(new ApiError(409, "Conflict", "Operation conflicts with an existing reference", getPath(request)));
+    }
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleStatus(org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(new ApiError(status, "Request unavailable", "Customer access unavailable", getPath(request)));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {

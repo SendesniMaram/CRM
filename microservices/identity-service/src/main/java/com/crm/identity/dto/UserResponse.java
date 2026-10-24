@@ -1,6 +1,7 @@
 package com.crm.identity.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO for user consultation responses.
@@ -15,6 +16,8 @@ public class UserResponse {
     private String phone;
     private boolean enabled;
     private String roleType;
+    private List<String> roles = List.of();
+    private boolean accountNonLocked;
     private LocalDateTime createdAt;
 
     public UserResponse() {
@@ -79,6 +82,14 @@ public class UserResponse {
     public String getRoleType() {
         return roleType;
     }
+
+    public List<String> getRoles() { return roles; }
+
+    public void setRoles(List<String> roles) { this.roles = List.copyOf(roles); }
+
+    public boolean isAccountNonLocked() { return accountNonLocked; }
+
+    public void setAccountNonLocked(boolean accountNonLocked) { this.accountNonLocked = accountNonLocked; }
 
     public void setRoleType(String roleType) {
         this.roleType = roleType;

@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class CustomerServiceIntegrationTest {
+class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;

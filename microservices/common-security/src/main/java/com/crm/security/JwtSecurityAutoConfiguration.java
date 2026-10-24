@@ -18,9 +18,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  *   <li>{@link CustomAccessDeniedHandler}</li>
  *   <li>{@link PasswordEncoder}</li>
  * </ul>
- * The JWT secret can be overridden with the property {@code app.jwt.secret}.
+ * Requires {@code app.jwt.secret} and a trusted origin at
+ * {@code app.security.account-validation.base-url}; no offline authentication mode.
  */
 @AutoConfiguration
+@org.springframework.boot.context.properties.EnableConfigurationProperties(AccountValidationProperties.class)
 public class JwtSecurityAutoConfiguration {
 
     @Bean
@@ -32,8 +34,14 @@ public class JwtSecurityAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtService jwtService) {
-        return new JwtAuthenticationFilter(jwtService);
+    public JwtAuthenticationFilter jwtAuthenticationFilter(AccountValidationClient validationClient) {
+        return new JwtAuthenticationFilter(validationClient);
+    }
+
+    @Bean(destroyMethod = "close")
+    @ConditionalOnMissingBean
+    public AccountValidationClient accountValidationClient(JwtService jwtService, AccountValidationProperties properties) {
+        return new AccountValidationClient(jwtService, properties);
     }
 
     @Bean

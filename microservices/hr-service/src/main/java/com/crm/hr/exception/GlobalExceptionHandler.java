@@ -17,6 +17,11 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiError> handleUnreadableBody(Exception ex, WebRequest request) {
+        return ResponseEntity.badRequest().body(new ApiError(400, "Bad Request", "Invalid request body", getPath(request)));
+    }
+
     @ExceptionHandler(LeaveAssociationConflictException.class)
     public ResponseEntity<ApiError> handleAssociationConflict(LeaveAssociationConflictException ex, WebRequest request) {
         return ResponseEntity.status(409).body(new ApiError(409, "Conflict", ex.getMessage(), getPath(request)));
@@ -36,6 +41,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleLeaveDirectory(org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
         int status = ex.getStatusCode().value();
         String message = switch (status) {
+              case 401 -> "Leave directory authentication failed";
             case 403 -> "Leave directory access denied";
             case 404 -> "Directory resource not found";
             case 502 -> "Leave directory communication failed";

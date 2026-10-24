@@ -23,6 +23,14 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleDependencyStatus(org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).body(new ApiError(status,
+                org.springframework.http.HttpStatus.valueOf(status).getReasonPhrase(),
+                "Department request could not be completed", getPath(request)));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
         ApiError body = new ApiError(
@@ -98,7 +106,7 @@ public class GlobalExceptionHandler {
         ApiError body = new ApiError(
                 404,
                 "Not Found",
-                "Department not found: " + ex.getMessage(),
+                "Department not found",
                 getPath(request)
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
@@ -117,7 +125,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(FeignException.class)
     public ResponseEntity<ApiError> handleFeignException(FeignException ex, WebRequest request) {
-        int status = ex.status() != -1 ? ex.status() : 503;
+        int status = ex.status() == 401 || ex.status() == 403 || ex.status() == 404 ? ex.status() : 503;
         ApiError body = new ApiError(
                 status,
                 "Service Unavailable",

@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {"spring.cloud.service-registry.auto-registration.enabled=false", "eureka.client.enabled=false"})
 @AutoConfigureMockMvc
 @Transactional
-class LeaveAssociationReassignmentTest {
+class LeaveAssociationReassignmentTest extends com.crm.hr.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @Autowired ObjectMapper json;
@@ -47,7 +47,7 @@ class LeaveAssociationReassignmentTest {
         links.deleteAll();
         link("employee-b", 3L, "1");
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
-                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"EMPLOYEE\"}"));
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}"));
         when(directory.read(eq("employee-service"), eq("/api/employees/2"), anyString()))
                 .thenReturn(json.readTree("{\"id\":2}"));
     }
@@ -57,9 +57,93 @@ class LeaveAssociationReassignmentTest {
         link.setUsername(username); link.setUserId(userId); link.setEmployeeId(employeeId);
         links.saveAndFlush(link);
     }
-    String auth(String role) { return "Bearer " + jwt.generateToken("test-admin", "", true, List.of(role)); }
+    String auth(String role) { return "Bearer " + com.crm.hr.security.TestIdentitySupport.token("test-admin", "", true, List.of(role)); }
     void unchanged() {
         assertEquals("1", links.findById("employee-b").orElseThrow().getEmployeeId());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"[\"ADMIN\",\"EMPLOYEE\"]", "[\"EMPLOYEE\",\"ADMIN\"]"})
+    void multiRoleAccountCanBeReassignedAndListedRegardlessOfLegacyRole(String roles) throws Exception {
+        var account = json.readTree("{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"ADMIN\",\"roles\":"
+                + roles + ",\"enabled\":true,\"accountNonLocked\":true}");
+        when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString())).thenReturn(account);
+        mvc.perform(put("/api/leaves/associations/3").header("Authorization", auth("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"employeeId\":2}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.employeeId").value("2"));
+        links.deleteAll();
+        mvc.perform(post("/api/leaves/associations").header("Authorization", auth("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"userId\":3,\"employeeId\":2}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.userId").value(3));
+        when(directory.read(eq("identity-service"), eq("/api/users"), anyString()))
+                .thenReturn(json.createArrayNode().add(account));
+        when(directory.read(eq("employee-service"), eq("/api/employees"), anyString()))
+                .thenReturn(json.readTree("[{\"id\":2,\"employeeCode\":\"SYNTHETIC\"}]"));
+        mvc.perform(get("/api/leaves/associations/options").header("Authorization", auth("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.users[0].id").value(3));
+        assertEquals(1, links.count());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"enabled", "accountNonLocked"})
+    void inactiveAccountCannotBeLinkedReassignedOrOffered(String flag) throws Exception {
+        var account = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(
+                "{\"id\":3,\"username\":\"employee-b\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}");
+        account.put(flag, false);
+        when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString())).thenReturn(account);
+        for (var request : List.of(put("/api/leaves/associations/3").content("{\"employeeId\":2}"),
+                post("/api/leaves/associations").content("{\"userId\":3,\"employeeId\":2}"))) {
+            mvc.perform(request.header("Authorization", auth("ADMIN")).contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest());
+        }
+        when(directory.read(eq("identity-service"), eq("/api/users"), anyString()))
+                .thenReturn(json.createArrayNode().add(account));
+        when(directory.read(eq("employee-service"), eq("/api/employees"), anyString()))
+                .thenReturn(json.createArrayNode());
+        mvc.perform(get("/api/leaves/associations/options").header("Authorization", auth("ADMIN")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.users").isEmpty());
+        unchanged();
+    }
+
+    @Test void malformedDirectoryRolesCannotChangeAssociation() throws Exception {
+        when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"EMPLOYEE\"}"));
+        mvc.perform(put("/api/leaves/associations/3").header("Authorization", auth("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"employeeId\":2}"))
+                .andExpect(status().isBadGateway());
+        unchanged();
+    }
+
+    @ParameterizedTest @ValueSource(ints = {401, 403, 503})
+    void identityRefusalRetainsItsStatusAndDoesNotWrite(int remoteStatus) throws Exception {
+        when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
+                .thenThrow(new ResponseStatusException(HttpStatus.valueOf(remoteStatus), "Synthetic refusal"));
+        mvc.perform(put("/api/leaves/associations/3").header("Authorization", auth("ADMIN"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"employeeId\":2}"))
+                .andExpect(status().is(remoteStatus));
+        unchanged();
+        verify(directory, never()).read(eq("employee-service"), anyString(), anyString());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"{}", "null", "\"invalid\""})
+    void malformedDirectoryCollectionIsNotReportedAsEmptyOptions(String body) throws Exception {
+        when(directory.read(eq("identity-service"), eq("/api/users"), anyString())).thenReturn(json.readTree(body));
+        when(directory.read(eq("employee-service"), eq("/api/employees"), anyString())).thenReturn(json.createArrayNode());
+        mvc.perform(get("/api/leaves/associations/options").header("Authorization", auth("ADMIN")))
+                .andExpect(status().isBadGateway());
+        unchanged();
+    }
+
+    @ParameterizedTest @ValueSource(ints = {401, 403, 503})
+    void secondDependencyRefusalPreventsAssociationWrite(int remoteStatus) throws Exception {
+        when(directory.read(eq("employee-service"), eq("/api/employees/2"), anyString()))
+                .thenThrow(new ResponseStatusException(HttpStatus.valueOf(remoteStatus), "Synthetic refusal"));
+        String bearer = auth("ADMIN");
+        mvc.perform(put("/api/leaves/associations/3").header("Authorization", bearer)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"employeeId\":2}"))
+                .andExpect(status().is(remoteStatus));
+        unchanged();
+        verify(directory).read("identity-service", "/api/users/3", bearer);
+        verify(directory).read("employee-service", "/api/employees/2", bearer);
+        assertEquals(1, links.count());
     }
     void leave(String employeeId, LeaveRequest.LeaveStatus status) {
         var leave = new LeaveRequest();
@@ -135,9 +219,9 @@ class LeaveAssociationReassignmentTest {
         unchanged(); assertEquals(1, leaves.count());
     }
     @ParameterizedTest @ValueSource(strings = {
-            "{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"CLIENT\"}",
-            "{\"id\":99,\"username\":\"employee-b\",\"roleType\":\"EMPLOYEE\"}",
-            "{\"id\":3,\"username\":\"\",\"roleType\":\"EMPLOYEE\"}"})
+            "{\"id\":3,\"username\":\"employee-b\",\"roleType\":\"CLIENT\",\"roles\":[\"CLIENT\"],\"enabled\":true,\"accountNonLocked\":true}",
+            "{\"id\":99,\"username\":\"employee-b\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}",
+            "{\"id\":3,\"username\":\"\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}"})
     void invalidIdentityReferenceIsRejected(String response) throws Exception {
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString())).thenReturn(json.readTree(response));
         mvc.perform(put("/api/leaves/associations/3").header("Authorization", auth("ADMIN"))
@@ -154,7 +238,7 @@ class LeaveAssociationReassignmentTest {
     }
     @Test void changedUsernameConflictsRatherThanChangingAccount() throws Exception {
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
-                .thenReturn(json.readTree("{\"id\":3,\"username\":\"different\",\"roleType\":\"EMPLOYEE\"}"));
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"different\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}"));
         mvc.perform(put("/api/leaves/associations/3").header("Authorization", auth("ADMIN"))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"employeeId\":2}"))
                 .andExpect(status().isConflict());

@@ -1,34 +1,34 @@
 package com.crm.hr.service;
 
-import com.crm.hr.repository.LeaveEmployeeAssociationRepository;
+import com.crm.hr.exception.ResourceNotFoundException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 @Component
 public class LeaveAccess {
-    private final LeaveEmployeeAssociationRepository associations;
-    public LeaveAccess(LeaveEmployeeAssociationRepository associations) { this.associations = associations; }
+    private final EmployeeAssociationService associations;
+    public LeaveAccess(EmployeeAssociationService associations) { this.associations = associations; }
     public Authentication authentication() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth.getName().equals("anonymousUser"))
-            throw new AccessDeniedException("Authentication required");
-        return auth;
+        return HrAuthorization.authentication();
     }
     public boolean isAdmin() {
-        return authentication().getAuthorities().stream().anyMatch(a ->
-                a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        return HrAuthorization.isAdmin();
     }
     public void requireAdmin() {
-        if (!isAdmin()) throw new AccessDeniedException("Administrative access required");
+        HrAuthorization.requireAdmin();
     }
     public String ownEmployeeId() {
-        Authentication auth = authentication();
-        if (auth.getAuthorities().stream().noneMatch(a -> a.getAuthority().equals("ROLE_EMPLOYEE")))
-            throw new AccessDeniedException("Employee access required");
-        return associations.findById(auth.getName()).orElseThrow(() ->
-                new AccessDeniedException("Employee account is not associated for leave requests")).getEmployeeId();
+        try {
+            // readOwn requires the validated typed principal and resolves exclusively by uid.
+            return associations.readOwn(authentication()).getEmployeeId();
+        } catch (ResourceNotFoundException ex) {
+            throw new AccessDeniedException("Employee account is not associated for leave requests");
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() != 502) throw ex;
+            throw new AccessDeniedException("Employee association unavailable for leave access");
+        }
     }
     public void checkEmployee(String employeeId) {
         if (!isAdmin() && !ownEmployeeId().equals(employeeId))

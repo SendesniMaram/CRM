@@ -20,6 +20,12 @@ spring:
     database-platform: org.hibernate.dialect.MySQLDialect
 
 app:
+  security:
+    account-validation:
+      base-url: ${IDENTITY_VALIDATION_BASE_URL}
+      connect-timeout: 500ms
+      read-timeout: 1s
+      total-timeout: 1500ms
   jwt:
     secret: ${APP_JWT_SECRET}
 

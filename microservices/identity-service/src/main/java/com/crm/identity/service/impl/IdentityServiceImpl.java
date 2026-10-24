@@ -85,10 +85,14 @@ public class IdentityServiceImpl implements IIdentityService {
         response.setEmail(user.getEmail());
         response.setPhone(user.getPhone());
         response.setEnabled(user.isEnabled());
-        response.setRoleType(user.getRole().stream()
-                .findFirst()
-                .map(r -> r.getRoleType().name())
-                .orElse(null));
+        response.setAccountNonLocked(user.isAccountNonLocked());
+        // Explicit directory order, independent of Set/JPA iteration and enum ordinals.
+        List<RoleType> order = List.of(RoleType.SUPER_ADMIN, RoleType.ADMIN, RoleType.EMPLOYEE, RoleType.CLIENT);
+        List<String> roles = order.stream()
+                .filter(type -> user.getRole().stream().anyMatch(role -> type == role.getRoleType()))
+                .map(Enum::name).toList();
+        response.setRoles(roles);
+        response.setRoleType(roles.isEmpty() ? null : roles.get(0));
         response.setCreatedAt(user.getCreatedAt());
         return response;
     }

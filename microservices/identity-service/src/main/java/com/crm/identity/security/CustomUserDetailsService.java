@@ -29,11 +29,8 @@ public class CustomUserDetailsService {
             return byUsername.get();
         }
 
-        Optional<User> byEmail = userRepository.findByEmail(username);
-        if (byEmail.isPresent()) {
-            return byEmail.get();
-        }
-
+        // JWT subjects are usernames. An email fallback could resolve a deleted
+        // subject to a different account; email login is handled separately.
         throw new InvalidCredentialsException("User not found");
     }
 }

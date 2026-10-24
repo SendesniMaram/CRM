@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
                 "eureka.client.enabled=false"
         }
 )
-class HrServiceSmokeTest {
+class HrServiceSmokeTest extends com.crm.hr.security.TestIdentitySupport {
 
     @Test
     void contextLoads() {

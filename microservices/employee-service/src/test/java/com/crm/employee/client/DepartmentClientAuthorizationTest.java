@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Import(DepartmentClientAuthorizationTest.TransportConfiguration.class)
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc(
         print = org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint.NONE)
-class DepartmentClientAuthorizationTest {
+class DepartmentClientAuthorizationTest extends com.crm.employee.security.TestIdentitySupport {
 
     @Autowired
     private DepartmentClient departmentClient;
@@ -60,7 +60,7 @@ class DepartmentClientAuthorizationTest {
         employee.setSalary(java.math.BigDecimal.ZERO);
         employee.setDepartmentId(7L);
         Long id = employees.saveAndFlush(employee).getId();
-        String bearer = "Bearer " + jwt.generateToken("test-admin", "", true, List.of(role));
+        String bearer = "Bearer " + com.crm.employee.security.TestIdentitySupport.token("test-admin", "", true, List.of(role));
 
         mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/employees/" + id + "/details")
@@ -75,7 +75,26 @@ class DepartmentClientAuthorizationTest {
 
     @AfterEach
     void clearRequestContext() {
+        transport.status = 200;
         RequestContextHolder.resetRequestAttributes();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {401, 403, 503})
+    @org.springframework.transaction.annotation.Transactional
+    void downstreamSecurityFailureIsNotConvertedToMissingDepartment(int status) throws Exception {
+        var employee = new com.crm.employee.entity.Employee();
+        employee.setEmployeeCode("DOWNSTREAM-" + status);
+        employee.setSalary(java.math.BigDecimal.ZERO);
+        employee.setDepartmentId(7L);
+        Long id = employees.saveAndFlush(employee).getId();
+        transport.status = status;
+        String bearer = "Bearer " + com.crm.employee.security.TestIdentitySupport.token("test-admin", "", true, List.of("ADMIN"));
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/employees/" + id + "/details")
+                        .header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is(status));
+        assertThat(transport.request.headers().get(HttpHeaders.AUTHORIZATION)).containsExactly(bearer);
+        assertThat(employees.findById(id).orElseThrow().getDepartmentId()).isEqualTo(7L);
     }
 
     @Test
@@ -140,16 +159,18 @@ class DepartmentClientAuthorizationTest {
     }
 
     static class CapturingClient implements Client {
+        private int status = 200;
         private Request request;
         private Thread thread;
 
         @Override
         public Response execute(Request request, Request.Options options) {
+            assertThat(options.isFollowRedirects()).isFalse();
             this.request = request;
             this.thread = Thread.currentThread();
             return Response.builder()
                     .request(request)
-                    .status(200)
+                    .status(status)
                     .reason("OK")
                     .headers(Map.of(HttpHeaders.CONTENT_TYPE, List.of("application/json")))
                     .body("{\"id\":7,\"name\":\"Test department\"}", StandardCharsets.UTF_8)

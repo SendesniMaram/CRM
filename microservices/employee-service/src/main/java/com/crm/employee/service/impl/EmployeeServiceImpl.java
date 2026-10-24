@@ -120,7 +120,7 @@ public class EmployeeServiceImpl implements IEmployeeService {
         EmployeeResponse employee = getEmployeeById(id);
         // Circuit Breaker + Fallback gère automatiquement :
         // - Si department-service répond -> département retourné
-        // - Si department-service indisponible -> fallback retourne null
+        // - Si department-service indisponible -> refus explicite, jamais un departement null de secours
         // - Si département inexistant (404) -> FeignException propagée à GlobalExceptionHandler
         DepartmentResponse department = employee.getDepartmentId() == null
                 ? null

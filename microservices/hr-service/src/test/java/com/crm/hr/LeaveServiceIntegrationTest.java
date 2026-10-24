@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class LeaveServiceIntegrationTest {
+class LeaveServiceIntegrationTest extends com.crm.hr.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;

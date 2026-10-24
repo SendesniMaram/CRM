@@ -31,9 +31,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {CustomerController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
-class CustomerReadSecurityTest {
+class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
+    @org.junit.jupiter.api.Test
+    void linkedCustomerDeletionReturnsSanitizedConflict() throws Exception {
+        doThrow(new org.springframework.dao.DataIntegrityViolationException("private-database-diagnostic"))
+                .when(service0).deleteCustomer(1L);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/customers/1")
+                .header("Authorization", "Bearer " + token("security-test-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Operation conflicts with an existing reference"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("private-database-diagnostic"))));
+    }
     @MockBean ICustomerService service0;
 
     @BeforeEach
@@ -66,7 +76,7 @@ class CustomerReadSecurityTest {
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Security customer\"}");
         if (!role.equals("ANONYMOUS")) {
-            request.header("Authorization", "Bearer " + jwt.generateToken(
+            request.header("Authorization", "Bearer " + com.crm.customer.security.TestIdentitySupport.token(
                     "security-test-user", "", true, List.of(role)));
         }
         boolean admin = role.equals("ADMIN") || role.equals("SUPER_ADMIN");
@@ -96,7 +106,7 @@ class CustomerReadSecurityTest {
     void administrativeReadsRequireAnAdministrator(String path, String role, int expected) throws Exception {
         var request = get(path);
         if (!role.equals("ANONYMOUS")) {
-            request.header("Authorization", "Bearer " + jwt.generateToken(
+            request.header("Authorization", "Bearer " + com.crm.customer.security.TestIdentitySupport.token(
                     "security-test-user", "", true, List.of(role)));
         }
         var result = mvc.perform(request).andExpect(status().is(expected));

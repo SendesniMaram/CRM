@@ -16,6 +16,16 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleStatus(org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(new ApiError(status, "Request unavailable", "Personal invoices unavailable", getPath(request)));
+    }
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleDenied(org.springframework.security.access.AccessDeniedException ex, WebRequest request) {
+        return ResponseEntity.status(403).body(new ApiError(403, "Forbidden", "Access denied", getPath(request)));
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {

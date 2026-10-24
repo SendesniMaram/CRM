@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(controllers = {InvoiceController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
-class InvoiceReadSecurityTest {
+class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @MockBean IInvoiceService service0;
@@ -66,7 +66,7 @@ class InvoiceReadSecurityTest {
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .content("{\"invoiceNumber\":\"SEC-1\",\"customerId\":\"1\",\"subtotal\":100,\"status\":\"DRAFT\"}");
         if (!role.equals("ANONYMOUS")) {
-            request.header("Authorization", "Bearer " + jwt.generateToken(
+            request.header("Authorization", "Bearer " + com.crm.invoice.security.TestIdentitySupport.token(
                     "security-test-user", "", true, List.of(role)));
         }
         boolean admin = role.equals("ADMIN") || role.equals("SUPER_ADMIN");
@@ -96,7 +96,7 @@ class InvoiceReadSecurityTest {
     void administrativeReadsRequireAnAdministrator(String path, String role, int expected) throws Exception {
         var request = get(path);
         if (!role.equals("ANONYMOUS")) {
-            request.header("Authorization", "Bearer " + jwt.generateToken(
+            request.header("Authorization", "Bearer " + com.crm.invoice.security.TestIdentitySupport.token(
                     "security-test-user", "", true, List.of(role)));
         }
         var result = mvc.perform(request).andExpect(status().is(expected));
