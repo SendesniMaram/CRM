@@ -4,6 +4,8 @@ import { Router } from '@angular/router';
 import { catchError, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { CrmRole } from '../models/role.model';
+import { PDF_DOWNLOAD_REQUEST } from '../http/pdf-download-context';
+import { isSessionUnavailable } from '../services/session-unavailable';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const url = new URL(request.url, window.location.origin);
@@ -21,7 +23,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const fail = (error: HttpErrorResponse) => {
     if (generation === auth.sessionGeneration) {
       if (error.status === 401) auth.expireSession(router.url, generation);
-      else if (error.status === 403) {
+      else if (error.status === 403 && !request.context.get(PDF_DOWNLOAD_REQUEST)) {
         const missingLeaveAssociation = auth.hasRole(CrmRole.EMPLOYEE)
           && /^\/hr\/api\/leaves(?:\/(?:mine(?:\/[1-9]\d*)?|[1-9]\d*))?$/.test(url.pathname)
           && error.error?.status === 403
@@ -40,8 +42,10 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       ? of(current) : auth.refreshAccessToken();
     return refresh.pipe(
       catchError((refreshError) => {
+        if (isSessionUnavailable(refreshError)) return throwError(() => refreshError);
         auth.expireSession(router.url, generation);
-        return throwError(() => refreshError);
+        // Keep the PDF request's 401 classification when renewing its session fails.
+        return throwError(() => request.context.get(PDF_DOWNLOAD_REQUEST) ? error : refreshError);
       }),
       switchMap((newToken) => next(authorized(newToken)).pipe(catchError(fail)))
     );

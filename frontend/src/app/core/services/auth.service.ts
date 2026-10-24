@@ -6,6 +6,7 @@ import { AuthSession, LoginRequest, LoginResponse, RefreshTokenResponse } from '
 import { CrmRole } from '../models/role.model';
 import { jwtExpiration } from './jwt-expiration';
 import { safeReturnUrl } from './auth-navigation';
+import { isSessionUnavailable } from './session-unavailable';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -87,7 +88,8 @@ export class AuthService {
     const generation = this.generation;
     return this.refreshAccessToken().pipe(
       map(() => true),
-      catchError(() => {
+      catchError((error) => {
+        if (isSessionUnavailable(error)) return throwError(() => error);
         if (generation === this.generation) this.clearSession();
         return of(false);
       })

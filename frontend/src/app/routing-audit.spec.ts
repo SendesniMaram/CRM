@@ -36,6 +36,14 @@ describe('application routing audit with restored sessions', () => {
         sessionStorage.setItem('crm.auth.session', JSON.stringify(session));
         const harness = await RouterTestingHarness.create();
         await harness.navigateByUrl(destination);
+        if (role === CrmRole.CLIENT && destination === '/dashboard') {
+          const http = TestBed.inject(HttpTestingController);
+          http.expectOne('http://localhost:8080/customer/api/customers/me')
+            .flush({customerId:'101',name:'Client',email:null,phone:null,company:null});
+          http.expectOne(r => r.url === 'http://localhost:8080/invoice/api/invoices/me')
+            .flush({content:[],totalElements:0,totalPages:0,number:0});
+          harness.detectChanges();
+        }
         const allowed = destination === '/dashboard' || role === CrmRole.SUPER_ADMIN || role === CrmRole.ADMIN;
         expect(TestBed.inject(Router).url).toBe(allowed ? destination : '/access-denied');
         expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();

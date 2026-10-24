@@ -1,0 +1,28 @@
+<section class="client-workspace" [attr.aria-busy]="loading() || busy()">
+  <header><div><p>Espace personnel</p><h1>Mon espace client</h1><p>Vos coordonnées et vos factures, issues des services CRM.</p></div>
+    <button mat-stroked-button (click)="load(page()?.number ?? 0)" [disabled]="loading() || busy()">Actualiser</button></header>
+  @if(loading()){<mat-progress-bar mode="indeterminate" aria-label="Chargement de votre espace"/><p role="status">Chargement…</p>}
+  @if(busy()){<p role="status">Ouverture du document…</p>}
+  @if(error()){<p class="error" role="alert">{{error()}}</p>}
+  <div class="overview">
+    @if(profile();as p){<mat-card><mat-card-content><h2>Mon profil</h2><dl>
+      <dt>Nom</dt><dd>{{p.name}}</dd><dt>Société</dt><dd>{{p.company || 'Non renseignée'}}</dd>
+      <dt>E-mail</dt><dd>{{p.email || 'Non renseigné'}}</dd><dt>Téléphone</dt><dd>{{p.phone || 'Non renseigné'}}</dd>
+    </dl></mat-card-content></mat-card>}
+    @if(page();as p){<mat-card><mat-card-content><h2>Mes factures</h2><p class="count">{{p.totalElements}}</p><p>Factures accessibles à votre compte.</p><p>Les montants et statuts détaillés figurent dans l’historique ci-dessous.</p></mat-card-content></mat-card>}
+  </div>
+  @if(page();as p){<mat-card><mat-card-content><h2>Historique de mes factures — {{p.totalElements}}</h2>
+    <p>Factures récentes, de la plus récente référence à la plus ancienne.</p>
+    @if(!p.content.length){<p role="status">Aucune facture.</p>} @else {
+      <div class="filters"><mat-form-field><mat-label>Rechercher dans cette page</mat-label><input matInput #search [value]="query()" (input)="query.set(search.value)" maxlength="200"></mat-form-field>
+        <mat-form-field><mat-label>Statut dans cette page</mat-label><select matNativeControl #status [value]="statusFilter()" (change)="statusFilter.set(status.value)"><option value="">Tous les statuts</option>@for(value of statuses();track value){<option [value]="value">{{value}}</option>}</select></mat-form-field>
+        <button mat-button (click)="query.set(''); statusFilter.set('')">Effacer les filtres</button></div>
+      <p class="muted">Ces filtres portent uniquement sur les {{p.content.length}} factures de la page affichée.</p>
+      <div class="table-scroll"><table><caption>Factures personnelles — page {{p.number+1}}</caption><thead><tr><th scope="col">Numéro</th><th scope="col">Émission</th><th scope="col">Échéance</th><th scope="col">Montant</th><th scope="col">Statut enregistré</th><th scope="col">Actions</th></tr></thead>
+        <tbody>@for(row of visibleInvoices();track row.id){<tr><td>{{row.invoiceNumber}}</td><td>{{row.issueDate ? (row.issueDate | date:'dd/MM/yyyy') : 'Non renseignée'}}</td><td>{{row.dueDate ? (row.dueDate | date:'dd/MM/yyyy') : 'Non renseignée'}}</td><td>{{row.totalAmount}} {{row.currency || 'Devise non renseignée'}}</td><td><span class="status">{{row.status}}</span></td><td><button mat-button (click)="open(row.id)" [disabled]="busy() || loading()" [attr.aria-label]="'Consulter la facture ' + row.invoiceNumber">Consulter</button><button mat-button (click)="download(row.id)" [disabled]="busy() || loading()" [attr.aria-label]="'Télécharger le PDF de ' + row.invoiceNumber">PDF</button></td></tr>}</tbody></table></div>
+      @if(!visibleInvoices().length){<p role="status">Aucune facture de cette page ne correspond aux filtres.</p>}
+    }
+    <nav class="pagination" aria-label="Pagination des factures personnelles"><button mat-button (click)="load(p.number-1)" [disabled]="loading() || busy() || p.number===0">Précédent</button><span>Page {{p.number+1}} / {{p.totalPages || 1}}</span><button mat-button (click)="load(p.number+1)" [disabled]="loading() || busy() || p.number+1>=p.totalPages">Suivant</button></nav>
+  </mat-card-content></mat-card>}
+  @if(detail();as d){<mat-card><mat-card-content><h2>Facture {{d.invoiceNumber}}</h2><dl><dt>Émission</dt><dd>{{d.issueDate ? (d.issueDate | date:'dd/MM/yyyy') : 'Non renseignée'}}</dd><dt>Échéance</dt><dd>{{d.dueDate ? (d.dueDate | date:'dd/MM/yyyy') : 'Non renseignée'}}</dd><dt>Montant</dt><dd>{{d.totalAmount}} {{d.currency || 'Devise non renseignée'}}</dd><dt>Statut enregistré</dt><dd>{{d.status}}</dd></dl><button mat-button (click)="download(d.id)" [disabled]="busy()">Télécharger le PDF</button><button mat-button (click)="closeDetail()">Fermer le détail</button></mat-card-content></mat-card>}
+</section>

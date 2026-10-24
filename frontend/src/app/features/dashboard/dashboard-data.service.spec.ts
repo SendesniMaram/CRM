@@ -33,6 +33,12 @@ describe('DashboardDataService with real HTTP services', () => {
       else request.flush({ totalElements: key === 'employees' ? 125 : 42, content: [] });
     }
     http.expectOne(urls.leaves).flush([]);
+    http.expectOne(base + '/department/api/departments').flush([{id:1}]);
+    for(const module of ['trainings','attendances','hr-records']) {
+      const request=http.expectOne(r=>r.url===base+'/hr/api/'+module);
+      expect(request.request.params.get('sortBy')).toBe('id');
+      request.flush(JSON.stringify({content:[],totalElements:42,totalPages:5,number:0}));
+    }
   }
   function invoice(id: number, totalAmount = .1, currency: string | null = 'TND'): InvoiceResponse {
     return { id, invoiceNumber: 'TEST-' + id, customerId: '1', subtotal: 1, tax: null, totalAmount,
@@ -51,6 +57,8 @@ describe('DashboardDataService with real HTTP services', () => {
       role = admin; start(); counts(); page(0, 0, []);
       expect(result?.employees.value).toBe(125); expect(result?.customers.value).toBe(42);
       expect(result?.fees.value).toBe(42); expect(result?.payroll.value).toBe(42);
+      expect(result?.departments.value).toBe(1); expect(result?.trainings.value).toBe(42);
+      expect(result?.attendances.value).toBe(42); expect(result?.hrRecords.value).toBe(42);
       expect(result?.invoices.value).toEqual({ count: 0, statuses: [], amounts: [], reason: '' });
     });
   }

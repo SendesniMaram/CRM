@@ -10,6 +10,8 @@ import { InvoiceService } from '../invoices/invoice.service';
 import { LeaveResponse } from '../leaves/leave.models';
 import { LeaveService } from '../leaves/leave.service';
 import { PayrollService } from '../payroll/payroll.service';
+import { DepartmentService } from '../departments/services/department.service';
+import { HrAdminService } from '../hr-admin/hr-admin.service';
 
 export type DashboardScope = 'admin' | 'employee' | 'client';
 export interface Reading<T> { value: T | null; error: string }
@@ -23,6 +25,10 @@ export interface InvoiceOverview {
 export interface DashboardData {
   scope: DashboardScope;
   employees: Reading<number>;
+  departments: Reading<number>;
+  trainings: Reading<number>;
+  attendances: Reading<number>;
+  hrRecords: Reading<number>;
   customers: Reading<number>;
   fees: Reading<number>;
   payroll: Reading<number>;
@@ -31,7 +37,8 @@ export interface DashboardData {
 }
 const unavailable = <T>(): Reading<T> => ({ value: null, error: '' });
 export function emptyDashboard(scope: DashboardScope): DashboardData {
-  return { scope, employees: unavailable<number>(), customers: unavailable<number>(), fees: unavailable<number>(),
+  return { scope, employees: unavailable<number>(), departments: unavailable<number>(), trainings: unavailable<number>(),
+    attendances: unavailable<number>(), hrRecords: unavailable<number>(), customers: unavailable<number>(), fees: unavailable<number>(),
     payroll: unavailable<number>(), leaves: unavailable<LeaveResponse[]>(), invoices: unavailable<InvoiceOverview>() };
 }
 export function distribution(values: string[]): Distribution[] {
@@ -51,6 +58,8 @@ export class DashboardDataService {
   private readonly payroll = inject(PayrollService);
   private readonly leaves = inject(LeaveService);
   private readonly invoices = inject(InvoiceService);
+  private readonly departments = inject(DepartmentService);
+  private readonly hr = inject(HrAdminService);
   scope(): DashboardScope {
     return this.auth.hasAnyRole([CrmRole.ADMIN, CrmRole.SUPER_ADMIN]) ? 'admin'
       : this.auth.hasRole(CrmRole.EMPLOYEE) ? 'employee' : 'client';
@@ -76,6 +85,14 @@ export class DashboardDataService {
       })));
       if (scope === 'employee') return leaves.pipe(map(result => ({ ...empty, leaves: result })));
       return forkJoin({
+        departments: this.read(this.departments.getDepartments().pipe(map(rows => {
+          if (!Array.isArray(rows) || rows.some(row => !Number.isSafeInteger(row.id) || row.id <= 0)
+            || new Set(rows.map(row => row.id)).size !== rows.length) throw new Error('Invalid departments');
+          return rows.length;
+        }))),
+        trainings: this.read(this.hr.list('trainings').pipe(map(page => this.count(page)))),
+        attendances: this.read(this.hr.list('attendances').pipe(map(page => this.count(page)))),
+        hrRecords: this.read(this.hr.list('hr-records').pipe(map(page => this.count(page)))),
         employees: this.read(this.employees.getEmployeesPage({ page: 0, size: 1, sortBy: 'id', direction: 'asc' }).pipe(map(page => this.count(page)))),
         customers: this.read(this.customers.list({ page: 0, size: 1, sortBy: 'id', direction: 'asc' }).pipe(map(page => this.count(page)))),
         fees: this.read(this.fees.list({ page: 0, size: 1, sortBy: 'id', direction: 'asc' }).pipe(map(page => this.count(page)))),

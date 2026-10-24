@@ -1,7 +1,7 @@
 <section class="customer-page narrow" aria-labelledby="invoice-detail-title">
   <a mat-button routerLink="/invoices"><mat-icon>arrow_back</mat-icon>Retour aux factures</a>
-  <header class="page-header"><div><p class="eyebrow">Facturation</p><h1 id="invoice-detail-title">{{ invoice()?.invoiceNumber || 'Fiche facture' }}</h1><p class="subtitle">Montants et informations de la facture.</p></div>
-    @if (invoice(); as row) { <a mat-flat-button [routerLink]="['/invoices', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }</header>
+  <header class="page-header pdf-detail-header"><div><p class="eyebrow">Facturation</p><h1 id="invoice-detail-title">{{ invoice()?.invoiceNumber || 'Fiche facture' }}</h1><p class="subtitle">Montants et informations de la facture.</p></div>
+    @if (invoice(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="invoice" [id]="row.id" /> <a mat-flat-button [routerLink]="['/invoices', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la facture…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }

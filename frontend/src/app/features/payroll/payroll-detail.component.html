@@ -1,8 +1,8 @@
 <section class="customer-page narrow" aria-labelledby="payroll-detail-title">
   <a mat-button routerLink="/payroll"><mat-icon>arrow_back</mat-icon>Retour à la paie</a>
-  <header class="page-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-detail-title">{{ payroll() ? 'Paie — ' + payroll()!.payPeriod : 'Fiche de paie' }}</h1>
+  <header class="page-header pdf-detail-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-detail-title">{{ payroll() ? 'Paie — ' + payroll()!.payPeriod : 'Fiche de paie' }}</h1>
     <p class="subtitle">Détail des montants et informations de paiement.</p></div>
-    @if (payroll(); as row) { <a mat-flat-button [routerLink]="['/payroll', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }</header>
+    @if (payroll(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="payroll" [id]="row.id" /> <a mat-flat-button [routerLink]="['/payroll', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la fiche de paie…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }

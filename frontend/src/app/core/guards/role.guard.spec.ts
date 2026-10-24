@@ -38,6 +38,15 @@ describe('roleGuard', () => {
     expect(await run()).toBeTrue();
     expect(await run([])).toBeTrue();
   });
+
+  it('cancels protected navigation without credential loss on refresh 503', async () => {
+    storeTestSession(testJwt({ exp: 1 }));
+    const stored = sessionStorage.getItem('crm.auth.session');
+    const pending = run([CrmRole.ADMIN]);
+    http.expectOne('http://localhost:8080/identity/api/auth/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    expect(await pending).toBeFalse();
+    expect(sessionStorage.getItem('crm.auth.session')).toBe(stored);
+  });
   it('checks refreshed roles rather than stale roles', async () => {
     storeTestSession(testJwt({ exp: 1 }));
     const result = run([CrmRole.ADMIN]);

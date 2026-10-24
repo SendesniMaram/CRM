@@ -10,10 +10,7 @@
   @if (refreshedAt(); as date) { <p class="muted" role="status">Dernière actualisation : {{ date | date:'dd/MM/yyyy HH:mm:ss' }}</p> }
   @if (failed()) { <p role="alert" class="error">Impossible de charger le tableau de bord. Réessayez.</p> }
   @if (scope() === 'client') {
-    <mat-card><mat-card-content><h2>Votre espace</h2>
-      <p>Les statistiques de votre compte sont indisponibles : les API actuelles ne proposent pas de consultation personnelle sécurisée.</p>
-      @if (auth.getCurrentUser(); as user) { <p>{{ user.username }} · {{ user.email }}</p> }
-    </mat-card-content></mat-card>
+    <app-client-workspace />
   } @else {
     <section aria-label="Indicateurs clés" class="kpis">
       @for (card of cards(); track card.title) {

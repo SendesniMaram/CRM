@@ -6,17 +6,26 @@
     @if (loading()) { <p role="status">Chargement des demandes…</p> }
     @if (error()) { <p role="alert">{{ error() }}</p> }
     @if (notice()) { <p role="status">{{ notice() }}</p> }
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+      <mat-form-field><mat-label>Rechercher une demande</mat-label><input matInput #search [value]="query()" (input)="filter(search.value,statusFilter())" maxlength="200"></mat-form-field>
+      <mat-form-field><mat-label>Statut</mat-label><select matNativeControl #status [value]="statusFilter()" (change)="filter(query(),status.value)"><option value="">Tous les statuts</option><option value="PENDING">En attente</option><option value="APPROVED">Approuvées</option><option value="REJECTED">Refusées</option></select></mat-form-field>
+      <button mat-button (click)="filter('','')">Effacer les filtres</button>
+    </div>
+    <p role="status">{{filtered().length}} demande(s) dans votre périmètre autorisé.</p>
+    @if(!loading() && !error() && leaves().length && !filtered().length){<p>Aucune demande ne correspond aux filtres.</p>}
     @if (!loading() && !error() && leaves().length === 0) { <p>Aucune demande de congé.</p> }
     @if (leaves().length > 0) {
       <div style="overflow-x:auto">
-      <table mat-table [dataSource]="leaves()">
+      <table mat-table [dataSource]="visible()" aria-label="Historique des demandes de congé">
         <ng-container matColumnDef="employee"><th mat-header-cell *matHeaderCellDef>Référence employé</th><td mat-cell *matCellDef="let row">{{ row.employeeId }}</td></ng-container>
-        <ng-container matColumnDef="start"><th mat-header-cell *matHeaderCellDef>Début</th><td mat-cell *matCellDef="let row">{{ row.startDate }}</td></ng-container>
-        <ng-container matColumnDef="end"><th mat-header-cell *matHeaderCellDef>Fin</th><td mat-cell *matCellDef="let row">{{ row.endDate }}</td></ng-container>
+        <ng-container matColumnDef="start"><th mat-header-cell *matHeaderCellDef>Début</th><td mat-cell *matCellDef="let row">{{ row.startDate | date:'dd/MM/yyyy' }}</td></ng-container>
+        <ng-container matColumnDef="end"><th mat-header-cell *matHeaderCellDef>Fin</th><td mat-cell *matCellDef="let row">{{ row.endDate | date:'dd/MM/yyyy' }}</td></ng-container>
         <ng-container matColumnDef="reason"><th mat-header-cell *matHeaderCellDef>Motif</th><td mat-cell *matCellDef="let row">{{ row.reason || '—' }}</td></ng-container>
-        <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Statut</th><td mat-cell *matCellDef="let row">{{ row.status }}</td></ng-container>
+        <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Statut</th><td mat-cell *matCellDef="let row">{{ statusLabels[row.status] }}</td></ng-container>
         <ng-container matColumnDef="validator"><th mat-header-cell *matHeaderCellDef>Validateur</th><td mat-cell *matCellDef="let row">{{ row.validatorUsername || '—' }}</td></ng-container>
         <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
+          <button mat-button (click)="selected.set(row)">Consulter</button>
+          <app-pdf-download kind="leave" [id]="row.id" />
           @if (row.status === 'PENDING') {
             @if (isAdmin()) {
               <button mat-button (click)="act(row, 'approve')" [disabled]="busy() || loading()">Approuver</button>
@@ -24,28 +33,18 @@
             }
             @if (isEmployee()) {
               <a mat-button [routerLink]="['/leaves', row.id, 'edit']" [disabled]="busy() || loading()">Modifier</a>
-              <button mat-button (click)="act(row, 'delete')" [disabled]="busy() || loading()">Supprimer</button>
             }
+            @if(isEmployee() || isAdmin()){<button mat-button (click)="act(row, 'delete')" [disabled]="busy() || loading()">Supprimer</button>}
           }
         </td></ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table></div>
     }
+    <mat-paginator [length]="filtered().length" [pageIndex]="pageIndex()" [pageSize]="pageSize()" [pageSizeOptions]="[10,25,50]" (page)="paginate($event)" aria-label="Pagination des demandes de congé" />
+    @if(selected();as row){<section aria-label="Détail de la demande"><h2>Demande n° {{row.id}}</h2><p>Du {{row.startDate | date:'dd/MM/yyyy'}} au {{row.endDate | date:'dd/MM/yyyy'}}</p><p>{{row.reason || 'Motif non renseigné'}}</p><p>{{statusLabels[row.status]}}</p><p>Validateur : {{row.validatorUsername || 'Non renseigné'}}</p><button mat-button (click)="selected.set(null)">Fermer le détail</button></section>}
     @if (isAdmin()) {
-      <h2 id="associations">Association des comptes pour les congés</h2>
-      <button mat-button (click)="loadDirectory()" [disabled]="directoryLoading() || busy()">Charger les comptes et employés</button>
-      @if (directoryLoading()) { <p role="status">Chargement des associations…</p> }
-      @if (directoryError()) { <p role="alert">{{ directoryError() }}</p> }
-      @if (directory(); as options) {
-        @if (!options.users.length) { <p>Aucun compte avec le rôle EMPLOYEE disponible.</p> }
-        @if (!options.employees.length) { <p>Aucun employé disponible.</p> }
-        <form [formGroup]="linkForm" (ngSubmit)="associate()">
-          <mat-form-field><mat-label>Compte EMPLOYEE</mat-label><mat-select formControlName="userId">@for (user of options.users; track user.id) { <mat-option [value]="user.id">{{ user.label }}</mat-option> }</mat-select></mat-form-field>
-          <mat-form-field><mat-label>Employé</mat-label><mat-select formControlName="employeeId">@for (employee of options.employees; track employee.id) { <mat-option [value]="employee.id">{{ employee.label }}</mat-option> }</mat-select></mat-form-field>
-          <button mat-flat-button type="submit" [disabled]="busy() || directoryLoading() || linkForm.invalid">Associer</button>
-        </form>
-        @for (link of links(); track link.username) { <p>{{ link.username }} → employé {{ link.employeeId }}</p> }
-      }
+      <h2 id="associations">Associations des comptes employés</h2>
+      <a mat-button routerLink="/users" fragment="associations">Consulter ou créer une association User ↔ Employee</a>
     }
   </mat-card-content>
 </mat-card>

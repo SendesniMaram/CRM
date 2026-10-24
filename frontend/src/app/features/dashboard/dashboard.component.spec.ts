@@ -7,6 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { DashboardData, DashboardDataService, DashboardScope, emptyDashboard } from './dashboard-data.service';
 import { DashboardComponent } from './dashboard.component';
+import { ClientService } from '../client/client.service';
 
 describe('DashboardComponent', () => {
   const role = signal(CrmRole.ADMIN);
@@ -35,7 +36,12 @@ describe('DashboardComponent', () => {
     }));
     await TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [
       provideZonelessChangeDetection(), provideRouter([]), { provide: DashboardDataService, useValue: service },
-      { provide: AuthService, useValue: { getCurrentUser: () => ({ username: username(), email: 'unit@example.test' }) } },
+      { provide: AuthService, useValue: { sessionGeneration: 0,
+        hasAnyRole: (roles: CrmRole[]) => roles.includes(role()),
+        getCurrentUser: () => ({ username: username(), email: 'unit@example.test' }) } },
+      { provide: ClientService, useValue: {
+        profile: () => of({customerId:'101',name:'Customer backend',email:'client@example.test',phone:null,company:null}),
+        invoices: () => of({content:[],totalElements:0,totalPages:0,number:0}) } },
       { provide: MatSnackBar, useValue: { open: jasmine.createSpy('open') } }
     ] }).compileComponents();
     fixture = TestBed.createComponent(DashboardComponent);
@@ -85,9 +91,9 @@ describe('DashboardComponent', () => {
   });
   it('shows account information and no administrative indicators for CLIENT', () => {
     role.set(CrmRole.CLIENT); fixture.detectChanges(); const text = fixture.nativeElement.textContent;
-    expect(text).toContain('test-user'); expect(text).toContain('unit@example.test'); expect(text).toContain('consultation personnelle sécurisée');
+    expect(text).toContain('test-user'); expect(text).toContain('Customer backend'); expect(text).toContain('Mes factures');
     expect(fixture.nativeElement.querySelector('.kpis')).toBeNull();
-    expect(fixture.nativeElement.querySelector('nav')).toBeNull();
+    expect(fixture.nativeElement.querySelector('nav[aria-label="Accès rapides"]')).toBeNull();
   });
   it('clears administrative values immediately when roles change', () => {
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('125');
@@ -118,5 +124,12 @@ describe('DashboardComponent', () => {
     fixture.componentInstance['refresh'](); fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Impossible');
     expect(fixture.nativeElement.textContent).not.toContain('125');
+  });
+  it('hides previous figures when a new session reuses the same username and role',()=>{
+    const generation=signal(0);Object.defineProperty(TestBed.inject(AuthService),'sessionGeneration',{get:()=>generation()});
+    fixture.detectChanges();expect(fixture.componentInstance['visible']()).not.toBeNull();
+    const pending=new Subject<DashboardData>();service.load.and.returnValue(pending);generation.set(1);
+    expect(fixture.componentInstance['visible']()).toBeNull();fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('125');expect(service.load).toHaveBeenCalledTimes(2);
   });
 });

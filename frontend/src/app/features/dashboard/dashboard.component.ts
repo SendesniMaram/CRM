@@ -9,10 +9,11 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DashboardData, DashboardDataService, distribution } from './dashboard-data.service';
+import { ClientWorkspaceComponent } from '../client/client-workspace.component';
 
 @Component({
   selector: 'app-dashboard', standalone: true,
-  imports: [DatePipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule],
+  imports: [ClientWorkspaceComponent, DatePipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressBarModule],
   templateUrl: './dashboard.component.html', styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -26,7 +27,10 @@ export class DashboardComponent {
   protected readonly failed = signal(false);
   protected readonly refreshedAt = signal<Date | null>(null);
   protected readonly scope = computed(() => this.service.scope());
-  private readonly identity = computed(() => this.auth.getCurrentUser()?.username ?? null);
+  private readonly identity = computed(() => {
+    const user = this.auth.getCurrentUser();
+    return user ? `${this.auth.sessionGeneration}:${user.username}` : null;
+  });
   private readonly dataOwner = signal<string | null>(null);
   protected readonly visible = computed(() => this.data()?.scope === this.scope()
     && this.dataOwner() === this.identity() ? this.data() : null);
@@ -46,11 +50,15 @@ export class DashboardComponent {
     if (this.scope() !== 'admin') return personal ? common : [];
     return [
       { title: 'Employés', value: data?.employees.value ?? null, icon: 'badge', route: '/employees', error: data?.employees.error },
+      { title: 'Départements', value: data?.departments.value ?? null, icon: 'account_tree', route: '/departments', error: data?.departments.error },
       { title: 'Clients', value: data?.customers.value ?? null, icon: 'groups', route: '/customers', error: data?.customers.error },
       ...common,
       { title: 'Factures', value: data?.invoices.value?.count ?? null, icon: 'description', route: '/invoices', error: data?.invoices.error },
       { title: 'Honoraires', value: data?.fees.value ?? null, icon: 'receipt_long', route: '/fees', error: data?.fees.error },
-      { title: 'Fiches de paie', value: data?.payroll.value ?? null, icon: 'payments', route: '/payroll', error: data?.payroll.error }
+      { title: 'Fiches de paie', value: data?.payroll.value ?? null, icon: 'payments', route: '/payroll', error: data?.payroll.error },
+      { title: 'Formations', value: data?.trainings.value ?? null, icon: 'school', route: '/trainings', error: data?.trainings.error },
+      { title: 'Présences enregistrées', value: data?.attendances.value ?? null, icon: 'schedule', route: '/attendances', error: data?.attendances.error },
+      { title: 'Dossiers RH', value: data?.hrRecords.value ?? null, icon: 'folder_shared', route: '/hr-records', error: data?.hrRecords.error }
     ];
   });
   protected readonly links = computed(() => this.scope() === 'admin' ? [
@@ -58,10 +66,13 @@ export class DashboardComponent {
     { label: 'Départements', route: '/departments', icon: 'corporate_fare' },
     { label: 'Clients', route: '/customers', icon: 'groups' },
     { label: 'Congés', route: '/leaves', icon: 'event_note' },
+    { label: 'Formations', route: '/trainings', icon: 'school' },
+    { label: 'Présences', route: '/attendances', icon: 'schedule' },
+    { label: 'Dossiers RH', route: '/hr-records', icon: 'folder_shared' },
     { label: 'Factures', route: '/invoices', icon: 'description' },
     { label: 'Honoraires', route: '/fees', icon: 'receipt_long' },
     { label: 'Paie', route: '/payroll', icon: 'payments' }
-  ] : this.scope() === 'employee' ? [{ label: 'Mes congés', route: '/leaves', icon: 'event_note' }] : []);
+  ] : this.scope() === 'employee' ? [{ label: 'Mon profil', route: '/profile', icon: 'badge' }, { label: 'Mes congés', route: '/leaves', icon: 'event_note' }] : []);
 
   constructor() {
     effect(() => {
@@ -79,7 +90,8 @@ export class DashboardComponent {
       next: data => {
         this.dataOwner.set(owner);
         this.data.set(data); this.loading.set(false); this.refreshedAt.set(new Date());
-        const errors = [data.employees, data.customers, data.fees, data.payroll, data.leaves, data.invoices].some(item => !!item.error)
+        const errors = [data.employees, data.departments, data.trainings, data.attendances, data.hrRecords,
+          data.customers, data.fees, data.payroll, data.leaves, data.invoices].some(item => !!item.error)
           || !!data.invoices.value?.reason;
         if (notify) this.snack.open(errors ? 'Actualisation partielle : certaines données sont indisponibles.'
           : 'Tableau de bord actualisé.', 'Fermer', { duration: 5000 });

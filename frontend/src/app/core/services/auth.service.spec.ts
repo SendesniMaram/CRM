@@ -132,6 +132,17 @@ describe('AuthService', () => {
     expect(sessionStorage.getItem('crm.auth.session')).toBeNull();
   });
 
+  it('preserves expired session credentials and reports refresh unavailability', () => {
+    storeTestSession(testJwt({ exp: 1 }));
+    const stored = sessionStorage.getItem('crm.auth.session');
+    let received: { status: number } | undefined;
+    service().ensureSession().subscribe({ next: () => fail('Unavailable is not a definitive rejection'), error: error => received = error });
+    http.expectOne(base + '/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    expect(received?.status).toBe(503);
+    expect(sessionStorage.getItem('crm.auth.session')).toBe(stored);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('logs out locally, clears all auth data and immediately updates state', () => {
     storeTestSession();
     const auth = service();

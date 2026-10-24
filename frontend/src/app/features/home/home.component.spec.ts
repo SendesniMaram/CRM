@@ -19,7 +19,7 @@ describe('HomeComponent', () => {
     it('renders real session identity and only authorized modules for '+current, () => {
       role.set(current);const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();const element=fixture.nativeElement as HTMLElement;
       expect(element.querySelector('h1')?.textContent).toContain('Compte de test');
-      expect(element.querySelectorAll('.module-card').length).toBe(current===CrmRole.CLIENT?1:current===CrmRole.EMPLOYEE?2:8);
+      expect(element.querySelectorAll('.module-card').length).toBe(current===CrmRole.CLIENT?2:current===CrmRole.EMPLOYEE?3:13);
       const actions=Array.from(element.querySelectorAll('.action-links a')).map(link=>link.getAttribute('href'));
       if(current===CrmRole.EMPLOYEE)expect(actions).toEqual(['/leaves/new','/leaves']);
       else if(current===CrmRole.CLIENT)expect(actions).toEqual([]);
@@ -43,7 +43,7 @@ describe('HomeComponent', () => {
   it('offers a working account action for clients without promising administrative data', () => {
     role.set(CrmRole.CLIENT);const dialog=spyOn(TestBed.inject(MatDialog),'open');
     const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();const element=fixture.nativeElement as HTMLElement;
-    element.querySelector<HTMLButtonElement>('.action-links button')!.click();
+    element.querySelector<HTMLButtonElement>('.hero-actions button')!.click();
     expect(dialog).toHaveBeenCalledWith(AccountDialogComponent,jasmine.objectContaining({ariaLabel:'Informations du compte'}));
     expect(element.querySelector('.module-card')?.textContent).toContain('sans indicateurs administratifs');
     expect(element.querySelector('.intro')?.textContent).not.toContain('facturation');
@@ -58,7 +58,7 @@ describe('HomeComponent', () => {
   });
   it('clears admin links when roles change without retaining a previous role snapshot', () => {
     const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();expect(fixture.nativeElement.querySelector('a[href="/payroll"]')).not.toBeNull();
-    role.set(CrmRole.CLIENT);fixture.detectChanges();expect(fixture.nativeElement.querySelector('a[href="/payroll"]')).toBeNull();expect(fixture.nativeElement.querySelector('.account-state')).not.toBeNull();
+    role.set(CrmRole.CLIENT);fixture.detectChanges();expect(fixture.nativeElement.querySelector('a[href="/payroll"]')).toBeNull();expect(fixture.nativeElement.querySelector('a[href="/client"]')).not.toBeNull();
   });
   it('provides no Dashboard shortcut to an unrecognized role', () => {
     role.set(null);const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();expect(fixture.nativeElement.querySelector('.dashboard-link')).toBeNull();

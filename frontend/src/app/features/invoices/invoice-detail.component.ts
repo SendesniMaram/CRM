@@ -1,3 +1,4 @@
+import { PdfDownloadComponent } from '../../shared/pdf-download/pdf-download.component';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,7 +13,7 @@ import { InvoiceResponse } from './invoice.models';
 import { InvoiceService } from './invoice.service';
 @Component({
   selector: 'app-invoice-detail', standalone: true,
-  imports: [DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [PdfDownloadComponent, DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './invoice-detail.component.html', styleUrl: './invoices.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

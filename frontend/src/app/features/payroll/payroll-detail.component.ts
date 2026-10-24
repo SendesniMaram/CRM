@@ -1,3 +1,4 @@
+import { PdfDownloadComponent } from '../../shared/pdf-download/pdf-download.component';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -12,7 +13,7 @@ import { PayrollResponse } from './payroll.models';
 import { PayrollService } from './payroll.service';
 @Component({
   selector: 'app-payroll-detail', standalone: true,
-  imports: [DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [PdfDownloadComponent, DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './payroll-detail.component.html', styleUrl: './payroll.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

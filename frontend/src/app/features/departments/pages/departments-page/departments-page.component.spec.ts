@@ -1,4 +1,4 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { MAT_DIALOG_DEFAULT_OPTIONS, MatDialog } from '@angular/material/dialog';
@@ -23,7 +23,7 @@ describe('DepartmentsPageComponent', () => {
     service = jasmine.createSpyObj<DepartmentService>('DepartmentService', ['getDepartments', 'deleteDepartment']);
     service.getDepartments.and.returnValue(of([department]));
     service.deleteDepartment.and.returnValue(of(undefined));
-    auth = jasmine.createSpyObj<AuthService>('AuthService', ['hasAnyRole']);
+    auth = jasmine.createSpyObj<AuthService>('AuthService', ['hasAnyRole','getCurrentUser']);
     auth.hasAnyRole.and.returnValue(true);
     await TestBed.configureTestingModule({
       imports: [DepartmentsPageComponent],
@@ -133,6 +133,21 @@ describe('DepartmentsPageComponent', () => {
     const pending = new Subject<DepartmentResponse[]>(); service.getDepartments.and.returnValue(pending);
     fixture.detectChanges(); expect(pending.observed).toBeTrue();
     fixture.destroy(); expect(pending.observed).toBeFalse();
+  });
+  it('searches the full list and resets pagination before displaying matches', () => {
+    service.getDepartments.and.returnValue(of(Array.from({length:25},(_,i)=>({...department,id:i+1,name:'Department '+i,code:'D'+i}))));
+    fixture.detectChanges();const page=fixture.componentInstance as any;
+    expect(page.visible().length).toBe(10);page.paginate({pageIndex:2,pageSize:10});expect(page.visible().length).toBe(5);
+    page.search('D24');expect(page.pageIndex()).toBe(0);expect(page.visible().map((r:any)=>r.id)).toEqual([25]);
+    expect(service.getDepartments).toHaveBeenCalledTimes(1);
+  });
+  it('ignores a response and hides details from an earlier session', () => {
+    const generation=signal(0);Object.defineProperty(auth,'sessionGeneration',{get:()=>generation()});
+    auth.getCurrentUser.and.callFake(()=>({username:'same-account',revision:generation()}) as any);
+    const pending=new Subject<DepartmentResponse[]>();service.getDepartments.and.returnValue(pending);
+    fixture.detectChanges();const page=fixture.componentInstance as any;page.selected.set(department);
+    service.getDepartments.and.returnValue(of([]));generation.set(1);fixture.detectChanges();pending.next([department]);
+    expect(page.departments()).toEqual([]);expect(page.selected()).toBeNull();
   });
 
   afterEach(() => { TestBed.inject(MatDialog).closeAll(); snackBar.dismiss(); });

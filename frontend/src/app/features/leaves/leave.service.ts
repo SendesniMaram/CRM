@@ -16,4 +16,5 @@ export class LeaveService {
   associations() { return this.http.get<LeaveAssociation[]>(`${this.url}/associations`); }
   options() { return this.http.get<LeaveDirectoryOptions>(`${this.url}/associations/options`); }
   associate(userId: number, employeeId: number) { return this.http.post<LeaveAssociation>(`${this.url}/associations`, { userId, employeeId }); }
+  reassign(userId: number, employeeId: number) { return this.http.put<LeaveAssociation>(`${this.url}/associations/${userId}`, { employeeId }); }
 }
