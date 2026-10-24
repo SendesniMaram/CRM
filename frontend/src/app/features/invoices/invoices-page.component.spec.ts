@@ -100,4 +100,3 @@ describe('InvoicesPageComponent', () => {
     expect(fixture.nativeElement.querySelector('a[href="/invoices/new"]')).toBeNull();
   });
 });
-

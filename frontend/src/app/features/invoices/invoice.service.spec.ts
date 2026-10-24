@@ -48,4 +48,3 @@ describe('InvoiceService', () => {
     expect(call.request.method).toBe('DELETE'); call.flush(null);
   });
 });
-

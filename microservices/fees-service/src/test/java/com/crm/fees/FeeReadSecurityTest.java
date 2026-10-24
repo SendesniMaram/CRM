@@ -113,4 +113,3 @@ class FeeReadSecurityTest extends com.crm.fees.security.TestIdentitySupport {
         }
     }
 }
-

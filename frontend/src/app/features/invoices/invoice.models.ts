@@ -28,4 +28,3 @@ export function parseCustomerId(value: string): number | null {
   const id = Number(value);
   return Number.isSafeInteger(id) ? id : null;
 }
-

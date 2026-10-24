@@ -80,4 +80,3 @@ class PayrollReadSecurityTest extends com.crm.payroll.security.TestIdentitySuppo
         }
     }
 }
-

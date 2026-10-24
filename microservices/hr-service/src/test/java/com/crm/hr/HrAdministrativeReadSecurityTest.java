@@ -106,4 +106,3 @@ class HrAdministrativeReadSecurityTest extends com.crm.hr.security.TestIdentityS
         }
     }
 }
-

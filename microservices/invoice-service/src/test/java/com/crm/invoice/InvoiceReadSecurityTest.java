@@ -113,4 +113,3 @@ class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySuppo
         }
     }
 }
-

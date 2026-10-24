@@ -83,4 +83,3 @@ class EmployeeReadSecurityTest extends com.crm.employee.security.TestIdentitySup
         }
     }
 }
-

@@ -123,4 +123,3 @@ class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySup
         }
     }
 }
-

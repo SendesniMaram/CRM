@@ -5,4 +5,3 @@ export const INVOICES_ROUTES: Routes = [
   { path: ':id/edit', loadComponent: () => import('./invoice-form.component').then(m => m.InvoiceFormComponent) },
   { path: ':id', loadComponent: () => import('./invoice-detail.component').then(m => m.InvoiceDetailComponent) }
 ];
-

@@ -111,4 +111,3 @@ export class InvoicesPageComponent implements OnInit {
     });
   }
 }
-

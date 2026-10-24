@@ -17,4 +17,3 @@ export class InvoiceService {
   update(id: number, value: InvoiceRequest) { return this.http.put<InvoiceResponse>(`${this.url}/${id}`, value); }
   delete(id: number) { return this.http.delete<void>(`${this.url}/${id}`); }
 }
-
