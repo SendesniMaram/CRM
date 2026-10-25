@@ -1,6 +1,10 @@
 # Préparation des commits locaux MVP — 16 octobre 2026
 
+> Archive documentaire : les constats, chiffres, anciens commits et autorisations ci-dessous décrivent la campagne datée du rapport. Ils ne constituent pas un état courant ni un plan à réappliquer sur `publication-clean`. Toute opération réelle nécessite une nouvelle vérification et l’autorisation adaptée.
+
 **READY TO COMMIT — aucun git add ni commit effectué. Attendre une confirmation explicite de l'utilisatrice.** Branche microservices, HEAD de référence 40b6d0f55dfeb2c0ac6d8e6adbb10284370917f2. L'index est vide. Ce manifeste contient la liste exacte proposée : **39 fichiers distincts**, en cinq commits sans fichier partagé entre groupes.
+
+> Document historique du 16 octobre, conservé car référencé par le rapport de tests à la racine. Il ne constitue plus un plan exécutable. Le plan de reprise est [CRM_LOCAL_COMMIT_PLAN.md](CRM_LOCAL_COMMIT_PLAN.md), lui-même à revalider après les sous-lots 2B. L'ancienne procédure de déploiement MVP a été retirée ; les conditions de sécurité actuelles figurent dans [ACCESS_TOKEN_SECURITY_PLAN.md](ACCESS_TOKEN_SECURITY_PLAN.md) et [CRM_SECRET_ROTATION_READINESS.md](CRM_SECRET_ROTATION_READINESS.md). Les chiffres et HEAD suivants restent historiques.
 
 ## Vérifications finales exécutées
 
@@ -63,10 +67,9 @@
 - `scripts/demo/Test-CRM-MVP.Local.ps1`
 - `scripts/demo/README.md`
 
-### 5. docs(mvp): documenter les tests et les limites connues — 3 fichiers
+### 5. docs(mvp): documenter les tests et les limites connues — 2 fichiers encore présents du groupe historique
 
 - `TESTS_MVP_CRM.md`
-- `docs/DEPLOIEMENT_SECUR_MVP.md`
 - `docs/PLAN_COMMITS_MVP.md`
 
 ## Exclusions explicites
