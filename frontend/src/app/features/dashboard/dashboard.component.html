@@ -1,111 +1,78 @@
-<section class="dashboard" aria-labelledby="dashboard-title">
-  <header class="dashboard-header">
-    <div>
-      <p class="eyebrow">Vue d'ensemble du CRM</p>
-      <h1 id="dashboard-title">Tableau de bord</h1>
-      <p class="subtitle">Consultez les principales informations de votre activité CRM en un coup d'œil.</p>
+<section class="dashboard" aria-labelledby="dashboard-title" [attr.aria-busy]="loading()">
+  <header class="hero">
+    <div><p class="eyebrow">Vue d’ensemble du CRM</p><h1 id="dashboard-title">Tableau de bord</h1>
+      <p>Les principales informations accessibles à votre rôle, issues des services CRM.</p>
+      @if (auth.getCurrentUser(); as user) { <p class="welcome">Bonjour {{ user.username }}</p> }
     </div>
-    <div class="header-mark" aria-hidden="true">
-      <mat-icon>space_dashboard</mat-icon>
-    </div>
+    <button mat-flat-button (click)="refresh()" [disabled]="loading()"><mat-icon>{{ loading() ? 'hourglass_top' : 'refresh' }}</mat-icon>{{ loading() ? 'Actualisation…' : 'Actualiser' }}</button>
   </header>
-
-  <section class="stats-section" aria-labelledby="stats-title">
-    <div class="section-heading">
-      <div>
-        <p class="eyebrow">Performance</p>
-        <h2 id="stats-title">Indicateurs clés</h2>
-      </div>
-      <span class="temporary-label">Aperçu temporaire</span>
-    </div>
-
-    <div class="stats-grid">
-      @for (stat of stats; track stat.title) {
-        <mat-card class="stat-card" [class]="'accent-' + stat.accent">
-          <mat-card-content>
-            <div class="stat-topline">
-              <span class="icon-box" aria-hidden="true"><mat-icon>{{ stat.icon }}</mat-icon></span>
-              <span class="stat-description">{{ stat.description }}</span>
-            </div>
-            <p class="stat-title">{{ stat.title }}</p>
-            <p class="stat-value">{{ stat.value }}</p>
-          </mat-card-content>
-        </mat-card>
+  @if (loading()) { <mat-progress-bar mode="indeterminate" aria-label="Chargement du tableau de bord" /><p role="status">Chargement des données…</p> }
+  @if (refreshedAt(); as date) { <p class="muted" role="status">Dernière actualisation : {{ date | date:'dd/MM/yyyy HH:mm:ss' }}</p> }
+  @if (failed()) { <p role="alert" class="error">Impossible de charger le tableau de bord. Réessayez.</p> }
+  @if (scope() === 'client') {
+    <app-client-workspace />
+  } @else {
+    <section aria-label="Indicateurs clés" class="kpis">
+      @for (card of cards(); track card.title) {
+        <mat-card><mat-card-content><mat-icon aria-hidden="true">{{ card.icon }}</mat-icon><h2>{{ card.title }}</h2>
+          <p class="value">{{ loading() ? 'Chargement…' : card.value === null ? 'Indisponible' : card.value }}</p>
+          @if (!loading() && card.error) { <p class="error" role="status">{{ card.error }}</p> }
+          <a mat-button [routerLink]="card.route">Consulter<mat-icon>arrow_forward</mat-icon></a>
+        </mat-card-content></mat-card>
       }
-    </div>
-  </section>
-
-  <div class="dashboard-columns">
-    <section class="activities-section" aria-labelledby="activities-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">Activités de l'espace de travail</p>
-          <h2 id="activities-title">Activités récentes</h2>
-        </div>
-        <mat-icon class="section-icon" aria-hidden="true">history</mat-icon>
-      </div>
-
-      <mat-card class="activities-card">
-        <div class="table-container">
-          <table mat-table [dataSource]="activities" aria-label="Activités récentes du CRM">
-            <ng-container matColumnDef="type">
-              <th mat-header-cell *matHeaderCellDef>Type</th>
-              <td mat-cell *matCellDef="let activity"><span class="activity-type">{{ activity.type }}</span></td>
-            </ng-container>
-
-            <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef>Activité</th>
-              <td mat-cell *matCellDef="let activity">{{ activity.description }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="user">
-              <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
-              <td mat-cell *matCellDef="let activity">{{ activity.user }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="date">
-              <th mat-header-cell *matHeaderCellDef>Date</th>
-              <td mat-cell *matCellDef="let activity" class="activity-date">{{ activity.date }}</td>
-            </ng-container>
-
-            <ng-container matColumnDef="status">
-              <th mat-header-cell *matHeaderCellDef>Statut</th>
-              <td mat-cell *matCellDef="let activity">
-                <mat-chip [class]="'status-' + activity.status.toLowerCase().replace(' ', '-')">{{ activity.status }}</mat-chip>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="activityColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: activityColumns"></tr>
-          </table>
-        </div>
-      </mat-card>
     </section>
-
-    <section class="summary-section" aria-labelledby="summary-title">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">En un coup d'œil</p>
-          <h2 id="summary-title">Actions à effectuer</h2>
-        </div>
-        <mat-icon class="section-icon" aria-hidden="true">insights</mat-icon>
-      </div>
-
-      <mat-card class="summary-card">
-        <mat-card-content>
-          @for (item of summary; track item.label; let last = $last) {
-            <div class="summary-item">
-              <span class="summary-icon" aria-hidden="true"><mat-icon>{{ item.icon }}</mat-icon></span>
-              <div class="summary-copy">
-                <span class="summary-label">{{ item.label }}</span>
-                <span class="summary-detail">{{ item.detail }}</span>
-              </div>
-              <strong>{{ item.value }}</strong>
-            </div>
-            @if (!last) { <mat-divider /> }
-          }
-        </mat-card-content>
-      </mat-card>
+    @if (scope() === 'admin') {
+      <section class="columns" aria-label="Montants">
+        <mat-card><mat-card-content><h2>Montant total des factures</h2>
+          @if (loading()) { <p>Chargement…</p> }
+          @else if (visible()?.invoices?.value?.amounts; as totals) {
+            @if (totals.length === 0) { <p>Aucune facture.</p> }
+            @for (total of totals; track total.currency) { <p class="money">{{ total.value }} <span>{{ total.currency }}</span></p> }
+          } @else { <p>Indisponible</p> }
+          <p class="muted">{{ visible()?.invoices?.value?.reason || visible()?.invoices?.error || 'Somme des montants enregistrés, par devise, tous statuts confondus.' }}</p>
+        </mat-card-content></mat-card>
+        <mat-card><mat-card-content><h2>Montant total des honoraires</h2><p>Indisponible</p>
+          <p class="muted">Les honoraires ne fournissent pas de devise. Aucun total monétaire global fiable ne peut être présenté.</p>
+        </mat-card-content></mat-card>
+      </section>
+    }
+    <section class="columns" aria-label="Répartition des statuts">
+      <mat-card><mat-card-content><h2>{{ scope() === 'employee' ? 'Mes congés par statut' : 'Congés par statut' }}</h2>
+        @if (loading()) { <p>Chargement…</p> }
+        @else if (visible()?.leaves?.value === null || !visible()) { <p>Indisponible</p> }
+        @else if (leaveStatuses().length === 0) { <p>Aucune demande de congé.</p> }
+        @for (item of leaveStatuses(); track item.label) {
+          <div class="bar-label"><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
+          <mat-progress-bar mode="determinate" [value]="item.percent" [attr.aria-label]="item.label + ' : ' + item.count" />
+        }
+      </mat-card-content></mat-card>
+      @if (scope() === 'admin') {
+        <mat-card><mat-card-content><h2>Factures par statut</h2>
+          @if (loading()) { <p>Chargement…</p> }
+          @else if (visible()?.invoices?.value?.statuses; as statuses) {
+            @if (statuses.length === 0) { <p>Aucune facture.</p> }
+            @for (item of statuses; track item.label) {
+              <div class="bar-label"><span>{{ item.label }}</span><strong>{{ item.count }}</strong></div>
+              <mat-progress-bar mode="determinate" [value]="item.percent" [attr.aria-label]="item.label + ' : ' + item.count" />
+            }
+          } @else { <p>Indisponible</p><p class="muted">{{ visible()?.invoices?.value?.reason || visible()?.invoices?.error }}</p> }
+        </mat-card-content></mat-card>
+      }
     </section>
-  </div>
+    <mat-card class="recent"><mat-card-content><h2>Activités récentes</h2>
+      <p class="muted">Dernières demandes de congé créées dans votre périmètre autorisé. Les API ne fournissent pas de journal d’audit global.</p>
+      @if (loading()) { <p>Chargement…</p> }
+      @else if (visible()?.leaves?.value === null || !visible()) { <p>Indisponible</p> }
+      @else if (recent().length === 0) { <p>Aucune demande datée disponible.</p> }
+      <ul>
+        @for (row of recent(); track row.id) {
+          <li><a mat-button routerLink="/leaves">Demande n° {{ row.id }}</a>
+            <span>{{ row.createdAt | date:'dd/MM/yyyy HH:mm' }}</span></li>
+        }
+      </ul>
+    </mat-card-content></mat-card>
+    <nav aria-label="Accès rapides"><h2>Accès rapides</h2><div class="quick-links">
+      @for (link of links(); track link.route) { <a mat-stroked-button [routerLink]="link.route"><mat-icon>{{ link.icon }}</mat-icon>{{ link.label }}</a> }
+    </div></nav>
+  }
 </section>

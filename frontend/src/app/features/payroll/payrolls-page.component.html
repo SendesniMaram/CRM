@@ -1,0 +1,41 @@
+<section class="customer-page" aria-labelledby="payroll-title">
+  <header class="page-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-title">Paie</h1>
+    <p class="subtitle">Consultez les fiches de paie, leurs périodes et les montants versés.</p></div>
+    @if (canManage()) { <a mat-flat-button routerLink="/payroll/new"><mat-icon>add</mat-icon>Nouvelle fiche de paie</a> }
+  </header>
+  <mat-card class="directory-card"><mat-card-content>
+    <form class="toolbar" (ngSubmit)="find()">
+      <mat-form-field appearance="outline" class="search-field"><mat-label>Rechercher une fiche</mat-label><mat-icon matPrefix>search</mat-icon>
+        <input matInput [formControl]="search" placeholder="Référence employé, période, devise ou statut" /></mat-form-field>
+      <button mat-stroked-button type="submit">Rechercher</button>
+      <button mat-icon-button type="button" (click)="load()" [disabled]="loading() || busy()" aria-label="Recharger les fiches de paie"><mat-icon>refresh</mat-icon></button>
+    </form>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement des fiches de paie…</p></div> }
+    @if (error()) { <div class="state error" role="alert"><mat-icon>cloud_off</mat-icon><p>{{ error() }}</p><button mat-button (click)="load()">Réessayer</button></div> }
+    @if (!loading() && !error() && rows().length === 0) {
+      <div class="state"><mat-icon>payments</mat-icon><h2>Aucune fiche de paie à afficher</h2>
+        <p>{{ search.value.trim() ? 'Essayez une autre recherche.' : 'Créez une première fiche de paie pour commencer.' }}</p>
+        @if (!search.value.trim() && canManage()) { <a mat-button routerLink="/payroll/new">Créer une fiche de paie</a> }
+      </div>
+    }
+    @if (!error() && rows().length > 0) {
+      <div class="table-scroll" tabindex="0" aria-label="Tableau des fiches de paie, défilement horizontal">
+        <table mat-table [dataSource]="rows()" matSort [matSortActive]="sortBy()" [matSortDirection]="direction()" (matSortChange)="sort($event)" aria-label="Fiches de paie">
+          <ng-container matColumnDef="payPeriod"><th mat-header-cell *matHeaderCellDef mat-sort-header>Période</th><td mat-cell *matCellDef="let row"><a class="client-name" [routerLink]="['/payroll', row.id]">{{ row.payPeriod }}</a></td></ng-container>
+          <ng-container matColumnDef="employeeId"><th mat-header-cell *matHeaderCellDef mat-sort-header>Réf. employé</th><td mat-cell *matCellDef="let row">{{ row.employeeId }}</td></ng-container>
+          <ng-container matColumnDef="paymentDate"><th mat-header-cell *matHeaderCellDef mat-sort-header>Date de paiement</th><td mat-cell *matCellDef="let row">{{ row.paymentDate ? (row.paymentDate | date:'dd/MM/yyyy') : '—' }}</td></ng-container>
+          <ng-container matColumnDef="netSalary"><th mat-header-cell *matHeaderCellDef mat-sort-header>Salaire net</th><td mat-cell *matCellDef="let row" class="amount">{{ row.netSalary | invoiceAmount }}</td></ng-container>
+          <ng-container matColumnDef="currency"><th mat-header-cell *matHeaderCellDef mat-sort-header>Devise</th><td mat-cell *matCellDef="let row">{{ row.currency || 'Non renseignée' }}</td></ng-container>
+          <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef mat-sort-header>Statut</th><td mat-cell *matCellDef="let row"><span class="status-badge">{{ row.status }}</span></td></ng-container>
+          <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
+            <a mat-icon-button [routerLink]="['/payroll', row.id]" [attr.aria-label]="'Consulter la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>visibility</mat-icon></a>
+            @if (canManage()) { <a mat-icon-button [routerLink]="['/payroll', row.id, 'edit']" [attr.aria-label]="'Modifier la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>edit</mat-icon></a>
+              <button mat-icon-button type="button" (click)="remove(row)" [disabled]="busy() || loading()" [attr.aria-label]="'Supprimer la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>delete_outline</mat-icon></button> }
+          </td></ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    }
+    <mat-paginator [length]="total()" [pageIndex]="page()" [pageSize]="size()" [pageSizeOptions]="[10, 25, 50]" [disabled]="loading() || busy() || !!error()" showFirstLastButtons (page)="paginate($event)" aria-label="Pagination des fiches de paie" />
+  </mat-card-content></mat-card>
+</section>

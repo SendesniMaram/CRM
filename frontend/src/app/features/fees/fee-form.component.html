@@ -1,0 +1,42 @@
+<section class="customer-page narrow" aria-labelledby="fee-form-title">
+  <a mat-button routerLink="/fees" [disabled]="saving()"><mat-icon>arrow_back</mat-icon>Retour aux honoraires</a>
+  <header class="page-header"><div><p class="eyebrow">Prestations</p><h1 id="fee-form-title">{{ id() === null ? 'Nouvel honoraire' : 'Modifier l’honoraire' }}</h1>
+    <p class="subtitle">Renseignez la prestation et les heures réalisées.</p></div></header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de l’honoraire…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (ready()) {
+      <p class="muted">L’employé, la prestation, le tarif horaire et les heures sont obligatoires. Le client est facultatif.</p>
+      <p class="muted">Le montant sera affiché après enregistrement. Les statuts sont libres.</p>
+      <div class="toolbar">
+        <button mat-stroked-button type="button" (click)="lookup.set(lookup() === 'employee' ? null : 'employee')" [disabled]="saving()">Choisir un employé</button>
+        <button mat-stroked-button type="button" (click)="lookup.set(lookup() === 'customer' ? null : 'customer')" [disabled]="saving()">Choisir un client</button>
+      </div>
+      @if (lookup() === 'employee') { <app-fee-reference-picker kind="employee" [disabled]="saving()" (referenceSelected)="selectReference('employee', $event)" /> }
+      @if (lookup() === 'customer') { <app-fee-reference-picker kind="customer" [disabled]="saving()" (referenceSelected)="selectReference('customer', $event)" /> }
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline"><mat-label>Référence employé</mat-label><input matInput formControlName="employeeId" required maxlength="50" />
+            <mat-hint>Identifiant sélectionné ou référence existante.</mat-hint>
+            @if (form.controls.employeeId.invalid) { <mat-error>Référence obligatoire, limitée à 50 caractères.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Référence client</mat-label><input matInput formControlName="customerId" maxlength="50" />
+            @if (form.controls.customerId.invalid) { <mat-error>Référence refusée ou supérieure à 50 caractères.</mat-error> }</mat-form-field>
+          @for (field of textFields; track field.key) {
+            <mat-form-field appearance="outline"><mat-label>{{ field.label }}</mat-label><input matInput [formControlName]="field.key" [required]="field.required" [attr.maxlength]="field.max" />
+              @if (form.controls[field.key].invalid) { <mat-error>Vérifiez ce champ ({{ field.max }} caractères maximum).</mat-error> }</mat-form-field>
+          }
+          <mat-form-field appearance="outline"><mat-label>Date de prestation</mat-label><input matInput type="date" formControlName="workDate" />
+            @if (form.controls.workDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Tarif horaire</mat-label><input matInput type="number" step="any" formControlName="hourlyRate" required />
+            @if (form.controls.hourlyRate.invalid) { <mat-error>Saisissez un tarif strictement positif.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Heures travaillées</mat-label><input matInput type="number" step="any" formControlName="workedHours" required />
+            @if (form.controls.workedHours.invalid) { <mat-error>Saisissez un nombre d’heures strictement positif.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline" class="full-width"><mat-label>Description</mat-label><textarea matInput formControlName="description" maxlength="500" rows="3"></textarea>
+            @if (form.controls.description.invalid) { <mat-error>Description refusée ou supérieure à 500 caractères.</mat-error> }</mat-form-field>
+        </div>
+        <div class="form-actions"><a mat-button routerLink="/fees" [disabled]="saving()">Annuler</a>
+          <button mat-flat-button type="submit" [disabled]="saving() || loading() || !canManage()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
+      </form>
+    }
+  </mat-card-content></mat-card>
+</section>

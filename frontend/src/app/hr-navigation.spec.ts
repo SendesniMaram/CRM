@@ -1,3 +1,4 @@
+import { dashboardNavigationStub } from './core/testing/dashboard-fixture';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -16,7 +17,7 @@ describe('HR navigation', () => {
     sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [
       provideZonelessChangeDetection(), provideRouter(routes),
-      provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting(),
+      provideHttpClient(withInterceptors([authInterceptor])), provideHttpClientTesting(), dashboardNavigationStub,
       { provide: LeaveService, useValue: { list: () => of([]) } }
     ] });
   });

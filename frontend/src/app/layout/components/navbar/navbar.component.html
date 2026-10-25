@@ -1,0 +1,22 @@
+﻿<mat-toolbar class="navbar">
+  <button #toggle mat-icon-button (click)="toggleNavigation.emit()" [attr.aria-label]="mobile() ? (navigationOpen() ? 'Fermer la navigation' : 'Ouvrir la navigation') : (collapsed() ? 'Développer la navigation' : 'Réduire la navigation')" aria-controls="crm-drawer" [attr.aria-expanded]="mobile() ? navigationOpen() : !collapsed()">
+    <mat-icon aria-hidden="true">{{ mobile() ? 'menu' : (collapsed() ? 'menu_open' : 'menu') }}</mat-icon>
+  </button>
+  <div class="page-context">
+    <span class="page-title">{{ title() }}</span>
+    @if (detail(); as label) {
+      <nav class="breadcrumb" aria-label="Fil d’Ariane"><a [routerLink]="current()!.route">{{ title() }}</a><mat-icon aria-hidden="true">chevron_right</mat-icon><span aria-current="page">{{ label }}</span></nav>
+    } @else { <span class="context-subtitle">{{ current()?.category ?? 'Votre espace de travail' }}</span> }
+  </div>
+  <span class="spacer"></span>
+  <time class="current-date" [attr.datetime]="clock.now().toISOString()">{{ date() }}</time>
+  <button mat-button class="account" [matMenuTriggerFor]="accountMenu" aria-label="Ouvrir le menu du compte">
+    <span class="avatar" aria-hidden="true">{{ initials() }}</span>
+    <span class="account-copy"><span class="username">{{ auth.getCurrentUser()?.username }}</span><span class="role">{{ navigation.roleLabel() }}</span></span>
+    <mat-icon iconPositionEnd aria-hidden="true">expand_more</mat-icon>
+  </button>
+</mat-toolbar>
+<mat-menu #accountMenu="matMenu" xPosition="before">
+  <button mat-menu-item (click)="account.emit()" aria-label="Consulter mon compte"><mat-icon>account_circle</mat-icon><span>Informations du compte</span></button>
+  <button mat-menu-item (click)="auth.logout()"><mat-icon>logout</mat-icon><span>Se déconnecter</span></button>
+</mat-menu>

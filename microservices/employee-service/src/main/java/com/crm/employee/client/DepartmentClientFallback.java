@@ -1,15 +1,11 @@
 package com.crm.employee.client;
 
 import com.crm.employee.client.dto.DepartmentResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Fallback implementation for DepartmentClient when department-service is unavailable.
  */
 public class DepartmentClientFallback implements DepartmentClient {
-
-    private static final Logger log = LoggerFactory.getLogger(DepartmentClientFallback.class);
 
     private final Throwable cause;
 
@@ -19,8 +15,10 @@ public class DepartmentClientFallback implements DepartmentClient {
 
     @Override
     public DepartmentResponse getDepartmentById(Long id) {
-        log.warn("Fallback: department-service is unavailable. Returning null department for department id: {}. Cause: {}",
-                id, cause.getMessage());
-        return null;
+        if (cause instanceof feign.FeignException failure && (failure.status() == 401 || failure.status() == 403 || failure.status() == 404)) {
+            throw failure;
+        }
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE, "Department validation unavailable");
     }
 }

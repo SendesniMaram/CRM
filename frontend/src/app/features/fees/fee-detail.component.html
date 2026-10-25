@@ -1,0 +1,24 @@
+<section class="customer-page narrow" aria-labelledby="fee-detail-title">
+  <a mat-button routerLink="/fees"><mat-icon>arrow_back</mat-icon>Retour aux honoraires</a>
+  <header class="page-header"><div><p class="eyebrow">Prestations</p><h1 id="fee-detail-title">{{ fee()?.serviceName || 'Fiche honoraire' }}</h1><p class="subtitle">Informations et suivi de la prestation.</p></div>
+    @if (fee(); as row) { <a mat-flat-button [routerLink]="['/fees', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }</header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de l’honoraire…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (fee(); as row) {
+      <dl class="details-grid">
+        <div><dt>Référence employé</dt><dd>{{ row.employeeId }}</dd></div>
+        <div><dt>Référence client</dt><dd>{{ row.customerId || 'Non renseignée' }}</dd></div>
+        <div><dt>Date de prestation</dt><dd>{{ row.workDate ? (row.workDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd></div>
+        <div><dt>Tarif horaire</dt><dd class="amount">{{ row.hourlyRate | invoiceAmount }}</dd></div>
+        <div><dt>Heures travaillées</dt><dd>{{ formatHours(row.workedHours) }}</dd></div>
+        <div><dt>Montant</dt><dd class="amount">{{ row.amount | invoiceAmount }}</dd></div>
+        <div><dt>Facturation</dt><dd>{{ row.invoiceStatus || 'Non renseigné' }}</dd></div>
+        <div><dt>Paiement</dt><dd>{{ row.paymentStatus || 'Non renseigné' }}</dd></div>
+        <div><dt>Créé le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div><dt>Modifié le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div class="full-width"><dt>Description</dt><dd class="notes">{{ row.description || 'Aucune description' }}</dd></div>
+      </dl>
+    }
+  </mat-card-content></mat-card>
+</section>

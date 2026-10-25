@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
                 "eureka.client.enabled=false"
         }
 )
-class InvoiceServiceSmokeTest {
+class InvoiceServiceSmokeTest extends com.crm.invoice.security.TestIdentitySupport {
 
     @Test
     void contextLoads() {

@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class EmployeeServiceIntegrationTest {
+class EmployeeServiceIntegrationTest extends com.crm.employee.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -68,6 +68,50 @@ class EmployeeServiceIntegrationTest {
         validRequest.setSalary(new BigDecimal("60000.00"));
         validRequest.setGender("Male");
         validRequest.setStatus("ACTIVE");
+    }
+
+    static java.util.stream.Stream<String> addressBoundaries() {
+        return java.util.stream.Stream.of(null, "\u00e9".repeat(255), "\u00e9".repeat(256));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("addressBoundaries")
+    void createEmployee_ValidatesAddressStorageLimit(String value) throws Exception {
+        validRequest.setAddress(value);
+        boolean accepted = value == null || value.length() <= 255;
+        var result = mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().is(accepted ? 201 : 400));
+        if (accepted) {
+            EmployeeResponse response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(), EmployeeResponse.class);
+            employeeRepository.flush();
+            assertEquals(value, employeeRepository.findById(response.getId()).orElseThrow().getAddress());
+        } else {
+            result.andExpect(jsonPath("$.message").value(containsString("Address must be at most 255 characters")));
+            assertEquals(0, employeeRepository.count());
+        }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("addressBoundaries")
+    void updateEmployee_ValidatesAddressWithoutChangingRejectedValue(String value) throws Exception {
+        String original = validRequest.getAddress();
+        String created = mockMvc.perform(post("/api/employees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readValue(created, EmployeeResponse.class).getId();
+        validRequest.setAddress(value);
+        boolean accepted = value == null || value.length() <= 255;
+        var result = mockMvc.perform(put("/api/employees/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().is(accepted ? 200 : 400));
+        if (!accepted) result.andExpect(jsonPath("$.message").value(containsString("Address must be at most 255 characters")));
+        employeeRepository.flush();
+        assertEquals(accepted ? value : original, employeeRepository.findById(id).orElseThrow().getAddress());
+        assertEquals(1, employeeRepository.count());
     }
 
     @Test

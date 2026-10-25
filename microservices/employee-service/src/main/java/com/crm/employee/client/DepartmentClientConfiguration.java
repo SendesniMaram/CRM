@@ -10,6 +10,13 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 public class DepartmentClientConfiguration {
 
     @Bean
+    public feign.Request.Options departmentRequestOptions() {
+        var defaults = new feign.Request.Options();
+        return new feign.Request.Options(defaults.connectTimeoutMillis(), java.util.concurrent.TimeUnit.MILLISECONDS,
+                defaults.readTimeoutMillis(), java.util.concurrent.TimeUnit.MILLISECONDS, false);
+    }
+
+    @Bean
     public RequestInterceptor departmentAuthorizationInterceptor() {
         return template -> {
             // The current MVC -> service -> Feign call runs on the request thread.

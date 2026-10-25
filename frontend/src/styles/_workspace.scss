@@ -1,0 +1,15 @@
+$ink: #082b49;
+$secondary: #124b68;
+$accent: #18ddd2;
+$surface: #f5f8fc;
+$teal: #14635e;
+$muted: #526778;
+$line: #dae4eb;
+$radius: 18px;
+$space: 1rem;
+$font: Roboto, 'Helvetica Neue', sans-serif;
+
+@mixin focus {
+  outline: 3px solid #16766d;
+  outline-offset: 4px;
+}

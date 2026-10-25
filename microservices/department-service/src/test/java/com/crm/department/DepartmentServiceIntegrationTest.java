@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class DepartmentServiceIntegrationTest {
+class DepartmentServiceIntegrationTest extends com.crm.department.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,6 +50,50 @@ class DepartmentServiceIntegrationTest {
         validRequest.setName("Engineering");
         validRequest.setDescription("Engineering department");
         validRequest.setCode("DEPT-ENG");
+    }
+
+    static java.util.stream.Stream<String> descriptionBoundaries() {
+        return java.util.stream.Stream.of(null, "\u00e9".repeat(255), "\u00e9".repeat(256));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("descriptionBoundaries")
+    void createDepartment_ValidatesDescriptionStorageLimit(String value) throws Exception {
+        validRequest.setDescription(value);
+        boolean accepted = value == null || value.length() <= 255;
+        var result = mockMvc.perform(post("/api/departments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().is(accepted ? 201 : 400));
+        if (accepted) {
+            DepartmentResponse response = objectMapper.readValue(result.andReturn().getResponse().getContentAsString(), DepartmentResponse.class);
+            departmentRepository.flush();
+            assertEquals(value, departmentRepository.findById(response.getId()).orElseThrow().getDescription());
+        } else {
+            result.andExpect(jsonPath("$.message").value(containsString("Description must be at most 255 characters")));
+            assertEquals(0, departmentRepository.count());
+        }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.MethodSource("descriptionBoundaries")
+    void updateDepartment_ValidatesDescriptionWithoutChangingRejectedValue(String value) throws Exception {
+        String original = validRequest.getDescription();
+        String created = mockMvc.perform(post("/api/departments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readValue(created, DepartmentResponse.class).getId();
+        validRequest.setDescription(value);
+        boolean accepted = value == null || value.length() <= 255;
+        var result = mockMvc.perform(put("/api/departments/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().is(accepted ? 200 : 400));
+        if (!accepted) result.andExpect(jsonPath("$.message").value(containsString("Description must be at most 255 characters")));
+        departmentRepository.flush();
+        assertEquals(accepted ? value : original, departmentRepository.findById(id).orElseThrow().getDescription());
+        assertEquals(1, departmentRepository.count());
     }
 
     @Test

@@ -1,0 +1,37 @@
+<section class="customer-page narrow" aria-labelledby="customer-form-title">
+  <a mat-button routerLink="/customers"><mat-icon>arrow_back</mat-icon>Retour aux clients</a>
+  <header class="page-header"><div><p class="eyebrow">Relation client</p>
+    <h1 id="customer-form-title">{{ id() === null ? 'Nouveau client' : 'Modifier le client' }}</h1>
+    <p class="subtitle">Des coordonnées à jour pour une relation client de qualité.</p></div></header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement du client…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (ready()) {
+      <p class="muted">Le nom du client est obligatoire. Les autres informations sont facultatives.</p>
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
+        <div class="form-grid">
+          @for (field of fields; track field.key) {
+            <mat-form-field appearance="outline">
+              <mat-label>{{ field.label }}</mat-label>
+              <input matInput [type]="field.type" [autocomplete]="field.autocomplete" [formControlName]="field.key" [required]="field.key === 'name'" [attr.maxlength]="field.max" />
+              @if (form.controls[field.key].hasError('required')) { <mat-error>Le nom du client est obligatoire.</mat-error> }
+              @else if (form.controls[field.key].hasError('maxlength')) { <mat-error>Maximum {{ field.max }} caractères.</mat-error> }
+              @else if (form.controls[field.key].hasError('email')) { <mat-error>Saisissez une adresse e-mail valide.</mat-error> }
+              @else if (form.controls[field.key].hasError('pattern')) { <mat-error>Utilisez 6 à 14 chiffres, avec un préfixe international facultatif.</mat-error> }
+              @else if (form.controls[field.key].hasError('server')) { <mat-error>Valeur refusée par le service : vérifiez son format ou un éventuel doublon.</mat-error> }
+            </mat-form-field>
+          }
+          <mat-form-field appearance="outline" class="full-width"><mat-label>Adresse</mat-label>
+            <textarea matInput formControlName="address" autocomplete="street-address" rows="3" maxlength="500"></textarea>
+            @if (form.controls.address.hasError('maxlength')) { <mat-error>Maximum 500 caractères.</mat-error> }
+            @else if (form.controls.address.hasError('server')) { <mat-error>Vérifiez l’adresse saisie.</mat-error> }
+          </mat-form-field>
+        </div>
+        <div class="form-actions">
+          <a mat-button routerLink="/customers" [disabled]="saving()">Annuler</a>
+          <button mat-flat-button type="submit" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+        </div>
+      </form>
+    }
+  </mat-card-content></mat-card>
+</section>

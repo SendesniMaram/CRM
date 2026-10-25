@@ -43,7 +43,7 @@ public class EmployeeRequest {
     @DecimalMin(value = "0.0", inclusive = true, message = "Salary must be >= 0")
     private BigDecimal salary;
 
-    @Size(max = 500, message = "Address must be at most 500 characters")
+    @Size(max = 255, message = "Address must be at most 255 characters")
     private String address;
 
     private LocalDate dateOfBirth;

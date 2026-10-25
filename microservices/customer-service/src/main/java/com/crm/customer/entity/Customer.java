@@ -41,7 +41,7 @@ public class Customer {
     @Column(name = "company")
     private String company;
 
-    @Column(name = "address")
+    @Column(name = "address", length = 500)
     private String address;
 
     @Column(name = "created_at", updatable = false)

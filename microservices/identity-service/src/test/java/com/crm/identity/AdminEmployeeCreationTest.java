@@ -53,6 +53,21 @@ class AdminEmployeeCreationTest {
         return "Bearer " + jwt.generateToken(caller.getUsername(), caller.getEmail(), true);
     }
 
+    @ParameterizedTest @EnumSource(RoleType.class)
+    void directoryRolesContractDoesNotBroadenReadPermissions(RoleType role) throws Exception {
+        String bearer = authorization(role);
+        var result = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/users")
+                .header("Authorization", bearer));
+        if (role == RoleType.ADMIN || role == RoleType.SUPER_ADMIN) {
+            result.andExpect(status().isOk()).andExpect(jsonPath("$[0].roles").isArray())
+                    .andExpect(jsonPath("$[0].accountNonLocked").isBoolean())
+                    .andExpect(jsonPath("$[0].password").doesNotExist())
+                    .andExpect(jsonPath("$[0].refreshToken").doesNotExist());
+        } else {
+            result.andExpect(status().isForbidden());
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(value = RoleType.class, names = {"ADMIN", "SUPER_ADMIN"})
     void administratorsCreateOnlyEmployeeWithHashedPassword(RoleType role) throws Exception {

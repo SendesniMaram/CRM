@@ -12,7 +12,9 @@
 # Le monolithe backend/ et la librairie common-security NE sont PAS inclus.
 #
 # Le fichier est compatible avec Docker Compose v2.
-#   docker compose config
+#   Configuration et rotation : docs/ROTATION_SECRETS.md
+#   Les identifiants MySQL du volume existant ne changent pas via .env.
+#   docker compose config --quiet
 #   docker compose up --build
 #   docker compose ps
 #   docker compose logs -f
@@ -118,7 +120,9 @@ services:
     ports:
       - "8082:8082"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/identity_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/identity_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -143,7 +147,10 @@ services:
     ports:
       - "8083:8083"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -172,7 +179,10 @@ services:
     ports:
       - "8084:8084"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -201,7 +211,10 @@ services:
     ports:
       - "8085:8085"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -230,7 +243,10 @@ services:
     ports:
       - "8086:8086"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -259,7 +275,10 @@ services:
     ports:
       - "8087:8087"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -288,7 +307,10 @@ services:
     ports:
       - "8088:8088"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
@@ -317,7 +339,10 @@ services:
     ports:
       - "8089:8089"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}

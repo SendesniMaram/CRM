@@ -1,0 +1,37 @@
+:host { display: block; min-width: 0; }
+.customer-page { max-width: 1440px; margin: 0 auto; padding-bottom: 2rem; }
+.narrow { max-width: 960px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; padding: clamp(1.25rem, 3vw, 2rem); margin: 1rem 0 1.5rem; border-radius: 12px; background: linear-gradient(115deg, #123b5d, #176b73); color: #fff; }
+h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 650; }
+.eyebrow { margin: 0 0 .5rem; text-transform: uppercase; font-size: .75rem; letter-spacing: .12em; color: #b7e4df; }
+.subtitle { margin: .7rem 0 0; color: #d5e8ed; line-height: 1.5; }
+.directory-card { border: 1px solid #e2e9ed; border-radius: 12px; box-shadow: 0 4px 16px rgb(32 61 76 / 6%); }
+mat-card-content { padding: clamp(1rem, 2vw, 1.5rem); }
+.toolbar { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.search-field { flex: 1; min-width: 200px; max-width: 580px; }
+.table-scroll { overflow-x: auto; border-radius: 8px; }
+table { width: 100%; min-width: 720px; }
+th { background: var(--mat-sys-surface-container-low); }
+td { color: var(--mat-sys-on-surface-variant); }
+td:last-child { white-space: nowrap; }
+.client-name { color: var(--mat-sys-primary); font-weight: 600; text-decoration: none; }
+.client-name:hover { text-decoration: underline; }
+.state { display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem; text-align: center; }
+.state > mat-icon { width: 36px; height: 36px; font-size: 36px; color: var(--mat-sys-primary); }
+.state h2 { font-size: 1.15rem; }
+.error { color: var(--mat-sys-error); }
+.muted, dt { color: var(--mat-sys-on-surface-variant); }
+.form-grid, .details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; margin-top: 1.5rem; }
+.full-width { grid-column: 1 / -1; }
+.form-actions { display: flex; justify-content: flex-end; gap: .75rem; border-top: 1px solid #e2e9ed; padding-top: 1rem; }
+dt { font-size: .85rem; margin-bottom: .4rem; }
+dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
+.address { white-space: pre-line; }
+:focus-visible { outline: 2px solid var(--mat-sys-primary); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .page-header { align-items: flex-start; flex-direction: column; }
+  .page-header > a { width: 100%; }
+  .form-grid, .details-grid { grid-template-columns: 1fr; }
+  .search-field { min-width: 0; width: 100%; flex-basis: 100%; max-width: none; }
+  mat-paginator { max-width: 100%; }
+}

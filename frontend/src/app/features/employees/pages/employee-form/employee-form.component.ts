@@ -78,7 +78,7 @@ export class EmployeeFormComponent implements OnInit {
     jobTitle: this.fb.nonNullable.control('', Validators.maxLength(255)),
     hireDate: this.fb.nonNullable.control('', pastOrPresent),
     salary: this.fb.control<number | null>(null, [Validators.required, Validators.min(0), finiteNumber]),
-    address: this.fb.nonNullable.control('', Validators.maxLength(500)),
+    address: this.fb.nonNullable.control('', Validators.maxLength(255)),
     dateOfBirth: this.fb.nonNullable.control(''),
     gender: this.fb.nonNullable.control('', Validators.maxLength(50)),
     status: this.fb.nonNullable.control('', Validators.maxLength(50)),

@@ -8,6 +8,8 @@ import { LayoutComponent } from './layout/components/layout/layout.component';
 import { NotFoundComponent } from './features/not-found/not-found.component';
 
 export const routes: Routes = [
+	{ path: 'welcome', title: 'CRM Workspace — Votre activité, en un regard',
+		loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
 	{ path: 'login', component: LoginComponent },
 	{ path: 'register', component: RegisterComponent },
 	{ path: 'access-denied', component: AccessDeniedComponent },
@@ -15,6 +17,30 @@ export const routes: Routes = [
 		path: '',
 		component: LayoutComponent,
 		children: [
+            { path: 'trainings', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'], hrModule: 'trainings' },
+                loadComponent: () => import('./features/hr-admin/hr-admin-page.component').then(m => m.HrAdminPageComponent) },
+            { path: 'attendances', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'], hrModule: 'attendances' },
+                loadComponent: () => import('./features/hr-admin/hr-admin-page.component').then(m => m.HrAdminPageComponent) },
+            { path: 'hr-records', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'], hrModule: 'hr-records' },
+                loadComponent: () => import('./features/hr-admin/hr-admin-page.component').then(m => m.HrAdminPageComponent) },
+            { path: 'client', canActivate: [authGuard, roleGuard], data: { roles: ['CLIENT'] },
+                loadComponent: () => import('./features/client/client-workspace.component').then(m => m.ClientWorkspaceComponent) },
+            { path: 'customer-associations', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'] },
+                loadComponent: () => import('./features/client/customer-associations.component').then(m => m.CustomerAssociationsComponent) },
+			{ path: 'profile', canActivate: [authGuard, roleGuard], data: { roles: ['EMPLOYEE'] },
+				loadComponent: () => import('./features/profile/employee-profile.component').then(m => m.EmployeeProfileComponent) },
+			{ path: 'users', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadComponent: () => import('./features/users/users-page.component').then(m => m.UsersPageComponent) },
+			{ path: 'home', canActivate: [authGuard, roleGuard],
+				loadComponent: () => import('./features/home/home.component').then(m => m.HomeComponent) },
+			{ path: 'payroll', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/payroll/payroll.routes').then(m => m.PAYROLL_ROUTES) },
+			{ path: 'fees', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/fees/fees.routes').then(m => m.FEES_ROUTES) },
+			{ path: 'invoices', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/invoices/invoices.routes').then(m => m.INVOICES_ROUTES) },
+			{ path: 'customers', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN'] },
+				loadChildren: () => import('./features/customers/customers.routes').then(m => m.CUSTOMERS_ROUTES) },
 			{ path: 'hr', pathMatch: 'full', redirectTo: 'leaves' },
 			{ path: 'leaves', canActivate: [authGuard, roleGuard], data: { roles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'] },
 				loadChildren: () => import('./features/leaves/leaves.routes').then(m => m.LEAVES_ROUTES) },
@@ -42,7 +68,7 @@ export const routes: Routes = [
 				loadChildren: () => import('./features/departments/departments.routes').then(
 					({ DEPARTMENTS_ROUTES }) => DEPARTMENTS_ROUTES)
 			},
-			{ path: '', pathMatch: 'full', redirectTo: 'dashboard' }
+			{ path: '', pathMatch: 'full', redirectTo: 'home' }
 		]
 	},
 	{ path: '**', component: NotFoundComponent }

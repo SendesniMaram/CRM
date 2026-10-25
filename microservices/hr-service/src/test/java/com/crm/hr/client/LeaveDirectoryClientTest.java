@@ -42,7 +42,7 @@ class LeaveDirectoryClientTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"401,502", "403,403", "404,404", "400,502", "500,503", "503,503"})
+    @CsvSource({"401,401", "403,403", "404,404", "400,502", "500,503", "503,503"})
     void distinguishesRemoteFailuresWithoutExposingResponse(int remote, int expected) {
         respond(remote, "{\"internal\":\"private remote detail\"}");
         var ex = assertThrows(ResponseStatusException.class,
@@ -80,5 +80,33 @@ class LeaveDirectoryClientTest {
             exchange.close();
         });
         assertEquals(1, client.read("identity-service", "/api/users/1", "Bearer test-only").path("id").asInt());
+    }
+
+    @Test void employeeDirectoryAlsoReceivesOriginalBearer() {
+        var instances = discovery.getInstances("identity-service");
+        when(discovery.getInstances("employee-service")).thenReturn(instances);
+        server.createContext("/api/employees/2", request -> {
+            byte[] json = "{\"id\":2}".getBytes(StandardCharsets.UTF_8);
+            request.getResponseHeaders().set("Content-Type", "application/json");
+            request.sendResponseHeaders("Bearer original".equals(request.getRequestHeaders().getFirst("Authorization")) ? 200 : 403, json.length);
+            request.getResponseBody().write(json); request.close();
+        });
+        assertEquals(2, client.read("employee-service", "/api/employees/2", "Bearer original").path("id").asInt());
+    }
+
+    @Test void redirectCannotForwardBearerToThirdParty() throws Exception {
+        var target = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        target.createContext("/", request -> { calls.incrementAndGet(); request.sendResponseHeaders(204, -1); request.close(); });
+        target.start();
+        server.createContext("/api/users/1", request -> {
+            request.getResponseHeaders().set("Location", "http://127.0.0.1:" + target.getAddress().getPort() + "/");
+            request.sendResponseHeaders(302, -1); request.close();
+        });
+        try {
+            assertEquals(503, assertThrows(ResponseStatusException.class,
+                    () -> client.read("identity-service", "/api/users/1", "Bearer original")).getStatusCode().value());
+            assertEquals(0, calls.get());
+        } finally { target.stop(0); }
     }
 }

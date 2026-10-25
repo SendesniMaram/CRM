@@ -1,0 +1,66 @@
+# PREPARED ONLY. Apply explicitly with -f after rotation authorization.
+# Never use this override before the accounts exist and .env has been staged.
+services:
+  identity-service:
+    image: ${IDENTITY_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${IDENTITY_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${IDENTITY_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  employee-service:
+    image: ${EMPLOYEE_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${EMPLOYEE_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${EMPLOYEE_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  department-service:
+    image: ${DEPARTMENT_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${DEPARTMENT_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${DEPARTMENT_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  customer-service:
+    image: ${CUSTOMER_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${CUSTOMER_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${CUSTOMER_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  hr-service:
+    image: ${HR_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${HR_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${HR_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  invoice-service:
+    image: ${INVOICE_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${INVOICE_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${INVOICE_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  fees-service:
+    image: ${FEES_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${FEES_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${FEES_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  payroll-service:
+    image: ${PAYROLL_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    environment:
+      SPRING_DATASOURCE_USERNAME: ${PAYROLL_DB_USERNAME:?Required for rotation}
+      SPRING_DATASOURCE_PASSWORD: ${PAYROLL_DB_PASSWORD:?Required for rotation}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+  gateway-service:
+    image: ${GATEWAY_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+  mysql:
+    image: ${MYSQL_ROTATION_IMAGE:?Pin the reviewed local image before rotation}
+    # mysqladmin ping can succeed even when authentication is refused.
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysql -h localhost -uroot --batch --skip-column-names -e 'SELECT 1' >/dev/null 2>&1"]

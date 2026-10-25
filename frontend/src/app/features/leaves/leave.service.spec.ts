@@ -30,4 +30,15 @@ describe('LeaveService', () => {
   it('lists associations', () => { service.associations().subscribe(value => expect(value).toEqual([])); const req = http.expectOne(`${base}/associations`); expect(req.request.method).toBe('GET'); req.flush([]); });
   it('sends administrator-selected existing IDs for association', () => { service.associate(3, 8).subscribe(); const req = http.expectOne(`${base}/associations`); expect(req.request.body).toEqual({ userId: 3, employeeId: 8 }); req.flush({}); });
   it('propagates access errors', () => { service.list().subscribe({ error: e => expect(e.status).toBe(403) }); http.expectOne(base).flush({}, { status: 403, statusText: 'Forbidden' }); });
+  it('reassigns only explicitly selected IDs without moving leave records', () => {
+    service.reassign(42, 103).subscribe(); const req = http.expectOne(`${base}/associations/42`);
+    expect(req.request.method).toBe('PUT'); expect(req.request.body).toEqual({ employeeId: 103 });
+    req.flush({ userId: 42, employeeId: '103', username: 'test' });
+  });
+  for (const status of [400, 401, 403, 409, 502, 503]) {
+    it('preserves reassignment failure status ' + status, () => {
+      service.reassign(42, 103).subscribe({ next: () => fail('Unexpected success'), error: e => expect(e.status).toBe(status) });
+      http.expectOne(`${base}/associations/42`).flush({}, { status, statusText: 'Synthetic error' });
+    });
+  }
 });

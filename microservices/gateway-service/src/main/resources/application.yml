@@ -81,6 +81,13 @@ spring:
             - Path=/customer/api/customers/**
           filters:
             - StripPrefix=1
+        - id: hr-employee-profile
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/employee-profile/me
+            - Method=GET
+          filters:
+            - StripPrefix=1
         - id: hr-test
           uri: lb://HR-SERVICE
           predicates:

@@ -3,7 +3,7 @@
   @if (loading()) { <p role="status">Chargement de la demande…</p> }
   @if (error()) { <p role="alert">{{ error() }}</p> }
   @if (ready()) {
-    <form [formGroup]="form" (ngSubmit)="submit()">
+    <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
       <mat-form-field><mat-label>Date début</mat-label><input matInput type="date" formControlName="startDate" required><mat-error>Date obligatoire</mat-error></mat-form-field>
       <mat-form-field><mat-label>Date fin</mat-label><input matInput type="date" formControlName="endDate" required><mat-error>Date obligatoire</mat-error></mat-form-field>
       <mat-form-field><mat-label>Motif</mat-label><textarea matInput formControlName="reason" maxlength="500"></textarea><mat-error>500 caractères maximum</mat-error></mat-form-field>

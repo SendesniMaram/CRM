@@ -1,0 +1,38 @@
+<app-auth-shell>
+  <mat-card class="login-card">
+    <p class="form-eyebrow">Bienvenue dans votre espace</p>
+    <mat-card-header>
+      <mat-card-title>Connexion CRM</mat-card-title>
+      <mat-card-subtitle>Heureux de vous retrouver. Connectez-vous pour continuer.</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="loginForm" (ngSubmit)="submit()" [attr.aria-busy]="loading()" novalidate>
+        <mat-form-field appearance="outline">
+          <mat-label>Nom d'utilisateur ou e-mail</mat-label>
+          <input matInput formControlName="identifier" autocomplete="username" />
+          @if (loginForm.controls.identifier.hasError('required')) {
+            <mat-error>Le nom d'utilisateur ou l'e-mail est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Mot de passe</mat-label>
+          <input matInput [type]="passwordVisible() ? 'text' : 'password'" formControlName="password" autocomplete="current-password" />
+          <button mat-icon-button matSuffix type="button" (click)="passwordVisible.set(!passwordVisible())"
+            [attr.aria-pressed]="passwordVisible()" [attr.aria-label]="passwordVisible() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'">
+            <mat-icon aria-hidden="true">{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (loginForm.controls.password.hasError('required')) {
+            <mat-error>Le mot de passe est obligatoire.</mat-error>
+          }
+        </mat-form-field>
+        @if (errorMessage()) { <p class="error" role="alert">{{ errorMessage() }}</p> }
+        <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
+          @if (loading()) { <span class="spinner" aria-hidden="true"></span> }
+          {{ loading() ? 'Connexion en cours...' : 'Se connecter' }}
+        </button>
+      </form>
+      <p class="register-link">Pas encore de compte client ? <a href="/register">Créer un compte</a></p>
+      <p class="privacy-note"><mat-icon aria-hidden="true">lock_outline</mat-icon>Les fonctionnalités disponibles dépendent des autorisations de votre compte.</p>
+    </mat-card-content>
+  </mat-card>
+</app-auth-shell>

@@ -1,0 +1,34 @@
+<section class="customer-page" aria-labelledby="invoices-title">
+  <header class="page-header"><div><p class="eyebrow">Facturation</p><h1 id="invoices-title">Factures</h1><p class="subtitle">Consultez vos factures et retrouvez leurs montants et échéances.</p></div>
+    @if (canManage()) { <a mat-flat-button routerLink="/invoices/new"><mat-icon>add</mat-icon>Nouvelle facture</a> }
+  </header>
+  <mat-card class="directory-card"><mat-card-content>
+    <form class="toolbar" (ngSubmit)="find()">
+      <mat-form-field appearance="outline" class="search-field"><mat-label>Rechercher une facture</mat-label><mat-icon matPrefix>search</mat-icon>
+        <input matInput [formControl]="search" placeholder="Numéro, référence client, devise ou statut" /></mat-form-field>
+      <button mat-stroked-button type="submit">Rechercher</button>
+      <button mat-icon-button type="button" (click)="load()" [disabled]="loading() || busy()" aria-label="Recharger les factures"><mat-icon>refresh</mat-icon></button>
+    </form>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement des factures…</p></div> }
+    @if (error()) { <div class="state error" role="alert"><p>{{ error() }}</p><button mat-button (click)="load()">Réessayer</button></div> }
+    @if (!loading() && !error() && rows().length === 0) { <div class="state"><mat-icon>receipt_long</mat-icon><h2>Aucune facture à afficher</h2><p>{{ search.value.trim() ? 'Essayez une autre recherche.' : 'Créez une facture pour un client existant.' }}</p></div> }
+    @if (!error() && rows().length > 0) {
+      <div class="table-scroll" tabindex="0" aria-label="Tableau des factures, défilement horizontal">
+        <table mat-table [dataSource]="rows()" matSort [matSortActive]="sortBy()" [matSortDirection]="direction()" (matSortChange)="sort($event)" aria-label="Factures">
+          <ng-container matColumnDef="invoiceNumber"><th mat-header-cell *matHeaderCellDef mat-sort-header>Facture</th><td mat-cell *matCellDef="let row"><a class="client-name" [routerLink]="['/invoices', row.id]">{{ row.invoiceNumber }}</a></td></ng-container>
+          <ng-container matColumnDef="customerId"><th mat-header-cell *matHeaderCellDef mat-sort-header>Référence client</th><td mat-cell *matCellDef="let row">{{ row.customerId }}</td></ng-container>
+          <ng-container matColumnDef="issueDate"><th mat-header-cell *matHeaderCellDef mat-sort-header>Émission</th><td mat-cell *matCellDef="let row">{{ row.issueDate ? (row.issueDate | date:'dd/MM/yyyy') : '—' }}</td></ng-container>
+          <ng-container matColumnDef="totalAmount"><th mat-header-cell *matHeaderCellDef mat-sort-header>Total</th><td mat-cell *matCellDef="let row" class="amount">{{ row.totalAmount | invoiceAmount }} {{ row.currency || '' }}</td></ng-container>
+          <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef mat-sort-header>Statut</th><td mat-cell *matCellDef="let row"><span class="status-badge">{{ row.status }}</span></td></ng-container>
+          <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
+            <a mat-icon-button [routerLink]="['/invoices', row.id]" [attr.aria-label]="'Consulter ' + row.invoiceNumber"><mat-icon>visibility</mat-icon></a>
+            @if (canManage()) { <a mat-icon-button [routerLink]="['/invoices', row.id, 'edit']" [attr.aria-label]="'Modifier ' + row.invoiceNumber"><mat-icon>edit</mat-icon></a>
+              <button mat-icon-button type="button" (click)="remove(row)" [disabled]="busy() || loading()" [attr.aria-label]="'Supprimer ' + row.invoiceNumber"><mat-icon>delete_outline</mat-icon></button> }
+          </td></ng-container>
+          <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+      </div>
+    }
+    <mat-paginator [length]="total()" [pageIndex]="page()" [pageSize]="size()" [pageSizeOptions]="[10, 25, 50]" [disabled]="loading() || busy() || !!error()" showFirstLastButtons (page)="paginate($event)" aria-label="Pagination des factures" />
+  </mat-card-content></mat-card>
+</section>

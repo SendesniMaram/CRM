@@ -2,7 +2,8 @@ import { CanActivateFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { CrmRole } from '../models/role.model';
 import { AuthService } from '../services/auth.service';
-import { map } from 'rxjs';
+import { catchError, map, of, throwError } from 'rxjs';
+import { isSessionUnavailable } from '../services/session-unavailable';
 
 export const roleGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
@@ -22,5 +23,5 @@ export const roleGuard: CanActivateFn = (route, state) => {
     }
 
     return router.createUrlTree(['/access-denied']);
-  }));
+  }), catchError(error => isSessionUnavailable(error) ? of(false) : throwError(() => error)));
 };

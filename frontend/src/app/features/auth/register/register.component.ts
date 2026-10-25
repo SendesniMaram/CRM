@@ -7,6 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
+import { AuthShellComponent } from '../auth-shell/auth-shell.component';
 import { RegisterRequest } from '../../../core/models/register.models';
 import { RegistrationService } from '../../../core/services/registration.service';
 
@@ -20,6 +21,7 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
   selector: 'app-register',
   standalone: true,
   imports: [
+    AuthShellComponent,
     MatButtonModule,
     MatCardModule,
     MatFormFieldModule,
@@ -29,14 +31,15 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
     RouterLink
   ],
   template: `
-    <main class="register-page">
+    <app-auth-shell [registration]="true">
       <mat-card class="register-card">
+        <p class="form-eyebrow">Votre espace client</p>
         <mat-card-header>
           <mat-card-title>Créer un compte</mat-card-title>
-          <mat-card-subtitle>Rejoignez votre espace CRM</mat-card-subtitle>
+          <mat-card-subtitle>Un compte client, avec des accès adaptés à votre rôle</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <form [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
+          <form [formGroup]="registerForm" (ngSubmit)="submit()" [attr.aria-busy]="loading()" novalidate>
             <div class="form-grid">
               <mat-form-field appearance="outline">
                 <mat-label>Prénom</mat-label>
@@ -79,7 +82,7 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
               <mat-form-field appearance="outline">
                 <mat-label>Mot de passe</mat-label>
                 <input matInput [type]="passwordVisible() ? 'text' : 'password'" formControlName="password" autocomplete="new-password" />
-                <button mat-icon-button matSuffix type="button" [attr.aria-label]="passwordVisible() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" (click)="togglePassword()">
+                <button mat-icon-button matSuffix type="button" [attr.aria-pressed]="passwordVisible()" [attr.aria-label]="passwordVisible() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" (click)="togglePassword()">
                   <mat-icon>{{ passwordVisible() ? 'visibility_off' : 'visibility' }}</mat-icon>
                 </button>
                 @if (registerForm.controls.password.hasError('required')) {
@@ -110,14 +113,16 @@ function matchingPasswords(control: AbstractControl): ValidationErrors | null {
             }
 
             <button mat-flat-button color="primary" type="submit" [disabled]="loading()">
+              @if (loading()) { <span class="spinner" aria-hidden="true"></span> }
               {{ loading() ? 'Création en cours...' : 'Créer un compte' }}
             </button>
           </form>
 
+          <p class="privacy-note"><mat-icon aria-hidden="true">info_outline</mat-icon>L’inscription crée un compte client. Elle ne donne aucun droit d’administration. Pour un accès employé, contactez votre administrateur.</p>
           <p class="login-link">Vous avez déjà un compte ? <a routerLink="/login">Se connecter</a></p>
         </mat-card-content>
       </mat-card>
-    </main>
+    </app-auth-shell>
   `,
   styleUrl: './register.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

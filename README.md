@@ -248,13 +248,13 @@ eureka:
 ```properties
 # Backend (MySQL)
 spring.datasource.url=jdbc:mysql://localhost:3306/crm_db
-spring.datasource.username=root
-spring.datasource.password=Root123@
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
 
 # Identity Service (MySQL - prod)
 spring.datasource.url=jdbc:mysql://localhost:3306/identity_db
-spring.datasource.username=root
-spring.datasource.password=Root123@
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
 
 # Identity Service (H2 - test)
 spring.datasource.url=jdbc:h2:mem:identity_db;MODE=MySQL
@@ -541,3 +541,5 @@ Projet académique dans le cadre du développement d'une application CRM avec ar
 ---
 
 *Documentation générée le $(date +%Y-%m-%d) — Dernière mise à jour : juillet 2026*
+
+Configuration et rotation des secrets : [procedure](docs/ROTATION_SECRETS.md).

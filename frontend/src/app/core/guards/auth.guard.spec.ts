@@ -29,6 +29,15 @@ describe('authGuard', () => {
     storeTestSession();
     expect(await run()).toBeTrue();
   });
+
+  it('cancels navigation without login redirect or credential loss on refresh 503', async () => {
+    storeTestSession(testJwt({ exp: 1 }));
+    const stored = sessionStorage.getItem('crm.auth.session');
+    const pending = run('/employees');
+    http.expectOne('http://localhost:8080/identity/api/auth/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    expect(await pending).toBeFalse();
+    expect(sessionStorage.getItem('crm.auth.session')).toBe(stored);
+  });
   it('preserves query parameters in returnUrl', async () => {
     expect(await run('/dashboard?view=summary')).toEqual(TestBed.inject(Router).createUrlTree(['/login'],
       { queryParams: { returnUrl: '/dashboard?view=summary' } }));

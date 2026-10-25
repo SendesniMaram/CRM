@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class CustomerServiceIntegrationTest {
+class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,6 +52,25 @@ class CustomerServiceIntegrationTest {
         validRequest.setPhone("+123456789");
         validRequest.setCompany("Acme Corporation");
         validRequest.setAddress("123 Main Street, City");
+    }
+
+    @Test
+    void addressAccepts500CharactersAndRejects501() throws Exception {
+        validRequest.setAddress("a".repeat(500));
+        String response = mockMvc.perform(post("/api/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readValue(response, CustomerResponse.class).getId();
+        customerRepository.flush();
+        assertEquals("a".repeat(500), customerRepository.findById(id).orElseThrow().getAddress());
+
+        validRequest.setAddress("a".repeat(501));
+        mockMvc.perform(put("/api/customers/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

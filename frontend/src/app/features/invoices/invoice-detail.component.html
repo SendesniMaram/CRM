@@ -1,0 +1,24 @@
+<section class="customer-page narrow" aria-labelledby="invoice-detail-title">
+  <a mat-button routerLink="/invoices"><mat-icon>arrow_back</mat-icon>Retour aux factures</a>
+  <header class="page-header pdf-detail-header"><div><p class="eyebrow">Facturation</p><h1 id="invoice-detail-title">{{ invoice()?.invoiceNumber || 'Fiche facture' }}</h1><p class="subtitle">Montants et informations de la facture.</p></div>
+    @if (invoice(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="invoice" [id]="row.id" /> <a mat-flat-button [routerLink]="['/invoices', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la facture…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (invoice(); as row) {
+      <dl class="details-grid">
+        <div><dt>Référence client</dt><dd>{{ row.customerId }}</dd></div>
+        <div><dt>Statut</dt><dd><span class="status-badge">{{ row.status }}</span></dd></div>
+        <div><dt>Date d’émission</dt><dd>{{ row.issueDate ? (row.issueDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd></div>
+        <div><dt>Date d’échéance</dt><dd>{{ row.dueDate ? (row.dueDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd></div>
+        <div><dt>Sous-total</dt><dd class="amount">{{ row.subtotal | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Taxe</dt><dd class="amount">{{ row.tax | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Total</dt><dd class="amount">{{ row.totalAmount | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Devise</dt><dd>{{ row.currency || 'Non renseignée' }}</dd></div>
+        <div><dt>Créée le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div><dt>Modifiée le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div class="full-width"><dt>Notes</dt><dd class="notes">{{ row.notes || 'Aucune note' }}</dd></div>
+      </dl>
+    }
+  </mat-card-content></mat-card>
+</section>

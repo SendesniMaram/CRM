@@ -9,9 +9,12 @@ spring:
     username: root
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: never
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
@@ -20,6 +23,12 @@ spring:
     open-in-view: false
 
 app:
+  security:
+    account-validation:
+      base-url: ${IDENTITY_VALIDATION_BASE_URL}
+      connect-timeout: 500ms
+      read-timeout: 1s
+      total-timeout: 1500ms
   jwt:
     secret: ${APP_JWT_SECRET}
 

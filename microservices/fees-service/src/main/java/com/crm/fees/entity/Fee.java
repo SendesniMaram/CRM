@@ -41,7 +41,7 @@ public class Fee {
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 500)
     private String description;
 
     @NotNull(message = "Hourly rate is required")

@@ -1,0 +1,7 @@
+@use '../customers/customers';
+@use '../../shared/pdf-download/pdf-detail';
+.status-badge { display: inline-block; border-radius: 20px; padding: .3rem .75rem; background: var(--mat-sys-secondary-container); color: var(--mat-sys-on-secondary-container); font-size: .8rem; overflow-wrap: anywhere; }
+.customer-picker { background: var(--mat-sys-surface-container-low); border-radius: 10px; padding: 1rem; margin: 1rem 0; }
+.picker-actions { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.amount { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.notes { white-space: pre-line; }

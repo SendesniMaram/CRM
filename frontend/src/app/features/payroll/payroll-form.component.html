@@ -1,0 +1,34 @@
+<section class="customer-page narrow" aria-labelledby="payroll-form-title">
+  <a mat-button routerLink="/payroll" [disabled]="saving()"><mat-icon>arrow_back</mat-icon>Retour à la paie</a>
+  <header class="page-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-form-title">{{ id() === null ? 'Nouvelle fiche de paie' : 'Modifier la fiche de paie' }}</h1>
+    <p class="subtitle">Renseignez la période et les éléments de rémunération de l’employé.</p></div></header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la fiche de paie…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (ready()) {
+      <p class="muted">L’employé, le salaire de base, la période et le statut sont obligatoires.</p>
+      <p class="muted">Le salaire net sera disponible après enregistrement. La période, la devise et le statut sont libres.</p>
+      <button mat-stroked-button type="button" (click)="lookup.set(!lookup())" [disabled]="saving()">Choisir un employé</button>
+      @if (lookup()) { <app-fee-reference-picker kind="employee" [disabled]="saving()" (referenceSelected)="selectEmployee($event)" /> }
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline"><mat-label>Référence employé</mat-label><input matInput formControlName="employeeId" required maxlength="50" />
+            <mat-hint>Identifiant sélectionné ou référence existante.</mat-hint>
+            @if (form.controls.employeeId.invalid) { <mat-error>Référence obligatoire, limitée à 50 caractères.</mat-error> }</mat-form-field>
+          @for (field of textFields; track field.key) {
+            <mat-form-field appearance="outline"><mat-label>{{ field.label }}</mat-label><input matInput [formControlName]="field.key" [required]="field.required" [attr.maxlength]="field.max" />
+              @if (form.controls[field.key].invalid) { <mat-error>Vérifiez ce champ ({{ field.max }} caractères maximum).</mat-error> }</mat-form-field>
+          }
+          @for (field of amountFields; track field.key) {
+            <mat-form-field appearance="outline"><mat-label>{{ field.label }}</mat-label><input matInput type="number" step="any" [formControlName]="field.key" [required]="field.required" />
+              @if (form.controls[field.key].invalid) { <mat-error>{{ field.required ? 'Saisissez un salaire strictement positif.' : 'Saisissez un montant valide.' }}</mat-error> }</mat-form-field>
+          }
+          <mat-form-field appearance="outline"><mat-label>Date de paiement</mat-label><input matInput type="date" formControlName="paymentDate" />
+            @if (form.controls.paymentDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
+        </div>
+        <div class="form-actions"><a mat-button routerLink="/payroll" [disabled]="saving()">Annuler</a>
+          <button mat-flat-button type="submit" [disabled]="saving() || loading() || !canManage()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
+      </form>
+    }
+  </mat-card-content></mat-card>
+</section>

@@ -1,101 +1,75 @@
-import { provideZonelessChangeDetection } from '@angular/core';
+import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { CrmRole } from '../../../core/models/role.model';
 import { SidebarComponent } from './sidebar.component';
-
+@Component({standalone: true, template: ''}) class Destination {}
 describe('SidebarComponent', () => {
-  let authService: jasmine.SpyObj<AuthService>;
-
-  beforeEach(async () => {
-    authService = jasmine.createSpyObj<AuthService>('AuthService', ['hasAnyRole', 'logout']);
-    await TestBed.configureTestingModule({
-      imports: [SidebarComponent],
-      providers: [
-        provideRouter([]),
-        provideZonelessChangeDetection(),
-        { provide: AuthService, useValue: authService }
-      ]
-    }).compileComponents();
+  let auth: jasmine.SpyObj<AuthService>;
+  beforeEach(() => {
+    auth = jasmine.createSpyObj('AuthService', ['hasAnyRole', 'logout']);
+    TestBed.configureTestingModule({imports: [SidebarComponent], providers: [
+      provideZonelessChangeDetection(), provideRouter([{path:'fees/:id/edit',component:Destination},{path:'leaves',component:Destination}]),
+      {provide:AuthService,useValue:auth}
+    ]});
   });
-
-  function renderFor(roles: CrmRole[]): string {
-    authService.hasAnyRole.and.callFake((requiredRoles) => requiredRoles.some((role) => roles.includes(role)));
-    const fixture = TestBed.createComponent(SidebarComponent);
-    fixture.detectChanges();
-    return fixture.nativeElement.textContent;
+  function render(role: CrmRole | null = CrmRole.ADMIN) {
+    auth.hasAnyRole.and.callFake(required => role !== null && required.includes(role));
+    const fixture = TestBed.createComponent(SidebarComponent); fixture.detectChanges(); return fixture;
   }
-
-  it('shows the dashboard for an authenticated user', () => {
-    expect(renderFor([CrmRole.ADMIN])).toContain('Tableau de bord');
-  });
-
-  it('shows Employees to an ADMIN', () => {
-    expect(renderFor([CrmRole.ADMIN])).toContain('Employés');
-  });
-
-  it('does not show Employees to an EMPLOYEE', () => {
-    expect(renderFor([CrmRole.EMPLOYEE])).not.toContain('Employés');
-  });
-
-  it('does not show Payroll to a CLIENT', () => {
-    expect(renderFor([CrmRole.CLIENT])).not.toContain('Paie');
-  });
-
-  it('shows Employee area to an EMPLOYEE', () => {
-    expect(renderFor([CrmRole.EMPLOYEE])).toContain('Espace employé');
-  });
-
-  it('shows Client area to a CLIENT', () => {
-    expect(renderFor([CrmRole.CLIENT])).toContain('Espace client');
-  });
-
-  it('provides an accessible logout action', () => {
-    authService.hasAnyRole.and.returnValue(true);
-    const fixture = TestBed.createComponent(SidebarComponent);
-    fixture.detectChanges();
-    const button: HTMLButtonElement = fixture.nativeElement.querySelector('button');
-    expect(button.textContent).toContain('Se déconnecter');
-    button.click();
-    expect(authService.logout).toHaveBeenCalledTimes(1);
-  });
-
-  for (const role of [CrmRole.SUPER_ADMIN, CrmRole.ADMIN, CrmRole.EMPLOYEE]) {
-    it(`groups a single Leave link under a non-navigable HR heading for ${role}`, () => {
-      authService.hasAnyRole.and.callFake(required => required.includes(role));
-      const fixture = TestBed.createComponent(SidebarComponent);
-      fixture.detectChanges();
-      const section: HTMLElement = fixture.nativeElement.querySelector('section[aria-labelledby="hr-navigation-title"]');
-      expect(section.querySelector('h3')?.textContent).toBe('Ressources humaines');
-      expect(section.querySelectorAll('a').length).toBe(role === CrmRole.EMPLOYEE ? 1 : 2);
-      expect(section.querySelector('a')?.getAttribute('href')).toBe('/leaves');
-      expect(fixture.nativeElement.querySelectorAll('a[href="/leaves"]').length).toBe(1);
-      expect(fixture.nativeElement.querySelector('a[href="/hr"]')).toBeNull();
-      expect(section.textContent).not.toContain('Formations');
-      expect(section.textContent).not.toContain('Évaluations');
-      expect(section.textContent).not.toContain('Recrutement');
-    });
-  }
-
-  it('hides the HR group from CLIENT', () => {
-    const text = renderFor([CrmRole.CLIENT]);
-    expect(text).not.toContain('Ressources humaines');
-    expect(text).not.toContain('Congés');
-  });
-
-  for (const role of [CrmRole.SUPER_ADMIN, CrmRole.ADMIN, CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
-    it(`does not expose unimplemented destinations for ${role}`, () => {
-      authService.hasAnyRole.and.callFake(required => required.includes(role));
-      const fixture = TestBed.createComponent(SidebarComponent);
-      fixture.detectChanges();
-      for (const path of ['/customers', '/payroll', '/fees', '/invoices', '/employee-area', '/client-area']) {
-        expect(fixture.nativeElement.querySelector(`a[href="${path}"]`)).toBeNull();
+  for (const role of [CrmRole.ADMIN,CrmRole.SUPER_ADMIN,CrmRole.EMPLOYEE,CrmRole.CLIENT]) {
+    it('filters all navigation entries for '+role, () => {
+      const fixture=render(role); const element=fixture.nativeElement as HTMLElement;
+      expect(element.querySelector('a[href="/home"]')).not.toBeNull();
+      expect(element.querySelector('a[href="/dashboard"]')).not.toBeNull();
+      for(const path of ['/employees','/departments','/customers','/invoices','/fees','/payroll']) {
+        expect(!!element.querySelector('a[href="'+path+'"]')).toBe([CrmRole.ADMIN,CrmRole.SUPER_ADMIN].includes(role));
       }
-      expect(fixture.nativeElement.textContent).toContain('Non disponible');
-      const link = fixture.nativeElement.querySelector('a[href="/leaves#associations"]');
-      if (role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN) expect(link).toBeTruthy();
-      else expect(link).toBeNull();
+      expect(!!element.querySelector('a[href="/leaves"]')).toBe(role!==CrmRole.CLIENT);
+      expect(!!element.querySelector('a[href="/leaves#associations"]')).toBe([CrmRole.ADMIN,CrmRole.SUPER_ADMIN].includes(role));
+      expect(element.querySelector('a[href="/employee-area"],a[href="/client-area"]')).toBeNull();
     });
   }
+  it('groups entries and retains accessible labels when collapsed', () => {
+    const fixture=render(); fixture.componentRef.setInput('collapsed',true); fixture.detectChanges();
+    const nav=fixture.nativeElement.querySelector('nav');
+    expect(nav.getAttribute('aria-label')).toBe('Navigation principale');
+    expect(nav.querySelectorAll('section').length).toBe(4);
+    const link=nav.querySelector('a[href="/employees"]');
+    expect(link.getAttribute('aria-label')).toBe('Employés');
+    expect(link.querySelector('span').classList.contains('visually-hidden')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.compact')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.collapse-toggle').getAttribute('aria-expanded')).toBe('false');
+  });
+  it('emits the collapse action and hides it on mobile', () => {
+    const fixture=render(); const spy=jasmine.createSpy();fixture.componentInstance.toggleCollapse.subscribe(spy);
+    fixture.nativeElement.querySelector('.collapse-toggle').click(); expect(spy).toHaveBeenCalledTimes(1);
+    fixture.componentRef.setInput('mobile',true);fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.collapse-toggle')).toBeNull();
+  });
+  it('marks a parent module active on detail/edit routes', async () => {
+    const fixture=render(); await TestBed.inject(Router).navigateByUrl('/fees/7/edit');await fixture.whenStable();fixture.detectChanges();
+    const active=fixture.nativeElement.querySelector('a[href="/fees"]');
+    expect(active.classList.contains('active')).toBeTrue();expect(active.getAttribute('aria-current')).toBe('page');
+  });
+  it('activates the association link only for the exact fragment', async () => {
+    const fixture=render(); const router=TestBed.inject(Router);
+    await router.navigateByUrl('/leaves');await fixture.whenStable();fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('a[href="/leaves#associations"]').classList.contains('active')).toBeFalse();
+    await router.navigateByUrl('/leaves#associations');await fixture.whenStable();fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('a[href="/leaves#associations"]').classList.contains('active')).toBeTrue();
+    expect(fixture.nativeElement.querySelector('a[href="/leaves"]').classList.contains('active')).toBeFalse();
+    expect(fixture.nativeElement.querySelectorAll('a[aria-current="page"]').length).toBe(1);
+  });
+  it('emits navigation and account actions and keeps logout', () => {
+    const fixture=render();const navigate=jasmine.createSpy();const account=jasmine.createSpy();
+    fixture.componentInstance.navigate.subscribe(navigate);fixture.componentInstance.account.subscribe(account);
+    fixture.nativeElement.querySelector('a').click();expect(navigate).toHaveBeenCalledTimes(1);
+    fixture.nativeElement.querySelector('button[aria-label="Mon compte"]').click();expect(account).toHaveBeenCalledTimes(1);
+    fixture.nativeElement.querySelector('button[aria-label="Se déconnecter"]').click();expect(auth.logout).toHaveBeenCalledTimes(1);
+  });
+  it('exposes no module or Dashboard shortcut for an unknown role', () => {
+    const fixture=render(null);expect(fixture.nativeElement.querySelectorAll('nav a').length).toBe(0);
+  });
 });

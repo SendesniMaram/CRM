@@ -1,0 +1,47 @@
+<section class="customer-page narrow" aria-labelledby="invoice-form-title">
+  <a mat-button routerLink="/invoices" [disabled]="saving()"><mat-icon>arrow_back</mat-icon>Retour aux factures</a>
+  <header class="page-header"><div><p class="eyebrow">Facturation</p><h1 id="invoice-form-title">{{ id() === null ? 'Nouvelle facture' : 'Modifier la facture' }}</h1><p class="subtitle">Renseignez les informations de la facture et choisissez un client.</p></div></header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la facture…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (ready()) {
+      <div class="customer-picker">
+        <h2>Choisir un client</h2>
+        <div class="toolbar">
+          <mat-form-field appearance="outline" class="search-field"><mat-label>Rechercher un client</mat-label><input matInput [formControl]="customerSearch" (keydown.enter)="searchCustomers(); $event.preventDefault()" placeholder="Nom, e-mail, société ou téléphone" /></mat-form-field>
+          <button mat-stroked-button type="button" (click)="searchCustomers()" [disabled]="saving()">Rechercher</button>
+        </div>
+        @if (customerLoading()) { <p role="status">Chargement des clients…</p> }
+        @if (customerError()) { <p class="error" role="alert">{{ customerError() }}</p><button mat-button (click)="loadCustomers()">Réessayer</button> }
+        @if (!customerLoading() && !customerError() && customerTotal() === 0) {
+          <p>{{ customerSearch.value.trim() ? 'Aucun client ne correspond à cette recherche.' : 'Aucun client disponible. Ajoutez un client avant de créer une facture.' }}</p>
+          <a mat-button routerLink="/customers">Gérer les clients</a>
+        }
+        @if (customerPages() > 1) {
+          <div class="picker-actions"><button mat-button type="button" (click)="changeCustomerPage(-1)" [disabled]="customerLoading() || customerPage() === 0">Précédents</button>
+            <span>Page {{ customerPage() + 1 }} sur {{ customerPages() }}</span><button mat-button type="button" (click)="changeCustomerPage(1)" [disabled]="customerLoading() || customerPage() + 1 >= customerPages()">Suivants</button></div>
+        }
+      </div>
+      @if (customerNotice()) { <p role="status">{{ customerNotice() }}</p> }
+      <p class="muted">Numéro, client, sous-total et statut sont obligatoires. Le total sera affiché après enregistrement.</p>
+      <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline"><mat-label>Numéro de facture</mat-label><input matInput formControlName="invoiceNumber" required maxlength="50" />
+            @if (form.controls.invoiceNumber.invalid) { <mat-error>Numéro obligatoire, unique et limité à 50 caractères.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Client</mat-label><mat-select formControlName="customerId" required (selectionChange)="selectCustomer($event.value)">
+            @if (pinnedCustomer(); as client) { <mat-option [value]="client.id">{{ client.name }} — {{ client.id }}</mat-option> }
+            @for (client of choices(); track client.id) { <mat-option [value]="client.id">{{ client.name }} — {{ client.id }}</mat-option> }
+          </mat-select>@if (form.controls.customerId.invalid) { <mat-error>Sélectionnez un client existant.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Date d’émission</mat-label><input matInput type="date" formControlName="issueDate" />@if (form.controls.issueDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Date d’échéance</mat-label><input matInput type="date" formControlName="dueDate" />@if (form.controls.dueDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Sous-total</mat-label><input matInput type="number" step="any" formControlName="subtotal" required />@if (form.controls.subtotal.invalid) { <mat-error>Saisissez un montant strictement positif.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Taxe (montant)</mat-label><input matInput type="number" step="any" formControlName="tax" />@if (form.controls.tax.invalid) { <mat-error>Saisissez un montant valide.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Devise</mat-label><input matInput formControlName="currency" maxlength="10" />@if (form.controls.currency.invalid) { <mat-error>Devise refusée ou supérieure à 10 caractères.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Statut</mat-label><input matInput formControlName="status" required maxlength="50" />@if (form.controls.status.invalid) { <mat-error>Statut obligatoire, limité à 50 caractères.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline" class="full-width"><mat-label>Notes</mat-label><textarea matInput formControlName="notes" rows="3" maxlength="500"></textarea>@if (form.controls.notes.invalid) { <mat-error>Notes refusées ou supérieures à 500 caractères.</mat-error> }</mat-form-field>
+        </div>
+        <div class="form-actions"><a mat-button routerLink="/invoices" [disabled]="saving()">Annuler</a><button mat-flat-button type="submit" [disabled]="saving() || loading() || customerLoading() || !!customerError() || form.controls.customerId.invalid">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
+      </form>
+    }
+  </mat-card-content></mat-card>
+</section>

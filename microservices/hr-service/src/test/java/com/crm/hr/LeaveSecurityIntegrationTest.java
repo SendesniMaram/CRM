@@ -25,9 +25,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {"spring.cloud.service-registry.auto-registration.enabled=false", "eureka.client.enabled=false"})
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint.NONE)
 @Transactional
-class LeaveSecurityIntegrationTest {
+class LeaveSecurityIntegrationTest extends com.crm.hr.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @Autowired ObjectMapper json;
@@ -46,7 +46,13 @@ class LeaveSecurityIntegrationTest {
         LeaveEmployeeAssociation link = new LeaveEmployeeAssociation();
         link.setUsername(username); link.setUserId(userId); link.setEmployeeId(employeeId); links.saveAndFlush(link);
     }
-    String auth(String username, String role) { return "Bearer " + jwt.generateToken(username, "", true, List.of(role)); }
+    String auth(String username, String role) {
+        String uid = username.equals("employee-a") ? "1" : username.equals("employee-b") ? "2" : "99";
+        return auth(uid, username, role);
+    }
+    String auth(String uid, String username, String role) {
+        return "Bearer " + signed(username, true, List.of(role), uid, java.time.Instant.now().plusSeconds(600));
+    }
     String body() { return "{\"startDate\":\"" + LocalDate.now().plusDays(2) + "\",\"endDate\":\"" + LocalDate.now().plusDays(4) + "\",\"reason\":\"Leave\"}"; }
     @Test void employeeCreatesPendingUsingServerAssociationDespiteSpoofedEmployeeId() throws Exception {
         mvc.perform(post("/api/leaves/mine").header("Authorization", auth("employee-a", "EMPLOYEE"))
@@ -133,23 +139,141 @@ class LeaveSecurityIntegrationTest {
         mvc.perform(post("/api/leaves/associations").header("Authorization", auth("employee-a", "EMPLOYEE")).contentType(MediaType.APPLICATION_JSON).content(payload)).andExpect(status().isForbidden());
         mvc.perform(get("/api/leaves/associations/options").header("Authorization", auth("employee-a", "EMPLOYEE"))).andExpect(status().isForbidden());
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
-                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-c\",\"roleType\":\"EMPLOYEE\"}"));
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-c\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}"));
         when(directory.read(eq("employee-service"), eq("/api/employees/103"), anyString()))
                 .thenReturn(json.readTree("{\"id\":103}"));
         mvc.perform(post("/api/leaves/associations").header("Authorization", auth("admin", "ADMIN")).contentType(MediaType.APPLICATION_JSON).content(payload))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.username").value("employee-c")).andExpect(jsonPath("$.employeeId").value("103"));
         assertTrue(links.existsById("employee-c"));
     }
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
+    void associationOptionsStillReadBothDirectoriesWithAdministrativeAuthorization(String role) throws Exception {
+        String bearer = auth("test-admin", role);
+        when(directory.read(eq("identity-service"), eq("/api/users"), anyString()))
+                .thenReturn(json.readTree("[{\"id\":1,\"username\":\"employee-a\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}]"));
+        when(directory.read(eq("employee-service"), eq("/api/employees"), anyString()))
+                .thenReturn(json.readTree("[{\"id\":101,\"employeeCode\":\"TEST-101\"}]"));
+
+        mvc.perform(get("/api/leaves/associations/options").header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.users[0].id").value(1))
+                .andExpect(jsonPath("$.employees[0].id").value(101));
+
+        var authorization = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(directory).read(eq("identity-service"), eq("/api/users"), authorization.capture());
+        verify(directory).read(eq("employee-service"), eq("/api/employees"), authorization.capture());
+        assertTrue(authorization.getAllValues().stream().allMatch(bearer::equals),
+                "Both directory calls must preserve the administrator authorization");
+    }
+
     @Test void associationRejectsClientAccountOrAlreadyLinkedEmployee() throws Exception {
         String admin = auth("admin", "ADMIN");
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
-                .thenReturn(json.readTree("{\"id\":3,\"username\":\"client-c\",\"roleType\":\"CLIENT\"}"));
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"client-c\",\"roleType\":\"CLIENT\",\"roles\":[\"CLIENT\"],\"enabled\":true,\"accountNonLocked\":true}"));
         when(directory.read(eq("employee-service"), eq("/api/employees/101"), anyString())).thenReturn(json.readTree("{\"id\":101}"));
         mvc.perform(post("/api/leaves/associations").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON).content("{\"userId\":3,\"employeeId\":101}")).andExpect(status().isBadRequest());
         when(directory.read(eq("identity-service"), eq("/api/users/3"), anyString()))
-                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-c\",\"roleType\":\"EMPLOYEE\"}"));
+                .thenReturn(json.readTree("{\"id\":3,\"username\":\"employee-c\",\"roleType\":\"EMPLOYEE\",\"roles\":[\"EMPLOYEE\"],\"enabled\":true,\"accountNonLocked\":true}"));
         mvc.perform(post("/api/leaves/associations").header("Authorization", admin).contentType(MediaType.APPLICATION_JSON).content("{\"userId\":3,\"employeeId\":101}")).andExpect(status().isBadRequest());
         assertFalse(links.existsById("employee-c"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"employee-a", "renamed-employee", "employee-b"})
+    void sameUidRetainsOwnLeaveAccessRegardlessOfUsername(String username) throws Exception {
+        String bearer = auth("1", username, "EMPLOYEE");
+        mvc.perform(get("/api/leaves").header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].employeeId").value("101"));
+        mvc.perform(get("/api/leaves?size=20&keyword=101").header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isOk());
+        mvc.perform(get("/api/leaves/" + aId + "/pdf").header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(content().contentType("application/pdf"));
+        mvc.perform(post("/api/leaves/mine").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body().replace("}", ",\"employeeId\":\"102\"}")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.employeeId").value("101"));
+        mvc.perform(put("/api/leaves/mine/" + aId).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body().replace("}", ",\"employeeId\":\"102\"}")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.employeeId").value("101"));
+        mvc.perform(delete("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isNoContent());
+        assertEquals("employee-a", links.findByUserId(1L).orElseThrow().getUsername());
+        assertEquals("101", links.findByUserId(1L).orElseThrow().getEmployeeId());
+    }
+
+    @Test void anotherUidCannotImpersonateOwnerByUsernameHeadersOrRequestFields() throws Exception {
+        String bearer = auth("2", "employee-a", "EMPLOYEE");
+        mvc.perform(get("/api/leaves").header("Authorization", bearer).header("X-User-Id", "1")
+                .header("X-Username", "employee-a").header("X-Roles", "SUPER_ADMIN"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get("/api/leaves?size=20&keyword=101&employeeId=101").header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        for (String suffix : List.of("", "/pdf"))
+            mvc.perform(get("/api/leaves/" + aId + suffix).header("Authorization", bearer))
+                    .andExpect(status().isForbidden());
+        mvc.perform(put("/api/leaves/mine/" + aId).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/leaves/mine").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body().replace("}", ",\"employeeId\":\"101\"}")))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.employeeId").value("102"));
+        assertEquals("101", leaves.findById(aId).orElseThrow().getEmployeeId());
+    }
+
+    @Test void recreatedUsernameWithNewUidCannotRecoverAnyPersonalLeaveOperation() throws Exception {
+        assertPersonalOperationsForbidden(auth("9", "employee-a", "EMPLOYEE"));
+        assertEquals(1, leaves.count());
+        assertEquals(2, links.count());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"", "01", "-1", "EMP-OLD", "9223372036854775808"})
+    void incoherentAssociationBlocksAllPersonalLeaveOperations(String invalidEmployeeId) throws Exception {
+        var link = links.findByUserId(1L).orElseThrow();
+        link.setEmployeeId(invalidEmployeeId);
+        links.saveAndFlush(link);
+        assertPersonalOperationsForbidden(auth("1", "employee-a", "EMPLOYEE"));
+        assertEquals("101", leaves.findById(aId).orElseThrow().getEmployeeId());
+        assertEquals(1, leaves.count());
+    }
+
+    private void assertPersonalOperationsForbidden(String bearer) throws Exception {
+        for (String path : List.of("/api/leaves", "/api/leaves?size=20&keyword=101",
+                "/api/leaves/" + aId, "/api/leaves/" + aId + "/pdf")) {
+            String error = mvc.perform(get(path).header("Authorization", bearer))
+                    .andExpect(status().isForbidden()).andReturn().getResponse().getContentAsString();
+            assertFalse(error.contains("employee-a"));
+            assertFalse(error.contains("employee-b"));
+        }
+        mvc.perform(post("/api/leaves/mine").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body())).andExpect(status().isForbidden());
+        mvc.perform(put("/api/leaves/mine/" + aId).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content(body())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isForbidden());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"ADMIN", "SUPER_ADMIN"})
+    void administratorsRetainReadPdfAndDecisionWithoutEmployeeAssociation(String role) throws Exception {
+        String bearer = auth("99", "signed-admin", role);
+        mvc.perform(get("/api/leaves").header("Authorization", bearer)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+        mvc.perform(get("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isOk());
+        mvc.perform(get("/api/leaves/" + aId + "/pdf").header("Authorization", bearer)).andExpect(status().isOk());
+        mvc.perform(patch("/api/leaves/" + aId + "/approve").header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.validatorUsername").value("signed-admin"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {401, 503})
+    void identityFailureStillBlocksPersonalListAndPdf(int remoteStatus) throws Exception {
+        identityStatus = remoteStatus;
+        String bearer = auth("1", "employee-a", "EMPLOYEE");
+        mvc.perform(get("/api/leaves").header("Authorization", bearer)).andExpect(status().is(remoteStatus));
+        mvc.perform(get("/api/leaves/" + aId + "/pdf").header("Authorization", bearer)).andExpect(status().is(remoteStatus));
+        assertEquals(1, leaves.count());
     }
 
     @org.junit.jupiter.params.ParameterizedTest

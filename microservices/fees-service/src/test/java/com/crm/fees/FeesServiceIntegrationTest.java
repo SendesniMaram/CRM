@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class FeesServiceIntegrationTest {
+class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,6 +57,25 @@ class FeesServiceIntegrationTest {
         validRequest.setWorkedHours(new BigDecimal("10"));
         validRequest.setInvoiceStatus("PENDING");
         validRequest.setPaymentStatus("UNPAID");
+    }
+
+    @Test
+    void descriptionAccepts500CharactersAndRejects501() throws Exception {
+        validRequest.setDescription("a".repeat(500));
+        String responseJson = mockMvc.perform(post("/api/fees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Long id = objectMapper.readValue(responseJson, FeeResponse.class).getId();
+        feeRepository.flush();
+        assertEquals("a".repeat(500), feeRepository.findById(id).orElseThrow().getDescription());
+
+        validRequest.setDescription("a".repeat(501));
+        mockMvc.perform(put("/api/fees/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

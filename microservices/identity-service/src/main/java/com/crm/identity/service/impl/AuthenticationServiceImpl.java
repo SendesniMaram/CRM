@@ -98,6 +98,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
         // Construire la réponse
         LoginResponse response = new LoginResponse();
+        response.setAuthenticatedUserId(user.getId());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setEnabled(user.isEnabled());
@@ -151,13 +152,15 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
 
     @Override
+    // Revocations on rejected refreshes must commit despite the 401 exception.
+    @Transactional(noRollbackFor = InvalidCredentialsException.class)
     public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
         if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank()) {
             throw new IllegalArgumentException("refreshToken is required");
         }
 
         // Rechercher le refresh token en base
-        Optional<RefreshToken> optionalToken = refreshTokenRepository.findByToken(request.getRefreshToken());
+        Optional<RefreshToken> optionalToken = refreshTokenRepository.findByTokenForUpdate(request.getRefreshToken());
         RefreshToken storedToken = optionalToken.orElseThrow(
                 () -> new InvalidCredentialsException("invalid or expired refresh token")
         );
@@ -168,7 +171,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         }
 
         // Vérifier que le token n'a pas expiré
-        if (storedToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+        if (storedToken.getExpiryDate() == null || !storedToken.getExpiryDate().isAfter(LocalDateTime.now())) {
             storedToken.setRevoked(true);
             refreshTokenRepository.save(storedToken);
             throw new InvalidCredentialsException("refresh token has expired");
@@ -180,6 +183,13 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             throw new InvalidCredentialsException("user not found");
         }
 
+        // Revoke every refresh session for an inactive account, not just this token.
+        // This also prevents these sessions from reviving if the account is re-enabled.
+        if (!user.isEnabled() || !user.isAccountNonLocked()) {
+            refreshTokenRepository.revokeAllByUser(user);
+            throw new InvalidCredentialsException("account is unavailable");
+        }
+
         // Révoquer l'ancien refresh token (rotation)
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
@@ -189,6 +199,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
         // Générer un nouveau JWT access token
         String newAccessToken = jwtService.generateToken(
+                user.getId(),
                 user.getUsername(),
                 user.getEmail(),
                 user.isEnabled(),

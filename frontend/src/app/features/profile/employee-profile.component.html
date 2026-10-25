@@ -1,0 +1,21 @@
+@if (employee()) {
+  <mat-card><mat-card-header><mat-card-title>Mon profil</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <p>Votre fiche professionnelle en lecture seule.</p>
+      <button mat-button type="button" (click)="load()" [disabled]="loading()">Actualiser mon profil</button>
+      @if (loading()) { <p role="status">Chargement du profil…</p> }
+      @if (missing()) { <p role="status">Votre compte n’est pas associé à une fiche employé. Contactez un administrateur.</p> }
+      @if (error()) { <p role="alert">{{ error() }}</p> }
+      @if (profile(); as record) {
+        <dl>
+          <dt>Identifiant Employee</dt><dd>{{ record.employeeId }}</dd>
+          <dt>Prénom</dt><dd>{{ record.firstName || 'Non renseigné' }}</dd>
+          <dt>Nom</dt><dd>{{ record.lastName || 'Non renseigné' }}</dd>
+          <dt>Poste</dt><dd>{{ record.jobTitle || 'Non renseigné' }}</dd>
+          <dt>Département — identifiant</dt><dd>{{ record.departmentId || 'Non renseigné' }}</dd>
+          <dt>Date d’embauche</dt><dd>{{ record.hireDate || 'Non renseignée' }}</dd>
+        </dl>
+      }
+    </mat-card-content>
+  </mat-card>
+}

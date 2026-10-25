@@ -1,3 +1,4 @@
+import { dashboardNavigationStub } from './core/testing/dashboard-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -16,7 +17,7 @@ describe('application routing audit with restored sessions', () => {
   beforeEach(() => {
     sessionStorage.clear();
     TestBed.configureTestingModule({ providers: [
-      provideZonelessChangeDetection(), provideRouter(routes), provideHttpClient(), provideHttpClientTesting(),
+      provideZonelessChangeDetection(), provideRouter(routes), provideHttpClient(), provideHttpClientTesting(), dashboardNavigationStub,
       { provide: DepartmentService, useValue: {
         getDepartments: () => of([]),
         getDepartmentById: () => of({ id: 12, name: 'Informatique', code: null, description: null })
@@ -35,6 +36,14 @@ describe('application routing audit with restored sessions', () => {
         sessionStorage.setItem('crm.auth.session', JSON.stringify(session));
         const harness = await RouterTestingHarness.create();
         await harness.navigateByUrl(destination);
+        if (role === CrmRole.CLIENT && destination === '/dashboard') {
+          const http = TestBed.inject(HttpTestingController);
+          http.expectOne('http://localhost:8080/customer/api/customers/me')
+            .flush({customerId:'101',name:'Client',email:null,phone:null,company:null});
+          http.expectOne(r => r.url === 'http://localhost:8080/invoice/api/invoices/me')
+            .flush({content:[],totalElements:0,totalPages:0,number:0});
+          harness.detectChanges();
+        }
         const allowed = destination === '/dashboard' || role === CrmRole.SUPER_ADMIN || role === CrmRole.ADMIN;
         expect(TestBed.inject(Router).url).toBe(allowed ? destination : '/access-denied');
         expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
@@ -61,12 +70,13 @@ describe('application routing audit with restored sessions', () => {
     expect(harness.routeNativeElement?.querySelector<HTMLInputElement>('input[formControlName="name"]')?.value).toBe('Informatique');
   });
 
-  it('redirects root to dashboard and unknown paths to login without a loop', async () => {
+  it('redirects root to home and preserves unknown paths as not found without losing the session', async () => {
     storeTestSession(); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl('/');
-    expect(TestBed.inject(Router).url).toBe('/dashboard');
+    expect(TestBed.inject(Router).url).toBe('/home');
     for (const path of ['/route-qui-nexiste-pas', '/departments/12/unknown']) {
-      await harness.navigateByUrl(path); expect(TestBed.inject(Router).url).toBe('/login');
-      expect(harness.routeNativeElement?.textContent).toContain('Connexion CRM');
+      await harness.navigateByUrl(path); expect(TestBed.inject(Router).url).toBe(path);
+      expect(harness.routeNativeElement?.textContent).toContain('Page introuvable');
+      expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
     }
   });
 

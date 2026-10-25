@@ -15,7 +15,7 @@
   @if (ready() && !notFound()) {
     <mat-card>
       <mat-card-content>
-        <form [formGroup]="form" (ngSubmit)="submit()">
+        <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
           <fieldset [disabled]="saving()">
             <legend>Informations de l’employé</legend>
             <div class="form-grid">
@@ -82,7 +82,7 @@
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Adresse</mat-label>
                 <textarea matInput formControlName="address" rows="3"></textarea>
-                <mat-error>Maximum 500 caractères.</mat-error>
+                <mat-error>Maximum 255 caractères.</mat-error>
               </mat-form-field>
             </div>
           </fieldset>

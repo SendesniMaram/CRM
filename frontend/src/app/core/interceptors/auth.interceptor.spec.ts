@@ -1,4 +1,4 @@
-import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -7,6 +7,7 @@ import { AuthService } from '../services/auth.service';
 import { authInterceptor } from './auth.interceptor';
 import { storeTestSession, testJwt, testLogin } from '../testing/auth-fixtures';
 import { CrmRole } from '../models/role.model';
+import { PDF_DOWNLOAD_REQUEST } from '../http/pdf-download-context';
 
 describe('authInterceptor with real AuthService', () => {
   const api = 'http://localhost:8080/employee/api/employees';
@@ -42,6 +43,29 @@ describe('authInterceptor with real AuthService', () => {
     expect(request.request.headers.get('Authorization')).toBe('Bearer ' + oldToken);
     expect(request.request.headers.get('X-Test')).toBe('kept');
     request.flush([]);
+  });
+  for (const path of ['invoice/api/invoices', 'hr/api/leaves', 'payroll/api/payrolls']) {
+    it(`preserves the JWT and reports PDF denial locally for ${path}`, () => {
+      const url = `http://localhost:8080/${path}/42/pdf`;
+      let status: number | undefined;
+      client.get(url, { responseType: 'blob', context: new HttpContext().set(PDF_DOWNLOAD_REQUEST, true) })
+        .subscribe({ error: (error: HttpErrorResponse) => status = error.status });
+      const req = http.expectOne(url);
+      expect(req.request.headers.get('Authorization')).toBe('Bearer ' + oldToken);
+      expect(req.request.responseType).toBe('blob');
+      req.flush(new Blob(), { status: 403, statusText: 'Forbidden' });
+      expect(status).toBe(403); expect(router.navigate).not.toHaveBeenCalled();
+    });
+  }
+  it('preserves the original PDF 401 when refresh fails and expires the session', () => {
+    let status: number | undefined;
+    const url = 'http://localhost:8080/invoice/api/invoices/42/pdf';
+    client.get(url, { responseType: 'blob', context: new HttpContext().set(PDF_DOWNLOAD_REQUEST, true) })
+      .subscribe({ error: (error: HttpErrorResponse) => status = error.status });
+    http.expectOne(url).flush(new Blob(), unauthorized);
+    http.expectOne(base + '/refresh').flush({}, { status: 403, statusText: 'Forbidden' });
+    expect(status).toBe(401); expect(auth.isAuthenticated()).toBeFalse();
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], jasmine.any(Object));
   });
 
   it('refreshes and replays the original PUT exactly once with the new JWT', () => {
@@ -121,7 +145,7 @@ describe('authInterceptor with real AuthService', () => {
     http.expectNone(base + '/refresh');
   });
 
-  for (const status of [401, 403, 500, 0]) {
+  for (const status of [401, 403]) {
     it('cleans up and redirects when refresh fails with status ' + status, () => {
       get();
       http.expectOne(api).flush({}, unauthorized);
@@ -134,6 +158,22 @@ describe('authInterceptor with real AuthService', () => {
         { queryParams: { returnUrl: '/employees?view=list' } });
       http.expectNone(base + '/refresh');
       http.expectNone(api);
+    });
+  }
+
+  for (const status of [500, 0]) {
+    it('keeps credentials and does not replay on transient refresh failure ' + status, () => {
+      let received: HttpErrorResponse | undefined;
+      client.get(api).subscribe({ error: error => received = error });
+      http.expectOne(api).flush({}, unauthorized);
+      const refresh = http.expectOne(base + '/refresh');
+      if (status === 0) refresh.error(new ProgressEvent('error'));
+      else refresh.flush({}, { status, statusText: 'Unavailable' });
+      expect(received?.status).toBe(status);
+      expect(auth.getToken()).toBe(oldToken);
+      expect(router.navigate).not.toHaveBeenCalled();
+      http.expectNone(api);
+      http.expectNone(base + '/refresh');
     });
   }
 
@@ -203,6 +243,21 @@ describe('authInterceptor with real AuthService', () => {
     http.expectNone(base + '/refresh');
     expect(auth.isAuthenticated()).toBeFalse();
     expect(router.navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('upgrades a legacy JWT through refresh after Identity recovers from 503', () => {
+    get(); http.expectOne(api).flush({}, unauthorized);
+    http.expectOne(base + '/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+    expect(auth.getToken()).toBe(oldToken);
+    get(); http.expectOne(api).flush({}, unauthorized);
+    const upgraded = testJwt({ uid: '42', sub: 'unit-user', roles: ['ADMIN'], enabled: true,
+      exp: Math.floor(Date.now() / 1000) + 3600 });
+    http.expectOne(base + '/refresh').flush({ ...rotated(), accessToken: upgraded });
+    const replay = http.expectOne(api);
+    expect(replay.request.headers.get('Authorization')).toBe('Bearer ' + upgraded);
+    replay.flush({});
+    expect(auth.getToken()).toBe(upgraded); expect(router.navigate).not.toHaveBeenCalled();
+    http.expectNone(base + '/refresh');
   });
 
   it('keeps the session and does not refresh on 403', () => {
@@ -306,6 +361,29 @@ describe('authInterceptor with real AuthService', () => {
     http.expectNone(base + '/refresh');
     expect(router.navigate).not.toHaveBeenCalled();
   });
+
+  it('does not refresh or clear the session on direct 503', () => {
+    get();
+    http.expectOne(api).flush({}, { status: 503, statusText: 'Service Unavailable' });
+    expect(auth.getToken()).toBe(oldToken);
+    http.expectNone(base + '/refresh');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  for (const pdf of [false, true]) {
+    it(`preserves the session and reports 503 when refresh is unavailable (PDF=${pdf})`, () => {
+      let received: HttpErrorResponse | undefined;
+      client.get(api, { context: new HttpContext().set(PDF_DOWNLOAD_REQUEST, pdf) })
+        .subscribe({ error: error => received = error });
+      http.expectOne(api).flush({}, unauthorized);
+      http.expectOne(base + '/refresh').flush({}, { status: 503, statusText: 'Service Unavailable' });
+      expect(received?.status).toBe(503);
+      expect(auth.getToken()).toBe(oldToken);
+      expect(router.navigate).not.toHaveBeenCalled();
+      http.expectNone(api);
+      http.expectNone(base + '/refresh');
+    });
+  }
 
   it('does not replay or restore a session after logout during refresh', () => {
     get();

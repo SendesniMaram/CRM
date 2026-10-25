@@ -1,0 +1,26 @@
+<section class="customer-page narrow" aria-labelledby="payroll-detail-title">
+  <a mat-button routerLink="/payroll"><mat-icon>arrow_back</mat-icon>Retour à la paie</a>
+  <header class="page-header pdf-detail-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-detail-title">{{ payroll() ? 'Paie — ' + payroll()!.payPeriod : 'Fiche de paie' }}</h1>
+    <p class="subtitle">Détail des montants et informations de paiement.</p></div>
+    @if (payroll(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="payroll" [id]="row.id" /> <a mat-flat-button [routerLink]="['/payroll', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
+  <mat-card class="directory-card"><mat-card-content>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la fiche de paie…</p></div> }
+    @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+    @if (payroll(); as row) {
+      <dl class="details-grid">
+        <div><dt>Référence employé</dt><dd>{{ row.employeeId }}</dd></div>
+        <div><dt>Période</dt><dd>{{ row.payPeriod }}</dd></div>
+        <div><dt>Salaire de base</dt><dd class="amount">{{ row.baseSalary | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Primes</dt><dd class="amount">{{ row.bonuses | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Retenues</dt><dd class="amount">{{ row.deductions | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Impôt</dt><dd class="amount">{{ row.taxAmount | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Salaire net</dt><dd class="amount">{{ row.netSalary | invoiceAmount }} {{ row.currency || '' }}</dd></div>
+        <div><dt>Devise</dt><dd>{{ row.currency || 'Non renseignée' }}</dd></div>
+        <div><dt>Date de paiement</dt><dd>{{ row.paymentDate ? (row.paymentDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd></div>
+        <div><dt>Statut</dt><dd><span class="status-badge">{{ row.status }}</span></dd></div>
+        <div><dt>Créée le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div><dt>Modifiée le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+      </dl>
+    }
+  </mat-card-content></mat-card>
+</section>

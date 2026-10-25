@@ -1,3 +1,4 @@
+import { dashboardNavigationStub } from '../../../core/testing/dashboard-fixture';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -10,6 +11,7 @@ import { authInterceptor } from '../../../core/interceptors/auth.interceptor';
 import { AuthService } from '../../../core/services/auth.service';
 import { testLogin } from '../../../core/testing/auth-fixtures';
 import { LoginComponent } from './login.component';
+import { CrmRole } from '../../../core/models/role.model';
 
 describe('Login returnUrl with application routes and real AuthService', () => {
   let http: HttpTestingController;
@@ -20,7 +22,7 @@ describe('Login returnUrl with application routes and real AuthService', () => {
       provideZonelessChangeDetection(),
       provideRouter(routes),
       provideHttpClient(withInterceptors([authInterceptor])),
-      provideHttpClientTesting()
+      provideHttpClientTesting(), dashboardNavigationStub
     ] });
     http = TestBed.inject(HttpTestingController);
   });
@@ -31,13 +33,13 @@ describe('Login returnUrl with application routes and real AuthService', () => {
     sessionStorage.clear();
   });
 
-  for (const destination of ['/dashboard?view=summary#stats', '/departments', '/departments/new', '/departments/12/edit', '/login']) {
+  for (const destination of ['/home', '/customers/new', '/dashboard?view=summary#stats', '/departments', '/departments/new', '/departments/12/edit', '/login']) {
   it(`returns to ${destination} after submitting login with real guards`, async () => {
     const router = TestBed.inject(Router);
     const auth = TestBed.inject(AuthService);
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl(destination, LoginComponent);
-    const expectedDestination = destination === '/login' ? '/dashboard' : destination;
+    const expectedDestination = destination === '/login' ? '/home' : destination;
     expect(router.parseUrl(router.url).queryParams['returnUrl']).toBe(destination === '/login' ? undefined : destination);
     expect(router.url.split('?')[0]).toBe('/login');
     expect(auth.isAuthenticated()).toBeFalse();
@@ -67,11 +69,24 @@ describe('Login returnUrl with application routes and real AuthService', () => {
 
     expect(router.url).toBe(expectedDestination);
     expect(auth.isAuthenticated()).toBeTrue();
-    const selector = expectedDestination.startsWith('/dashboard') ? 'app-dashboard'
-      : destination === '/departments' ? 'app-departments-page' : 'app-department-form';
+    const selector = expectedDestination === '/home' ? 'app-home' : expectedDestination.startsWith('/dashboard') ? 'app-dashboard'
+      : destination === '/customers/new' ? 'app-customer-form' : destination === '/departments' ? 'app-departments-page' : 'app-department-form';
     expect(harness.routeNativeElement?.querySelector(selector)).not.toBeNull();
     expect(harness.routeNativeElement?.textContent).not.toContain('Connexion CRM');
     http.expectNone('http://localhost:8080/identity/api/auth/refresh');
   });
+  }
+  for (const role of [CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
+    it('lands on home with only authorized links after login for '+role, async () => {
+      const router=TestBed.inject(Router);const harness=await RouterTestingHarness.create('/login');
+      const component=harness.routeDebugElement!.componentInstance as LoginComponent;
+      component['loginForm'].setValue({identifier:'unit-user',password:'fictitious-password'});component['submit']();
+      const navigation=firstValueFrom(router.events.pipe(filter(event=>event instanceof NavigationEnd)));
+      http.expectOne('http://localhost:8080/identity/api/auth/login').flush({...testLogin(),role,roles:[role]});
+      await navigation;harness.detectChanges();await harness.fixture.whenStable();
+      expect(router.url).toBe('/home');expect(harness.routeNativeElement?.querySelector('app-home')).not.toBeNull();
+      expect(harness.routeNativeElement?.querySelector('a[href="/payroll"]')).toBeNull();
+      http.expectNone(request=>request.url.includes('/payroll/')||request.url.includes('/employee/'));
+    });
   }
 });

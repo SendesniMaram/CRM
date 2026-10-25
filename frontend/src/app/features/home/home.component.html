@@ -1,0 +1,44 @@
+<section class="home" aria-labelledby="home-title">
+  <header class="welcome">
+    <div class="welcome-copy">
+      <div class="welcome-message"><p class="eyebrow">Votre espace de travail</p>
+      <h1 id="home-title">{{ greeting() }}, {{ auth.getCurrentUser()?.username }}.</h1>
+      <p class="intro">{{ introduction() }}</p>
+      </div><div class="welcome-details"><div class="identity"><mat-icon aria-hidden="true">verified_user</mat-icon><span>{{ navigation.roleLabel() }}</span></div>
+      <div class="hero-actions">
+        @if (navigation.actions()[0]; as action) { <a mat-flat-button [routerLink]="action.route">{{ action.label }}<mat-icon iconPositionEnd>arrow_forward</mat-icon></a> }
+        @else { <button mat-flat-button (click)="openAccount()">Consulter mon compte<mat-icon iconPositionEnd>person_outline</mat-icon></button> }
+        @if (dashboard()) { <a mat-stroked-button routerLink="/dashboard">Voir le tableau de bord</a> }
+      </div>
+    </div></div>
+  </header>
+
+  <section class="discovery" aria-labelledby="discovery-title"><p class="eyebrow">Un espace, vos outils</p><h2 id="discovery-title">Découvrez votre espace CRM</h2><p>{{ introduction() }} Choisissez une fonctionnalité pour commencer.</p></section>
+
+  <section aria-labelledby="modules-title">
+    <div class="section-heading"><div><p class="eyebrow">À portée de main</p><h2 id="modules-title">Fonctionnalités principales</h2></div><span>Des accès adaptés à votre rôle</span></div>
+    <div class="module-grid">
+      @for (item of features(); track item.route) {
+        <a class="module-card" [routerLink]="item.route"><span class="module-icon"><mat-icon aria-hidden="true">{{ item.icon }}</mat-icon></span>
+          <h3>{{ item.label }}</h3><p>{{ description(item.route, item.description) }}</p><span class="open">Explorer <mat-icon aria-hidden="true">arrow_forward</mat-icon></span></a>
+      }
+    </div>
+    @if (!navigation.modules().length) { <div class="account-state"><mat-icon aria-hidden="true">lock_person</mat-icon><h3>Un espace adapté à votre compte</h3><p>Aucun module de gestion n’est accessible avec vos permissions actuelles. Les informations de votre compte restent disponibles.</p></div> }
+  </section>
+
+  <section aria-labelledby="actions-title" class="actions"><p class="eyebrow">Votre prochaine étape</p><h2 id="actions-title">Actions rapides</h2><div class="action-links">
+    @for (action of navigation.actions(); track action.route) { <a mat-stroked-button [routerLink]="action.route"><mat-icon>add</mat-icon>{{ action.label }}</a> }
+    @if (leaves(); as item) { <a mat-stroked-button [routerLink]="item.route"><mat-icon>event_note</mat-icon>{{ admin() ? 'Consulter les demandes de congé' : 'Consulter mes congés' }}</a> }
+    @if (!navigation.modules().length) { <button mat-stroked-button (click)="openAccount()"><mat-icon>person_outline</mat-icon>Consulter les informations de mon compte</button> }
+  </div></section>
+
+  @if (dashboard()) { <aside class="dashboard-link"><div><h2>{{ admin() ? 'Gardez une vue d’ensemble' : 'Retrouvez votre espace personnel' }}</h2><p>{{ description('/dashboard', 'Consultez les indicateurs réels disponibles dans votre périmètre autorisé.') }}</p></div><a mat-flat-button routerLink="/dashboard">Voir le tableau de bord <mat-icon>arrow_forward</mat-icon></a></aside> }
+
+  <section aria-labelledby="guide-title"><p class="eyebrow">Une navigation simple</p><h2 id="guide-title">Comment utiliser le CRM ?</h2><ol class="guide">
+    <li><span>01</span><h3>{{ navigation.modules().length ? 'Choisissez votre module' : 'Ouvrez votre compte' }}</h3><p>{{ navigation.modules().length ? 'Retrouvez vos outils dans les cartes ou la navigation latérale.' : 'Utilisez le menu de votre profil pour consulter vos informations.' }}</p></li>
+    <li><span>02</span><h3>Consultez votre espace</h3><p>Consultez ou gérez les informations selon les droits de votre compte.</p></li>
+    <li><span>03</span><h3>{{ dashboard() ? 'Retrouvez votre tableau de bord' : 'Utilisez vos accès disponibles' }}</h3><p>{{ admin() ? 'Suivez les indicateurs de gestion issus des données enregistrées.' : leaves() ? 'Suivez vos demandes personnelles et leur état.' : 'Consultez les informations de session disponibles, sans données administratives.' }}</p></li>
+  </ol></section>
+  <aside class="security"><mat-icon aria-hidden="true">shield</mat-icon><div><h2>Votre espace sécurisé</h2><p>Les accès aux fonctionnalités et aux données dépendent de votre rôle et des autorisations appliquées par les services.</p></div></aside>
+  <footer><strong>CRM Workspace</strong><span>© {{ clock.now().getFullYear() }} · Plateforme de gestion</span></footer>
+</section>
