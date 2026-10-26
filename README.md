@@ -344,6 +344,14 @@ cd ../../backend; mvn clean test
 
 ## 🤖 CI/CD - GitHub Actions
 
+### Jenkins : CI de `publication-clean`
+
+Le [Jenkinsfile](Jenkinsfile) compile et teste les modules Maven et Angular sans
+analyse SonarQube ni déploiement. Il publie les rapports JUnit et archive les
+sorties ciblées. Les prérequis et la configuration du job sont décrits dans
+[scripts/ci/README.md](scripts/ci/README.md). Une exécution réelle sur Jenkins
+reste nécessaire pour valider le pipeline sur votre agent.
+
 ### Workflow : `SonarQube Microservices`
 
 ```yaml
