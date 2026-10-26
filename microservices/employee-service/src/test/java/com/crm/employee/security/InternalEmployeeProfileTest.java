@@ -133,7 +133,13 @@ class InternalEmployeeProfileTest extends TestIdentitySupport {
     @Test void inconsistentProjectionFailsWithoutReturningAnotherEmployee() throws Exception {
         when(employees.findProfileSummaryById(103L)).thenReturn(Optional.of(new EmployeeProfileProjection(104L, "Other", "Employee", null, null, null)));
         var response = mvc.perform(tls(get(PATH)).header("Authorization", "Bearer " + ServiceJwtTestTokens.valid()))
-                .andExpect(status().isInternalServerError()).andReturn().getResponse();
-        assertThat(response.getContentAsString()).doesNotContain("Other", "Employee", "104");
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"))
+                .andExpect(jsonPath("$.path").value(PATH)).andReturn().getResponse();
+        var fields = new java.util.HashSet<String>();
+        json.readTree(response.getContentAsString()).fieldNames().forEachRemaining(fields::add);
+        assertThat(fields).containsExactlyInAnyOrder("timestamp", "status", "error", "message", "path");
+        // Bare digits can legitimately occur in the error timestamp.
+        assertThat(response.getContentAsString()).doesNotContain("Other", "Employee", "\"104\"");
     }
 }

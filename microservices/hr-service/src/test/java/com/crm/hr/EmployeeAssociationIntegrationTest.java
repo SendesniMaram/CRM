@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -42,7 +44,7 @@ class EmployeeAssociationIntegrationTest extends TestIdentitySupport {
     private static final String PATH = "/api/employee-associations";
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper json;
-    @Autowired LeaveEmployeeAssociationRepository links;
+    @SpyBean LeaveEmployeeAssociationRepository links;
     @Autowired LeaveRepository leaves;
     @Autowired EmployeeAssociationService service;
     @MockBean LeaveDirectoryClient directory;
@@ -281,6 +283,36 @@ class EmployeeAssociationIntegrationTest extends TestIdentitySupport {
             assertThat(List.of(a.get(15, TimeUnit.SECONDS), b.get(15, TimeUnit.SECONDS))).containsExactlyInAnyOrder(201, 409);
             assertThat(links.count()).isEqualTo(1);
             assertThat(links.findAll().get(0).getEmployeeId()).isIn("101", "202");
+        } finally { pool.shutdownNow(); }
+    }
+
+    @Test
+    void staleConflictChecksCannotOverwriteACommittedAssociation() throws Exception {
+        var secondRequestChecked = new CountDownLatch(1);
+        var firstRequestCommitted = new CountDownLatch(1);
+        doAnswer(call -> {
+            String employeeId = call.getArgument(0);
+            if (employeeId.equals("202")) {
+                secondRequestChecked.countDown();
+                assertThat(firstRequestCommitted.await(10, TimeUnit.SECONDS)).isTrue();
+            } else if (employeeId.equals("101")) {
+                assertThat(secondRequestChecked.await(10, TimeUnit.SECONDS)).isTrue();
+            }
+            // Both checks observe the initially empty registry; the second returns
+            // that stale result only after the first request has committed.
+            return false;
+        }).when(links).existsByEmployeeId(anyString());
+        var pool = Executors.newFixedThreadPool(2);
+        try {
+            var first = pool.submit(() -> {
+                try { return concurrentCreate(42, 101); }
+                finally { firstRequestCommitted.countDown(); }
+            });
+            var second = pool.submit(() -> concurrentCreate(42, 202));
+            assertThat(first.get(15, TimeUnit.SECONDS)).isEqualTo(201);
+            assertThat(second.get(15, TimeUnit.SECONDS)).isEqualTo(409);
+            assertThat(links.count()).isEqualTo(1);
+            assertThat(links.findByUserId(42L).orElseThrow().getEmployeeId()).isEqualTo("101");
         } finally { pool.shutdownNow(); }
     }
 

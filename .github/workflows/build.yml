@@ -73,8 +73,11 @@ jobs:
         if: contains(fromJson('["employee-service","department-service","customer-service","hr-service","payroll-service","fees-service","invoice-service"]'), matrix.service)
         run: mvn -B -q -f ../common-security/pom.xml clean install -DskipTests
 
-      - name: Build and test
-        run: mvn -B verify
+      - name: Build, test and generate coverage
+        run: |
+          mvn -B org.jacoco:jacoco-maven-plugin:0.8.15:prepare-agent \
+            verify org.jacoco:jacoco-maven-plugin:0.8.15:report
+          test -s target/site/jacoco/jacoco.xml
 
       - name: Analyze existing Sonar project and wait for its Quality Gate
         # Fork/Dependabot PRs run tests above without receiving Sonar credentials.
@@ -91,6 +94,7 @@ jobs:
           mvn -B org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
             -Dsonar.organization=sendesnimaram \
             -Dsonar.projectKey=SendesniMaram_CRM_${{ matrix.service }} \
+            -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 

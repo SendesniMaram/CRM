@@ -59,7 +59,10 @@ public class EmployeeAssociationService {
                 link.setUserId(userId);
                 link.setUsername(username);
                 link.setEmployeeId(employeeId.toString());
-                return new Creation(associations.saveAndFlush(link), true);
+                // saveAndFlush would merge this assigned-id entity and could overwrite
+                // a row committed after the checks above. Let uniqueness reject the INSERT.
+                associations.insertNew(username, userId, employeeId.toString());
+                return new Creation(link, true);
             });
         } catch (DataIntegrityViolationException | ConcurrencyFailureException ex) {
             // Catch outside the write transaction, after rollback. Never return a partial success.
