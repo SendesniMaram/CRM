@@ -15,5 +15,8 @@ export class PayrollService {
   get(id: number) { return this.http.get<PayrollResponse>(`${this.url}/${id}`); }
   create(value: PayrollRequest) { return this.http.post<PayrollResponse>(this.url, value); }
   update(id: number, value: PayrollRequest) { return this.http.put<PayrollResponse>(`${this.url}/${id}`, value); }
+  setPublished(id: number, published: boolean) {
+    return this.http.patch<PayrollResponse>(`${this.url}/${id}/publication`, { published });
+  }
   delete(id: number) { return this.http.delete<void>(`${this.url}/${id}`); }
 }

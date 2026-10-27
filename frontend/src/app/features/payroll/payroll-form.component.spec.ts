@@ -18,7 +18,7 @@ import { PayrollService } from './payroll.service';
 describe('PayrollFormComponent', () => {
   const request: PayrollRequest = { employeeId: 'EMP-legacy', baseSalary: 2000, bonuses: null,
     deductions: null, taxAmount: null, payPeriod: '2026-10', paymentDate: null, currency: null, status: 'À payer' };
-  const row: PayrollResponse = { id: 4, ...request, netSalary: 123.45, createdAt: null, updatedAt: null };
+  const row: PayrollResponse = { id: 4, ...request, netSalary: 123.45, published: false, createdAt: null, updatedAt: null };
   let fixture: ComponentFixture<PayrollFormComponent>;
   let service: jasmine.SpyObj<PayrollService>;
   let auth: jasmine.SpyObj<AuthService>;

@@ -19,5 +19,7 @@ public interface IPayrollService {
     PayrollResponse updatePayroll(Long id, PayrollRequest request);
 
     void deletePayroll(Long id);
+
+    PayrollResponse setPublished(Long id, boolean published);
 }
 

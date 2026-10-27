@@ -36,14 +36,16 @@ class PersonalPayrollIntegrationTest extends TestIdentitySupport {
     private Long ownOctober;
     private Long ownSeptember;
     private Long otherOctober;
+    private Long unpublishedOwn;
 
     @BeforeEach
     void prepare() {
         payrolls.deleteAll();
         when(directory.ownEmployeeId(anyString(), eq(42L))).thenReturn("101");
-        ownOctober = payrolls.saveAndFlush(payroll("101", "2026-10", "TND")).getId();
-        ownSeptember = payrolls.saveAndFlush(payroll("101", "2026-09", "TND")).getId();
-        otherOctober = payrolls.saveAndFlush(payroll("102", "2026-10", "EUR")).getId();
+        ownOctober = payrolls.saveAndFlush(payroll("101", "2026-10", "TND", true)).getId();
+        ownSeptember = payrolls.saveAndFlush(payroll("101", "2026-09", "TND", true)).getId();
+        otherOctober = payrolls.saveAndFlush(payroll("102", "2026-10", "EUR", true)).getId();
+        unpublishedOwn = payrolls.saveAndFlush(payroll("101", "2026-11", "TND", false)).getId();
     }
 
     @Test
@@ -78,6 +80,10 @@ class PersonalPayrollIntegrationTest extends TestIdentitySupport {
                         result.getResponse().getContentAsByteArray().length > 0));
         mvc.perform(get(PATH + "/" + otherOctober + "/pdf").header("Authorization", EMPLOYEE))
                 .andExpect(status().isNotFound());
+        mvc.perform(get(PATH + "/" + unpublishedOwn).header("Authorization", EMPLOYEE))
+                .andExpect(status().isNotFound());
+        mvc.perform(get(PATH + "/" + unpublishedOwn + "/pdf").header("Authorization", EMPLOYEE))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -98,13 +104,14 @@ class PersonalPayrollIntegrationTest extends TestIdentitySupport {
         mvc.perform(get("/api/payrolls").header("Authorization", EMPLOYEE)).andExpect(status().isForbidden());
     }
 
-    private Payroll payroll(String employeeId, String period, String currency) {
+    private Payroll payroll(String employeeId, String period, String currency, boolean published) {
         Payroll row = new Payroll();
         row.setEmployeeId(employeeId); row.setPayPeriod(period); row.setCurrency(currency);
         row.setBaseSalary(new BigDecimal("2000.00")); row.setBonuses(new BigDecimal("100.00"));
         row.setDeductions(new BigDecimal("50.00")); row.setTaxAmount(new BigDecimal("250.00"));
         row.setNetSalary(new BigDecimal("1800.00")); row.setPaymentDate(LocalDate.of(2026, 10, 31));
         row.setStatus("PAID");
+        row.setPublished(published);
         return row;
     }
 }

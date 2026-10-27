@@ -11,7 +11,7 @@ describe('MyPayrollService', () => {
   const url = 'http://localhost:8080/payroll/api/payrolls/me';
   const row = { id: 5, employeeId: '101', baseSalary: 2000, bonuses: 100, deductions: 50,
     taxAmount: 250, netSalary: 1800, payPeriod: '2026-10', paymentDate: '2026-10-31',
-    currency: 'TND', status: 'PAID', createdAt: null, updatedAt: null };
+    currency: 'TND', status: 'PAID', published: true, createdAt: null, updatedAt: null };
 
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()] });

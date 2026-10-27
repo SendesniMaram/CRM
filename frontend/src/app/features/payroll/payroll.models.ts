@@ -13,6 +13,7 @@ export interface PayrollRequest {
 export interface PayrollResponse extends PayrollRequest {
   id: number;
   netSalary: number;
+  published: boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }

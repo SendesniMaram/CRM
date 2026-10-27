@@ -65,6 +65,9 @@ public class Payroll {
     @Column(name = "status", nullable = false)
     private String status;
 
+    @Column(name = "published", nullable = false)
+    private boolean published;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

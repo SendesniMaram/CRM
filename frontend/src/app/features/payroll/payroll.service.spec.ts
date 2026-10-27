@@ -47,4 +47,9 @@ describe('PayrollService', () => {
     service.delete(4).subscribe(); const call = http.expectOne(url + '/4');
     expect(call.request.method).toBe('DELETE'); call.flush(null);
   });
+  it('publishes or unpublishes a payroll via the dedicated admin endpoint', () => {
+    service.setPublished(4, true).subscribe(); const call = http.expectOne(url + '/4/publication');
+    expect(call.request.method).toBe('PATCH'); expect(call.request.body).toEqual({ published: true });
+    call.flush({ id: 4, ...request, published: true });
+  });
 });

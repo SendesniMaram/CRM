@@ -27,9 +27,11 @@
           <ng-container matColumnDef="netSalary"><th mat-header-cell *matHeaderCellDef mat-sort-header>Salaire net</th><td mat-cell *matCellDef="let row" class="amount">{{ row.netSalary | invoiceAmount }}</td></ng-container>
           <ng-container matColumnDef="currency"><th mat-header-cell *matHeaderCellDef mat-sort-header>Devise</th><td mat-cell *matCellDef="let row">{{ row.currency || 'Non renseignée' }}</td></ng-container>
           <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef mat-sort-header>Statut</th><td mat-cell *matCellDef="let row"><span class="status-badge">{{ row.status }}</span></td></ng-container>
+          <ng-container matColumnDef="published"><th mat-header-cell *matHeaderCellDef>Publication</th><td mat-cell *matCellDef="let row">{{ row.published ? 'Publié' : 'Brouillon' }}</td></ng-container>
           <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
             <a mat-icon-button [routerLink]="['/payroll', row.id]" [attr.aria-label]="'Consulter la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>visibility</mat-icon></a>
             @if (canManage()) { <a mat-icon-button [routerLink]="['/payroll', row.id, 'edit']" [attr.aria-label]="'Modifier la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>edit</mat-icon></a>
+              <button mat-button type="button" (click)="togglePublication(row)" [disabled]="busy() || loading()">{{row.published ? 'Retirer publication' : 'Publier'}}</button>
               <button mat-icon-button type="button" (click)="remove(row)" [disabled]="busy() || loading()" [attr.aria-label]="'Supprimer la fiche ' + row.payPeriod + ' de ' + row.employeeId"><mat-icon>delete_outline</mat-icon></button> }
           </td></ng-container>
           <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>

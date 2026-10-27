@@ -29,7 +29,7 @@ describe('Payroll routes with real guards and HTTP interceptor', () => {
       const harness = await RouterTestingHarness.create(editing ? '/payroll/4/edit' : '/payroll/new');
       const http = TestBed.inject(HttpTestingController);
       const value = { employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' };
-      if (editing) http.expectOne(url + '/4').flush({ id: 4, ...value, netSalary: 123.45 });
+      if (editing) http.expectOne(url + '/4').flush({ id: 4, ...value, netSalary: 123.45, published: false });
       harness.detectChanges();
       const form = harness.fixture.debugElement.query(By.directive(PayrollFormComponent)).componentInstance as PayrollFormComponent;
       form['form'].patchValue(value);
@@ -39,7 +39,7 @@ describe('Payroll routes with real guards and HTTP interceptor', () => {
       expect(write.request.method).toBe(editing ? 'PUT' : 'POST');
       expect(write.request.headers.has('Authorization')).toBeTrue();
       expect(write.request.body).toEqual(value);
-      write.flush({ id: 4, ...value, netSalary: 123.45 });
+      write.flush({ id: 4, ...value, netSalary: 123.45, published: false });
     });
   }
   it('handles a backend forbidden response through the existing interceptor', async () => {
@@ -61,7 +61,7 @@ describe('Payroll routes with real guards and HTTP interceptor', () => {
         } else if (path !== '/payroll/new') {
           const request = http.expectOne(url + '/4');
           expect(request.request.headers.has('Authorization')).toBeTrue();
-          request.flush({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' }, netSalary: 123.45, createdAt: null, updatedAt: null });
+          request.flush({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' }, netSalary: 123.45, published: false, createdAt: null, updatedAt: null });
         }
         harness.detectChanges(); expect(TestBed.inject(Router).url).toBe(path);
         expect(harness.routeNativeElement?.textContent).not.toContain('Page introuvable');
@@ -100,7 +100,7 @@ describe('Payroll routes with real guards and HTTP interceptor', () => {
     const detail = TestBed.inject(HttpTestingController).expectOne(personalUrl + '/5');
     expect(detail.request.headers.has('Authorization')).toBeTrue();
     detail.flush({ id: 5, employeeId: '101', baseSalary: 2000, bonuses: 0, deductions: 0,
-      taxAmount: 0, netSalary: 2000, payPeriod: '2026-10', paymentDate: null, currency: 'TND', status: 'PAID' });
+      taxAmount: 0, netSalary: 2000, payPeriod: '2026-10', paymentDate: null, currency: 'TND', status: 'PAID', published: true });
     harness.detectChanges();
     expect(harness.routeNativeElement?.textContent).toContain('2026-10');
   });

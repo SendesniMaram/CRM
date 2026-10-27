@@ -99,6 +99,14 @@ public class PayrollServiceImpl implements IPayrollService {
         payrollRepository.delete(payroll);
     }
 
+    @Override
+    public PayrollResponse setPublished(Long id, boolean published) {
+        Payroll payroll = payrollRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payroll not found with id: " + id));
+        payroll.setPublished(published);
+        return payrollMapper.toResponse(payrollRepository.save(payroll));
+    }
+
     /**
      * Calculate net salary: netSalary = baseSalary + bonuses - deductions - taxAmount
      */

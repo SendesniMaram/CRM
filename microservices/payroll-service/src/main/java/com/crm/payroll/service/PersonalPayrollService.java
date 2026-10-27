@@ -56,6 +56,7 @@ public class PersonalPayrollService {
         Specification<Payroll> specification = (root, query, criteria) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteria.equal(root.get("employeeId"), employeeId));
+            predicates.add(criteria.isTrue(root.get("published")));
             if (normalizedPeriod != null) {
                 if (normalizedPeriod.length() == 4) {
                     predicates.add(criteria.like(root.get("payPeriod"), normalizedPeriod + "%"));
@@ -77,6 +78,7 @@ public class PersonalPayrollService {
         }
         Payroll payroll = payrolls.findById(id)
                 .filter(row -> employeeId.equals(row.getEmployeeId()))
+                .filter(Payroll::isPublished)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payroll resource unavailable"));
         return mapper.toResponse(payroll);
     }

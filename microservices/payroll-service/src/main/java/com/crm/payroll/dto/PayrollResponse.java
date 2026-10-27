@@ -35,6 +35,8 @@ public class PayrollResponse {
 
     private String status;
 
+    private boolean published;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

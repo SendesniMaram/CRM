@@ -11,7 +11,7 @@ describe('MyPayrollPageComponent', () => {
   let service: jasmine.SpyObj<MyPayrollService>;
   const result = { content: [{ id: 5, employeeId: '101', baseSalary: 2000, bonuses: 100, deductions: 50,
     taxAmount: 250, netSalary: 1800, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND',
-    status: 'PAID', createdAt: null, updatedAt: null }], number: 0, totalElements: 1, totalPages: 1, size: 10 };
+    status: 'PAID', published: true, createdAt: null, updatedAt: null }], number: 0, totalElements: 1, totalPages: 1, size: 10 };
 
   beforeEach(() => {
     service = jasmine.createSpyObj<MyPayrollService>('MyPayrollService', ['list', 'read', 'pdf']);

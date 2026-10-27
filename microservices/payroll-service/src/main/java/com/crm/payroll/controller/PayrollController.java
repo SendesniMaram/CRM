@@ -2,6 +2,7 @@ package com.crm.payroll.controller;
 
 import com.crm.payroll.dto.PayrollRequest;
 import com.crm.payroll.dto.PayrollResponse;
+import com.crm.payroll.dto.PayrollPublicationRequest;
 import com.crm.payroll.service.IPayrollService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -71,6 +73,12 @@ public class PayrollController {
     public ResponseEntity<Void> deletePayroll(@PathVariable Long id) {
         payrollService.deletePayroll(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping(path = "/{id}/publication", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PayrollResponse> setPublication(@PathVariable Long id,
+            @Valid @RequestBody PayrollPublicationRequest request) {
+        return ResponseEntity.ok(payrollService.setPublished(id, request.published()));
     }
 }
 

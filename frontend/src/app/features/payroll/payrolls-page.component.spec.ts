@@ -14,7 +14,7 @@ import { PayrollsPageComponent } from './payrolls-page.component';
 
 describe('PayrollsPageComponent', () => {
   const request = { employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' };
-  const row: PayrollResponse = { id: 1, ...request, netSalary: 123.45, createdAt: null, updatedAt: null };
+  const row: PayrollResponse = { id: 1, ...request, netSalary: 123.45, published: false, createdAt: null, updatedAt: null };
   const result: PayrollPage = { content: [row], totalElements: 31, totalPages: 4, number: 0, size: 10 };
   let fixture: ComponentFixture<PayrollsPageComponent>;
   let service: jasmine.SpyObj<PayrollService>;
@@ -23,10 +23,10 @@ describe('PayrollsPageComponent', () => {
   let snack: jasmine.SpyObj<MatSnackBar>;
   let confirmation: Subject<boolean>;
   let view: { search: FormControl<string>; page: WritableSignal<number>; find(): void;
-    paginate(event: PageEvent): void; sort(event: Sort): void; remove(row: PayrollResponse): void };
+    paginate(event: PageEvent): void; sort(event: Sort): void; remove(row: PayrollResponse): void; togglePublication(row: PayrollResponse): void };
   beforeEach(async () => {
-    service = jasmine.createSpyObj('PayrollService', ['list', 'delete']);
-    service.list.and.returnValue(of(result)); service.delete.and.returnValue(of(undefined));
+    service = jasmine.createSpyObj('PayrollService', ['list', 'delete', 'setPublished']);
+    service.list.and.returnValue(of(result)); service.delete.and.returnValue(of(undefined)); service.setPublished.and.returnValue(of({ ...row, published: true }));
     auth = jasmine.createSpyObj('AuthService', ['hasAnyRole']); auth.hasAnyRole.and.returnValue(true);
     confirmation = new Subject<boolean>();
     dialog = jasmine.createSpyObj('MatDialog', ['open']);
@@ -92,6 +92,11 @@ describe('PayrollsPageComponent', () => {
     fixture.detectChanges(); view.remove(row); confirmation.next(true); confirmation.complete();
     expect(snack.open.calls.mostRecent().args[0]).toContain('Suppression refusée');
     expect(snack.open.calls.mostRecent().args[0]).not.toContain('SQL');
+  });
+  it('publishes and withdraws employee access through the API', () => {
+    fixture.detectChanges(); view.togglePublication(row);
+    expect(service.setPublished).toHaveBeenCalledOnceWith(1, true);
+    expect(snack.open.calls.mostRecent().args[0]).toContain('publié');
   });
   it('does not allow deletion without administrative permission', () => {
     auth.hasAnyRole.and.returnValue(false); fixture.detectChanges(); view.remove(row);

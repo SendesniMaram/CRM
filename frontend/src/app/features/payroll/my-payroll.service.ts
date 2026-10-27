@@ -51,6 +51,7 @@ export class MyPayrollService {
 function validPayroll(row: PayrollResponse): boolean {
   return !!row && Number.isSafeInteger(row.id) && row.id > 0 && typeof row.employeeId === 'string'
     && typeof row.payPeriod === 'string' && typeof row.status === 'string'
+    && row.published === true
     && typeof row.baseSalary === 'number' && Number.isFinite(row.baseSalary)
     && typeof row.netSalary === 'number' && Number.isFinite(row.netSalary)
     && (row.currency === null || typeof row.currency === 'string');

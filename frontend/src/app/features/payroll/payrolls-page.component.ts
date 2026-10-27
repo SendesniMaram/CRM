@@ -58,7 +58,7 @@ export class PayrollsPageComponent implements OnInit {
   protected readonly sortBy = signal<PayrollSort>('payPeriod');
   protected readonly direction = signal<'asc' | 'desc'>('asc');
   protected readonly search = new FormControl('', { nonNullable: true });
-  protected readonly columns = ['payPeriod', 'employeeId', 'paymentDate', 'netSalary', 'currency', 'status', 'actions'];
+  protected readonly columns = ['payPeriod', 'employeeId', 'paymentDate', 'netSalary', 'currency', 'status', 'published', 'actions'];
 
   ngOnInit() {
     this.requests.pipe(switchMap(query => {
@@ -107,6 +107,24 @@ export class PayrollsPageComponent implements OnInit {
         this.snack.open(e.status === 404 ? 'Cette fiche de paie est introuvable ou a déjà été supprimée.'
           : e.status === 400 || e.status === 409 ? 'Suppression refusée par le service. La fiche peut être liée à d’autres données.'
           : 'Impossible de supprimer cette fiche de paie. Réessayez plus tard.', 'Fermer', { duration: 8000 });
+      }
+    });
+  }
+
+  protected togglePublication(payroll: PayrollResponse) {
+    if (!this.canManage() || this.busy() || this.loading()) return;
+    this.busy.set(true); this.error.set('');
+    this.service.setPublished(payroll.id, !payroll.published).pipe(
+      takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))
+    ).subscribe({
+      next: result => {
+        this.snack.open(result.published ? 'Bulletin publié pour l’employé.' : 'Publication retirée.', 'Fermer', { duration: 5000 });
+        this.load();
+      },
+      error: (e: { status?: number }) => {
+        if (e.status === 401 || e.status === 403) return;
+        this.snack.open(e.status === 404 ? 'Cette fiche de paie est introuvable.'
+          : 'Impossible de modifier la publication du bulletin.', 'Fermer', { duration: 8000 });
       }
     });
   }

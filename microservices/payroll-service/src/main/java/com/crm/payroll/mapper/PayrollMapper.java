@@ -25,6 +25,7 @@ public class PayrollMapper {
         response.setPaymentDate(payroll.getPaymentDate());
         response.setCurrency(payroll.getCurrency());
         response.setStatus(payroll.getStatus());
+        response.setPublished(payroll.isPublished());
         response.setCreatedAt(payroll.getCreatedAt());
         response.setUpdatedAt(payroll.getUpdatedAt());
 
@@ -46,6 +47,7 @@ public class PayrollMapper {
         payroll.setPaymentDate(request.getPaymentDate());
         payroll.setCurrency(request.getCurrency());
         payroll.setStatus(request.getStatus());
+        payroll.setPublished(false);
 
         return payroll;
     }

@@ -75,6 +75,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(jsonPath("$.payPeriod").value("2024-01"))
                 .andExpect(jsonPath("$.currency").value("EUR"))
                 .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.published").value(false))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty())
                 .andReturn()
@@ -91,6 +92,22 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
 
         // Verify persistence
         assertTrue(payrollRepository.findById(response.getId()).isPresent());
+    }
+
+    @Test
+    void administratorCanPublishAndUnpublishWithoutChangingPayrollAmounts() throws Exception {
+        String created = mockMvc.perform(post("/api/payrolls").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        PayrollResponse payroll = objectMapper.readValue(created, PayrollResponse.class);
+        mockMvc.perform(patch("/api/payrolls/{id}/publication", payroll.getId()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"published\":true}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.published").value(true))
+                .andExpect(jsonPath("$.netSalary").value(4500.00));
+        assertTrue(payrollRepository.findById(payroll.getId()).orElseThrow().isPublished());
+        mockMvc.perform(patch("/api/payrolls/{id}/publication", payroll.getId()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"published\":false}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.published").value(false));
     }
 
     @Test

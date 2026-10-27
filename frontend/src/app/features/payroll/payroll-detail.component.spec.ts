@@ -7,7 +7,7 @@ import { PayrollService } from './payroll.service';
 describe('PayrollDetailComponent', () => {
   async function create(id: string, fails = false) {
     const service = jasmine.createSpyObj<PayrollService>('PayrollService', ['get']);
-    service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' }, netSalary: 123.45, createdAt: null, updatedAt: null }));
+    service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' }, netSalary: 123.45, published: false, createdAt: null, updatedAt: null }));
     await TestBed.configureTestingModule({ imports: [PayrollDetailComponent], providers: [provideRouter([]),
       provideZonelessChangeDetection(), { provide: PayrollService, useValue: service },
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id })) } }] }).compileComponents();

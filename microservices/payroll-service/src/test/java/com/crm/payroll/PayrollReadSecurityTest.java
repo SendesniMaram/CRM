@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
@@ -78,5 +79,17 @@ class PayrollReadSecurityTest extends com.crm.payroll.security.TestIdentitySuppo
         } else {
             result.andExpect(jsonPath("$[0].id").value(1));
         }
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"ANONYMOUS,401", "EMPLOYEE,403", "CLIENT,403", "ADMIN,200", "SUPER_ADMIN,200"})
+    void publicationMutationRequiresAdministrator(String role, int expected) throws Exception {
+        var request = patch("/api/payrolls/1/publication").contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"published\":true}");
+        if (!role.equals("ANONYMOUS")) request.header("Authorization", "Bearer "
+                + com.crm.payroll.security.TestIdentitySupport.token("security-test-user", "", true, List.of(role)));
+        mvc.perform(request).andExpect(status().is(expected));
+        if (expected != 200) verifyNoInteractions(service0);
+        else verify(service0).setPublished(1L, true);
     }
 }
