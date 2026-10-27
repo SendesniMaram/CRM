@@ -1,4 +1,4 @@
-export type HrModule = 'trainings' | 'attendances' | 'hr-records';
+export type HrModule = 'trainings' | 'attendances' | 'hr-records' | 'contracts' | 'evaluations' | 'job-offers' | 'applications';
 export interface HrField {
   key: string; label: string; type: 'text'|'date'|'time'|'datetime-local'|'number'|'select'|'checkbox';
   required?: boolean; maxLength?: number; options?: readonly string[];
@@ -35,9 +35,34 @@ export const HR_MODULES: Record<HrModule,HrModuleDefinition> = {
       {key:'manager',label:'Responsable',type:'text',maxLength:255},
       {key:'workLocation',label:'Lieu de travail',type:'text',maxLength:255},
       {key:'employmentStatus',label:"Statut d'emploi",type:'text',maxLength:50}]
+  },
+  contracts: {
+    title:'Contrats et avenants',singular:'contrat',columns:['employeeId','contractType','startDate','endDate','status','parentContractId'],
+    fields:[employee,{key:'contractType',label:'Type de contrat',type:'text',required:true,maxLength:100},
+      {key:'startDate',label:'Date de début',type:'date',required:true},{key:'endDate',label:'Date de fin',type:'date'},
+      {key:'status',label:'Statut',type:'select',required:true,options:['DRAFT','ACTIVE','ENDED','CANCELLED']},
+      {key:'parentContractId',label:'Contrat parent (avenant)',type:'number'},
+      {key:'notes',label:'Notes',type:'text',maxLength:2000}]
+  },
+  evaluations: {
+    title:'Évaluations',singular:'évaluation',columns:['employeeId','periodStart','periodEnd','status','criteria','comments'],
+    fields:[employee,{key:'periodStart',label:'Début de période',type:'date',required:true},{key:'periodEnd',label:'Fin de période',type:'date',required:true},
+      {key:'criteria',label:'Critères',type:'text',maxLength:10000},{key:'comments',label:'Appréciations et commentaires',type:'text',maxLength:10000},
+      {key:'status',label:'Statut',type:'select',required:true,options:['DRAFT','FINALIZED']}]
+  },
+  'job-offers': {
+    title:'Offres de recrutement',singular:'offre',columns:['title','status','description'],
+    fields:[{key:'title',label:'Intitulé',type:'text',required:true,maxLength:200},{key:'description',label:'Description',type:'text',maxLength:10000},
+      {key:'status',label:'Statut',type:'select',required:true,options:['OPEN','CLOSED']}]
+  },
+  applications: {
+    title:'Candidatures',singular:'candidature',columns:['offerId','candidateName','candidateEmail','status','notes'],
+    fields:[{key:'offerId',label:'Identifiant de l’offre',type:'number',required:true},{key:'candidateName',label:'Nom du candidat',type:'text',required:true,maxLength:200},
+      {key:'candidateEmail',label:'Courriel',type:'text',required:true,maxLength:254},{key:'notes',label:'Notes',type:'text',maxLength:10000},
+      {key:'status',label:'Étape',type:'select',required:true,options:['RECEIVED','IN_REVIEW','ACCEPTED','REJECTED']}]
   }
 };
-export interface HrRow { id:string; employeeId:string; [key:string]:unknown }
+export interface HrRow { id:string; employeeId?:string; [key:string]:unknown }
 export interface HrPage { content:HrRow[]; totalElements:number; totalPages:number; number:number }
 export function hrError(error:{status?:number}):string {
   return ({

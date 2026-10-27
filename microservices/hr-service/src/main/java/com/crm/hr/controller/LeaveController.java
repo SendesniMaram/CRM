@@ -57,6 +57,18 @@ public class LeaveController {
         return ResponseEntity.ok(leavePage);
     }
 
+    @GetMapping("/calendar")
+    public ResponseEntity<List<LeaveResponse>> calendar(@RequestParam java.time.LocalDate from,
+            @RequestParam java.time.LocalDate to, @RequestParam(required = false) String employeeId) {
+        access.requireAdmin();
+        if (to.isBefore(from)) throw new IllegalArgumentException("Calendar end must not precede start");
+        List<LeaveResponse> entries = leaveService.getAllLeaves().stream()
+                .filter(leave -> !leave.getEndDate().isBefore(from) && !leave.getStartDate().isAfter(to))
+                .filter(leave -> employeeId == null || employeeId.isBlank() || leave.getEmployeeId().equals(employeeId.trim()))
+                .toList();
+        return ResponseEntity.ok(entries);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<LeaveResponse> getLeaveById(@PathVariable Long id) {
         LeaveResponse response = leaveService.getLeaveById(id);

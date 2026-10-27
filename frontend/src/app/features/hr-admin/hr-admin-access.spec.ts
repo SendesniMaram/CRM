@@ -14,7 +14,7 @@ describe('HR administration navigation permissions',()=>{
       TestBed.configureTestingModule({providers:[provideZonelessChangeDetection(),provideRouter([]),
         {provide:AuthService,useValue:{ensureSession:()=>of(true),hasAnyRole:(roles:CrmRole[])=>roles.includes(role)}}]});
       const allowed=role===CrmRole.ADMIN||role===CrmRole.SUPER_ADMIN;
-      for(const path of ['trainings','attendances','hr-records']){
+      for(const path of ['trainings','attendances','hr-records','contracts','evaluations','job-offers','applications']){
         const route=routes.find(r=>r.path==='')!.children!.find(r=>r.path===path)!;
         const result=await firstValueFrom(TestBed.runInInjectionContext(()=>roleGuard({data:route.data} as ActivatedRouteSnapshot,{url:'/'+path} as RouterStateSnapshot)) as Observable<boolean|UrlTree>);
         if(allowed)expect(result).toBeTrue();else expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/access-denied');

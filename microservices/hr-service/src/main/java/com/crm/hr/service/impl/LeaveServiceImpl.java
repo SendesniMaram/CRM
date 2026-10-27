@@ -39,6 +39,7 @@ public class LeaveServiceImpl implements ILeaveService {
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after or equal to start date");
         }
+        rejectOverlappingLeave(request, null);
 
         LeaveRequest leaveRequest = leaveMapper.toEntity(request);
         LeaveRequest saved = leaveRepository.save(leaveRequest);
@@ -100,6 +101,7 @@ public class LeaveServiceImpl implements ILeaveService {
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after or equal to start date");
         }
+        rejectOverlappingLeave(request, id);
 
         leaveMapper.updateEntityFromRequest(existing, request);
         LeaveRequest saved = leaveRepository.save(existing);
@@ -152,5 +154,14 @@ public class LeaveServiceImpl implements ILeaveService {
         if (leaveRequest.getStatus() != LeaveRequest.LeaveStatus.PENDING)
             throw new IllegalArgumentException("Only a pending leave request can be deleted");
         leaveRepository.delete(leaveRequest);
+    }
+
+    private void rejectOverlappingLeave(LeaveRequestDto request, Long excludedId) {
+        boolean overlap = leaveRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        request.getEndDate(), request.getStartDate()).stream()
+                .anyMatch(existing -> existing.getEmployeeId().equals(request.getEmployeeId())
+                        && !existing.getStatus().equals(LeaveRequest.LeaveStatus.REJECTED)
+                        && !existing.getId().equals(excludedId));
+        if (overlap) throw new IllegalArgumentException("Leave request overlaps an existing pending or approved leave");
     }
 }

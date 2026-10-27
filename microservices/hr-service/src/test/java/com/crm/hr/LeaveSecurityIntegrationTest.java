@@ -53,12 +53,19 @@ class LeaveSecurityIntegrationTest extends com.crm.hr.security.TestIdentitySuppo
     String auth(String uid, String username, String role) {
         return "Bearer " + signed(username, true, List.of(role), uid, java.time.Instant.now().plusSeconds(600));
     }
-    String body() { return "{\"startDate\":\"" + LocalDate.now().plusDays(2) + "\",\"endDate\":\"" + LocalDate.now().plusDays(4) + "\",\"reason\":\"Leave\"}"; }
+    String body() { return "{\"startDate\":\"" + LocalDate.now().plusDays(10) + "\",\"endDate\":\"" + LocalDate.now().plusDays(12) + "\",\"reason\":\"Leave\"}"; }
     @Test void employeeCreatesPendingUsingServerAssociationDespiteSpoofedEmployeeId() throws Exception {
         mvc.perform(post("/api/leaves/mine").header("Authorization", auth("employee-a", "EMPLOYEE"))
                 .contentType(MediaType.APPLICATION_JSON).content(body().replace("}", ",\"employeeId\":\"102\",\"validatorUsername\":\"forged\"}")))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.employeeId").value("101"))
                 .andExpect(jsonPath("$.status").value("PENDING")).andExpect(jsonPath("$.validatorUsername").isEmpty());
+    }
+    @Test void employeeCannotCreateOverlappingPendingLeave() throws Exception {
+        String a=auth("employee-a","EMPLOYEE");
+        mvc.perform(post("/api/leaves/mine").header("Authorization",a).contentType(MediaType.APPLICATION_JSON).content(body()))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/leaves/mine").header("Authorization",a).contentType(MediaType.APPLICATION_JSON).content(body()))
+                .andExpect(status().isBadRequest());
     }
     @Test void employeeOwnListAndDetail() throws Exception {
         mvc.perform(get("/api/leaves").header("Authorization", auth("employee-a", "EMPLOYEE")))
@@ -195,7 +202,7 @@ class LeaveSecurityIntegrationTest extends com.crm.hr.security.TestIdentitySuppo
                 .content(body().replace("}", ",\"employeeId\":\"102\"}")))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.employeeId").value("101"));
         mvc.perform(put("/api/leaves/mine/" + aId).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
-                .content(body().replace("}", ",\"employeeId\":\"102\"}")))
+                .content(("{\"startDate\":\"" + LocalDate.now().plusDays(20) + "\",\"endDate\":\"" + LocalDate.now().plusDays(22) + "\",\"reason\":\"Leave\"}").replace("}", ",\"employeeId\":\"102\"}")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.employeeId").value("101"));
         mvc.perform(delete("/api/leaves/" + aId).header("Authorization", bearer)).andExpect(status().isNoContent());
         assertEquals("employee-a", links.findByUserId(1L).orElseThrow().getUsername());

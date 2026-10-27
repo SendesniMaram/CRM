@@ -79,7 +79,7 @@ export class HrAdminPageComponent {
   private current(g:number){return g===this.auth.sessionGeneration&&this.admin()&&!this.destroy.destroyed;}
   protected label(key:string){return this.definition.fields.find(field=>field.key===key)?.label??key;}
   protected display(value:unknown){return value===null||value===undefined||value===''?'Non renseigné':String(value);}
-  protected readonly statusLabels:Record<string,string>={PLANNED:'Planifiée',IN_PROGRESS:'En cours',COMPLETED:'Terminée',CANCELLED:'Annulée',PRESENT:'Présent',ABSENT:'Absent',LATE:'En retard',HALF_DAY:'Demi-journée',LEAVE:'En congé'};
+  protected readonly statusLabels:Record<string,string>={PLANNED:'Planifiée',IN_PROGRESS:'En cours',COMPLETED:'Terminée',CANCELLED:'Annulée',PRESENT:'Présent',ABSENT:'Absent',LATE:'En retard',HALF_DAY:'Demi-journée',LEAVE:'En congé',DRAFT:'Brouillon',ACTIVE:'Actif',ENDED:'Terminé',OPEN:'Ouverte',CLOSED:'Clôturée',FINALIZED:'Finalisée',RECEIVED:'Reçue',IN_REVIEW:'En étude',ACCEPTED:'Acceptée',REJECTED:'Refusée'};
   protected resetSearch(){this.search.reset('');this.find();}
   protected completed(row:HrRow){return this.module==='trainings'&&row['status']==='COMPLETED';}
   protected load(){
@@ -120,7 +120,7 @@ export class HrAdminPageComponent {
     const request:Record<string,unknown>={};
     for(const field of this.definition.fields){
       const raw=this.form.controls[field.key].value;
-      request[field.key]=field.type==='number'?Number(raw):field.type==='checkbox'?raw:raw===null||raw===''?null:String(raw).trim();
+      request[field.key]=field.type==='number'?(raw===null||raw===''?null:Number(raw)):field.type==='checkbox'?raw:raw===null||raw===''?null:String(raw).trim();
     }
     if(this.module==='trainings'){
       const start=String(request['startDate']),end=String(request['endDate']);
@@ -130,6 +130,12 @@ export class HrAdminPageComponent {
       if(!this.selected()&&request['status']==='COMPLETED'){this.formError.set('Créez la formation avant de la marquer terminée.');return;}
       if(request['certificateObtained']===true&&request['status']!=='COMPLETED'){this.formError.set('Un certificat ne peut être enregistré que pour une formation terminée.');return;}
     }
+    if(this.module==='contracts'){
+      const start=String(request['startDate']),end=request['endDate'];
+      if(end&&String(end)<start){this.formError.set('La date de fin doit être égale ou postérieure à la date de début.');return;}
+      if(request['parentContractId']!==null&&!Number.isSafeInteger(request['parentContractId'])){this.formError.set('Le contrat parent doit être un identifiant numérique valide.');return;}
+    }
+    if(this.module==='evaluations'&&String(request['periodEnd'])<String(request['periodStart'])){this.formError.set('La fin de période doit être égale ou postérieure au début.');return;}
     const g=this.generation;this.busy.set(true);this.formError.set('');
     this.requests.add(this.service.save(this.module,this.selected()?.id??null,request).subscribe({
       next:()=>{if(this.current(g)){this.busy.set(false);this.editing.set(false);this.selected.set(null);this.form.reset();this.success.set('Enregistrement sauvegardé.');this.load();}},

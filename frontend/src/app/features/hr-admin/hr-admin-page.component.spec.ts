@@ -11,7 +11,11 @@ import { HR_MODULES,HrModule,HrRow } from './hr-admin.models';
 const fixtures:Record<HrModule,HrRow>={
   trainings:{id:'7',employeeId:'101',title:'Formation sécurité',provider:'Organisme',startDate:'2099-01-01',endDate:'2099-01-02',cost:0,status:'PLANNED',certificateObtained:false},
   attendances:{id:'7',employeeId:'101',date:'2026-10-23',checkIn:'09:00:00',checkOut:'17:00:00',status:'PRESENT',notes:null},
-  'hr-records':{id:'7',employeeId:'101',contractType:'CDI',hireDate:'2026-10-23T09:00:00',jobTitle:'Consultant',salaryGrade:null,manager:null,workLocation:null,employmentStatus:'ACTIVE'}
+  'hr-records':{id:'7',employeeId:'101',contractType:'CDI',hireDate:'2026-10-23T09:00:00',jobTitle:'Consultant',salaryGrade:null,manager:null,workLocation:null,employmentStatus:'ACTIVE'},
+  contracts:{id:'7',employeeId:'101',contractType:'CDI',startDate:'2026-10-23',endDate:null,status:'ACTIVE',parentContractId:null,notes:null},
+  evaluations:{id:'7',employeeId:'101',periodStart:'2026-01-01',periodEnd:'2026-12-31',criteria:null,comments:null,status:'DRAFT'},
+  'job-offers':{id:'7',title:'Développeur',description:null,status:'OPEN'},
+  applications:{id:'7',offerId:7,candidateName:'Candidate',candidateEmail:'candidate@example.test',notes:null,status:'RECEIVED'}
 };
 describe('HR administrative screens',()=>{
   const identity=signal('admin');let generation=0;let role=CrmRole.ADMIN;
@@ -41,10 +45,11 @@ describe('HR administrative screens',()=>{
     for(const r of [CrmRole.ADMIN,CrmRole.SUPER_ADMIN]){
       it(m+': offers CRUD to '+r,()=>{
         role=r;const f=create(m);expect(f.nativeElement.textContent).toContain(HR_MODULES[m].title);
+        const expected=Object.fromEntries(HR_MODULES[m].fields.map(field=>[field.key,fixtures[m][field.key]??null]));
         f.componentInstance['create']();fill(f,m);f.componentInstance['save']();
-        expect(service.save).toHaveBeenCalledWith(m,null,jasmine.objectContaining({employeeId:'101'}));
+        expect(service.save).toHaveBeenCalledWith(m,null,jasmine.objectContaining(expected));
         f.componentInstance['open'](fixtures[m],true);expect(service.read).toHaveBeenCalledWith(m,'7');
-        f.componentInstance['save']();expect(service.save).toHaveBeenCalledWith(m,'7',jasmine.objectContaining({employeeId:'101'}));
+        f.componentInstance['save']();expect(service.save).toHaveBeenCalledWith(m,'7',jasmine.objectContaining(expected));
         f.componentInstance['remove'](fixtures[m]);expect(dialog.open).toHaveBeenCalled();expect(service.delete).toHaveBeenCalledWith(m,'7');
       });
     }

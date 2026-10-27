@@ -43,7 +43,7 @@ export class HrAdminService {
     return row;
   }
   private validRow(module:HrModule,row:HrRow):boolean {
-    if(!row||!canonicalId(row.id)||typeof row.employeeId!=='string'||!row.employeeId.trim()||row.employeeId.length>50)return false;
+    if(!row||!canonicalId(row.id))return false;
     for(const field of HR_MODULES[module].fields) {
       const value=row[field.key];
       if(value===null||value===undefined){if(field.required)return false;continue;}
@@ -52,6 +52,7 @@ export class HrAdminService {
       else if(typeof value!=='string'||(field.maxLength&&value.length>field.maxLength)
         ||(field.options&&!field.options.includes(value)))return false;
     }
+    if('employeeId' in row&&(typeof row.employeeId!=='string'||!row.employeeId.trim()||row.employeeId.length>50))return false;
     return true;
   }
   private invalid(){return new HttpErrorResponse({status:502});}

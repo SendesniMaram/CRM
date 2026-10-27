@@ -8,7 +8,11 @@ import { HrModule } from './hr-admin.models';
 const fixtures:Record<HrModule,Record<string,unknown>>={
   trainings:{id:7,employeeId:'101',title:'Formation sécurité',provider:'Organisme',startDate:'2099-01-01',endDate:'2099-01-02',cost:0,status:'PLANNED',certificateObtained:false},
   attendances:{id:7,employeeId:'101',date:'2026-10-23',checkIn:'09:00:00',checkOut:'17:00:00',status:'PRESENT',notes:null},
-  'hr-records':{id:7,employeeId:'101',contractType:'CDI',hireDate:'2026-10-23T09:00:00',jobTitle:'Consultant',salaryGrade:null,manager:null,workLocation:null,employmentStatus:'ACTIVE'}
+  'hr-records':{id:7,employeeId:'101',contractType:'CDI',hireDate:'2026-10-23T09:00:00',jobTitle:'Consultant',salaryGrade:null,manager:null,workLocation:null,employmentStatus:'ACTIVE'},
+  contracts:{id:7,employeeId:'101',contractType:'CDI',startDate:'2026-10-23',endDate:null,status:'ACTIVE',parentContractId:null,notes:null},
+  evaluations:{id:7,employeeId:'101',periodStart:'2026-01-01',periodEnd:'2026-12-31',criteria:null,comments:null,status:'DRAFT'},
+  'job-offers':{id:7,title:'Développeur',description:null,status:'OPEN'},
+  applications:{id:7,offerId:7,candidateName:'Candidate',candidateEmail:'candidate@example.test',notes:null,status:'RECEIVED'}
 };
 describe('HR administrative HTTP contracts',()=>{
   let service:HrAdminService;let http:HttpTestingController;
@@ -20,7 +24,8 @@ describe('HR administrative HTTP contracts',()=>{
   for(const module of Object.keys(fixtures) as HrModule[]){
     it(module+': requests an explicit paged response and preserves employee references',()=>{
       service.list(module,0,'sécurité').subscribe(page=>{
-        expect(page.content[0].id).toBe('7');expect(page.content[0].employeeId).toBe('101');
+        expect(page.content[0].id).toBe('7');
+        if('employeeId' in fixtures[module])expect(page.content[0].employeeId).toBe('101');
       });
       const r=http.expectOne(r=>r.url==='http://localhost:8080/hr/api/'+module);
       expect(r.request.params.get('sortBy')).toBe('id');expect(r.request.params.get('size')).toBe('10');

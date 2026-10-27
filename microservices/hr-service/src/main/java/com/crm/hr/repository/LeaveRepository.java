@@ -14,4 +14,5 @@ public interface LeaveRepository extends JpaRepository<LeaveRequest, Long>, JpaS
     boolean existsByEmployeeId(String employeeId);
 
     List<LeaveRequest> findByStatus(LeaveRequest.LeaveStatus status);
+    List<LeaveRequest> findByStartDateLessThanEqualAndEndDateGreaterThanEqual(java.time.LocalDate end, java.time.LocalDate start);
 }
