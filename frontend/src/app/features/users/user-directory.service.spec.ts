@@ -39,6 +39,19 @@ describe('UserDirectoryService', () => {
     service.createEmployee(request).subscribe({ next: () => fail('Unexpected success'), error: e => expect(e.status).toBe(502) });
     http.expectOne(url).flush(null, { status: 200, statusText: 'OK' });
   });
+  it('creates a requested non-employee role through the admin endpoint', () => {
+    service.create({ ...request, roleType: 'CLIENT' as any }).subscribe();
+    const req = http.expectOne(`${url}/admin`); expect(req.request.method).toBe('POST');
+    expect(req.request.body.roleType).toBe('CLIENT'); req.flush({ id: '9', username: request.username });
+  });
+  it('updates profile, roles and enabled state through dedicated methods', () => {
+    service.update('9', { firstName: 'A', lastName: 'B', email: 'a@example.test', phone: null }).subscribe();
+    let req = http.expectOne(`${url}/9`); expect(req.request.method).toBe('PUT'); req.flush({});
+    service.setRoles('9', ['CLIENT' as any]).subscribe();
+    req = http.expectOne(`${url}/9/roles`); expect(req.request.method).toBe('PUT'); expect(req.request.body).toEqual({ roles: ['CLIENT'] }); req.flush({});
+    service.setEnabled('9', false).subscribe();
+    req = http.expectOne(`${url}/9/status`); expect(req.request.method).toBe('PATCH'); expect(req.request.body).toEqual({ enabled: false }); req.flush({});
+  });
   for (const status of [400, 401, 403, 409, 502, 503]) {
     it('propagates creation error ' + status, () => {
       service.createEmployee(request).subscribe({ next: () => fail('Unexpected success'), error: e => expect(e.status).toBe(status) });

@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(properties = {
@@ -135,5 +137,57 @@ class AdminEmployeeCreationTest {
                 .andExpect(status().isCreated()).andExpect(content().string(""));
         assertThat(users.findByUsername("created-employee").orElseThrow().getRole())
                 .extracting(r -> r.getRoleType()).containsExactly(RoleType.CLIENT);
+    }
+
+    @Test
+    void superAdminCanCreateClientAndAdminCannotEscalateRoles() throws Exception {
+        var body = Map.of("firstName", "Test", "lastName", "Client", "username", "created-client",
+                "email", "created-client@example.test", "password", "test-password-only", "roleType", "CLIENT");
+        mvc.perform(post("/api/users/admin").header("Authorization", authorization(RoleType.SUPER_ADMIN))
+                .contentType("application/json").content(json.writeValueAsString(body)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.roles[0]").value("CLIENT"));
+        User created = users.findByUsername("created-client").orElseThrow();
+        assertThat(encoder.matches("test-password-only", created.getPassword())).isTrue();
+        var adminBody = new java.util.HashMap<>(body); adminBody.put("username", "forbidden-admin");
+        adminBody.put("email", "forbidden-admin@example.test"); adminBody.put("roleType", "ADMIN");
+        mvc.perform(post("/api/users/admin").header("Authorization", authorization(RoleType.ADMIN))
+                .contentType("application/json").content(json.writeValueAsString(adminBody))).andExpect(status().isForbidden());
+        assertThat(users.existsByUsername("forbidden-admin")).isFalse();
+    }
+
+    @Test
+    void adminCanEditReactivateAndAssignOnlyBusinessRoles() throws Exception {
+        String bearer = authorization(RoleType.ADMIN);
+        mvc.perform(post("/api/users").header("Authorization", bearer).contentType("application/json")
+                .content(json.writeValueAsString(payload()))).andExpect(status().isCreated());
+        User employee = users.findByUsername("created-employee").orElseThrow();
+        mvc.perform(put("/api/users/{id}", employee.getId()).header("Authorization", bearer).contentType("application/json")
+                .content("{\"firstName\":\"Edited\",\"lastName\":\"Employee\",\"email\":\"edited@example.test\",\"phone\":\"555\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.firstName").value("Edited"));
+        mvc.perform(patch("/api/users/{id}/status", employee.getId()).header("Authorization", bearer).contentType("application/json")
+                .content("{\"enabled\":false}" )).andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(false));
+        mvc.perform(patch("/api/users/{id}/status", employee.getId()).header("Authorization", bearer).contentType("application/json")
+                .content("{\"enabled\":true}" )).andExpect(status().isOk()).andExpect(jsonPath("$.enabled").value(true));
+        mvc.perform(put("/api/users/{id}/roles", employee.getId()).header("Authorization", bearer).contentType("application/json")
+                .content("{\"roles\":[\"CLIENT\"]}" )).andExpect(status().isOk()).andExpect(jsonPath("$.roles[0]").value("CLIENT"));
+        mvc.perform(put("/api/users/{id}/roles", employee.getId()).header("Authorization", bearer).contentType("application/json")
+                .content("{\"roles\":[\"SUPER_ADMIN\"]}" )).andExpect(status().isForbidden());
+        assertThat(users.findById(employee.getId()).orElseThrow().getRole()).extracting(r -> r.getRoleType()).containsExactly(RoleType.CLIENT);
+    }
+
+    @Test
+    void adminCannotModifyExistingAdministrativeAccounts() throws Exception {
+        var request = Map.of("firstName", "Managed", "lastName", "Admin", "username", "managed-admin",
+                "email", "managed-admin@example.test", "password", "test-password-only", "roleType", "ADMIN");
+        mvc.perform(post("/api/users/admin").header("Authorization", authorization(RoleType.SUPER_ADMIN))
+                .contentType("application/json").content(json.writeValueAsString(request))).andExpect(status().isCreated());
+        User target = users.findByUsername("managed-admin").orElseThrow();
+        String admin = authorization(RoleType.ADMIN);
+        mvc.perform(put("/api/users/{id}", target.getId()).header("Authorization", admin).contentType("application/json")
+                .content("{\"firstName\":\"Changed\",\"lastName\":\"Admin\",\"email\":\"changed@example.test\",\"phone\":\"\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(patch("/api/users/{id}/status", target.getId()).header("Authorization", admin).contentType("application/json")
+                .content("{\"enabled\":false}" )).andExpect(status().isForbidden());
+        assertThat(users.findById(target.getId()).orElseThrow().isEnabled()).isTrue();
     }
 }

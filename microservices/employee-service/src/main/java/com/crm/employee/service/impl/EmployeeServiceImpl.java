@@ -51,6 +51,8 @@ public class EmployeeServiceImpl implements IEmployeeService {
                     "Email already exists: " + request.getEmail());
         }
 
+        validateDepartment(request.getDepartmentId());
+
         Employee employee = employeeMapper.toEntity(request);
         Employee saved = employeeRepository.save(employee);
         return employeeMapper.toResponse(saved);
@@ -103,9 +105,19 @@ public class EmployeeServiceImpl implements IEmployeeService {
                     "Email already exists: " + request.getEmail());
         }
 
+        validateDepartment(request.getDepartmentId());
+
         employeeMapper.updateEntityFromRequest(existing, request);
         Employee saved = employeeRepository.save(existing);
         return employeeMapper.toResponse(saved);
+    }
+
+    private void validateDepartment(Long departmentId) {
+        if (departmentId == null) return;
+        DepartmentResponse department = departmentClient.getDepartmentById(departmentId);
+        if (department == null || department.getId() == null || !departmentId.equals(department.getId())) {
+            throw new IllegalArgumentException("Department reference could not be verified");
+        }
     }
 
     @Override

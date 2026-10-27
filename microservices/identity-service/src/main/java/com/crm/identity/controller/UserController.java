@@ -15,6 +15,14 @@ import com.crm.identity.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.crm.identity.entity.User;
+import com.crm.identity.dto.AdminUserCreateRequest;
+import com.crm.identity.dto.AdminUserUpdateRequest;
+import com.crm.identity.dto.AdminUserRolesRequest;
+import com.crm.identity.dto.AdminUserStatusRequest;
 
 /**
  * REST controller for user consultation endpoints.
@@ -33,6 +41,30 @@ public class UserController {
     public ResponseEntity<Void> createEmployee(@Valid @RequestBody RegisterRequest request) {
         identityService.createEmployee(request);
         return ResponseEntity.status(201).build();
+    }
+
+    @PostMapping(path = "/admin", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponse> createAdminUser(@Valid @RequestBody AdminUserCreateRequest request,
+            @AuthenticationPrincipal User actor) {
+        return ResponseEntity.status(201).body(identityService.createAdminUser(request, actor));
+    }
+
+    @PutMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
+            @Valid @RequestBody AdminUserUpdateRequest request, @AuthenticationPrincipal User actor) {
+        return ResponseEntity.ok(identityService.updateUser(id, request, actor));
+    }
+
+    @PutMapping(path = "/{id}/roles", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponse> updateRoles(@PathVariable Long id,
+            @Valid @RequestBody AdminUserRolesRequest request, @AuthenticationPrincipal User actor) {
+        return ResponseEntity.ok(identityService.updateUserRoles(id, request, actor));
+    }
+
+    @PatchMapping(path = "/{id}/status", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserResponse> updateStatus(@PathVariable Long id,
+            @Valid @RequestBody AdminUserStatusRequest request, @AuthenticationPrincipal User actor) {
+        return ResponseEntity.ok(identityService.updateUserStatus(id, request.enabled(), actor));
     }
 
     /**

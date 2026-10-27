@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
                                                 WebRequest request) {
         int status = ex.getStatusCode().value();
         return ResponseEntity.status(status).body(new ApiError(
-                status, "Service Unavailable", "Employee role unavailable", getPath(request)));
+                status, ex.getStatusCode().toString(), ex.getReason() == null ? "Request could not be completed" : ex.getReason(), getPath(request)));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

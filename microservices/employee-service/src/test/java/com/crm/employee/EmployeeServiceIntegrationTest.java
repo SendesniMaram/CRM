@@ -1,6 +1,7 @@
 package com.crm.employee;
 
 import com.crm.employee.client.DepartmentClient;
+import com.crm.employee.client.dto.DepartmentResponse;
 import com.crm.employee.dto.EmployeeRequest;
 import com.crm.employee.dto.EmployeeResponse;
 import com.crm.employee.repository.EmployeeRepository;
@@ -112,6 +113,26 @@ class EmployeeServiceIntegrationTest extends com.crm.employee.security.TestIdent
         employeeRepository.flush();
         assertEquals(accepted ? value : original, employeeRepository.findById(id).orElseThrow().getAddress());
         assertEquals(1, employeeRepository.count());
+    }
+
+    @Test
+    void createEmployeeRequiresAnExistingDepartmentWhenAssigned() throws Exception {
+        validRequest.setDepartmentId(12L);
+        org.mockito.Mockito.when(departmentClient.getDepartmentById(12L))
+                .thenReturn(new DepartmentResponse(12L, "Engineering", null, "ENG", null, null));
+        var created = mockMvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        EmployeeResponse response = objectMapper.readValue(created, EmployeeResponse.class);
+        assertEquals(12L, response.getDepartmentId());
+
+        employeeRepository.deleteAll();
+        org.mockito.Mockito.when(departmentClient.getDepartmentById(12L))
+                .thenReturn(new DepartmentResponse(99L, "Different", null, "OTHER", null, null));
+        mockMvc.perform(post("/api/employees").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isBadRequest());
+        assertEquals(0, employeeRepository.count());
     }
 
     @Test

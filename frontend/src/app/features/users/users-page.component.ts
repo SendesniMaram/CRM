@@ -7,7 +7,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
-import { finalize } from 'rxjs';
+import { finalize, map } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { adminAccountError } from './admin-account-error';
@@ -35,6 +35,11 @@ export class UsersPageComponent implements OnInit {
   protected readonly pageSize = signal(10);
   protected readonly roles = Object.values(CrmRole);
   protected readonly selectedUser = signal<DirectoryUser | null>(null);
+  protected readonly accountRole = signal<CrmRole>(CrmRole.EMPLOYEE);
+  protected readonly editFirstName = signal('');
+  protected readonly editLastName = signal('');
+  protected readonly editEmail = signal('');
+  protected readonly editPhone = signal('');
   protected readonly filteredUsers = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('fr');
     return this.users().filter(user => (!query || [user.id, user.username, user.firstName, user.lastName, user.email]
@@ -63,6 +68,38 @@ export class UsersPageComponent implements OnInit {
     phone: ['', Validators.maxLength(20)]
   });
   protected isAdmin() { return this.auth.hasAnyRole([CrmRole.ADMIN, CrmRole.SUPER_ADMIN]); }
+  protected selectableRoles() { return this.auth.hasAnyRole([CrmRole.SUPER_ADMIN])
+    ? [CrmRole.EMPLOYEE, CrmRole.CLIENT, CrmRole.ADMIN, CrmRole.SUPER_ADMIN] : [CrmRole.EMPLOYEE, CrmRole.CLIENT]; }
+  protected canManageTarget(user: DirectoryUser) { return this.auth.hasAnyRole([CrmRole.SUPER_ADMIN])
+    || !user.roles.some(role => role === CrmRole.ADMIN || role === CrmRole.SUPER_ADMIN); }
+  protected selectUser(user: DirectoryUser) {
+    this.selectedUser.set(user); this.editFirstName.set(user.firstName ?? ''); this.editLastName.set(user.lastName ?? '');
+    this.editEmail.set(user.email); this.editPhone.set(user.phone ?? '');
+  }
+  protected saveUser() {
+    const user = this.selectedUser(); if (!user || this.busy() || !this.isAdmin() || !this.canManageTarget(user)) return;
+    const generation = this.auth.sessionGeneration; this.busy.set(true); this.error.set('');
+    this.service.update(user.id, { firstName: this.editFirstName(), lastName: this.editLastName(), email: this.editEmail(), phone: this.editPhone() })
+      .pipe(takeUntilDestroyed(this.destroy), finalize(() => { if (this.current(generation)) this.busy.set(false); }))
+      .subscribe({ next: () => { if (this.current(generation)) queueMicrotask(() => { if (this.current(generation)) this.load(); }); },
+        error: e => { if (this.current(generation)) this.error.set(adminAccountError(e, 'account')); } });
+  }
+  protected changeStatus(user: DirectoryUser) {
+    if (this.busy() || !this.isAdmin() || !this.canManageTarget(user)) return;
+    const generation = this.auth.sessionGeneration; this.busy.set(true); this.error.set('');
+    this.service.setEnabled(user.id, !user.enabled).pipe(takeUntilDestroyed(this.destroy),
+      finalize(() => { if (this.current(generation)) this.busy.set(false); }))
+      .subscribe({ next: () => { if (this.current(generation)) queueMicrotask(() => { if (this.current(generation)) this.load(); }); },
+        error: e => { if (this.current(generation)) this.error.set(adminAccountError(e, 'account')); } });
+  }
+  protected changeRole(user: DirectoryUser, role: CrmRole) {
+    if (this.busy() || !this.isAdmin() || !this.canManageTarget(user) || !this.selectableRoles().includes(role)) return;
+    const generation = this.auth.sessionGeneration; this.busy.set(true); this.error.set('');
+    this.service.setRoles(user.id, [role]).pipe(takeUntilDestroyed(this.destroy),
+      finalize(() => { if (this.current(generation)) this.busy.set(false); }))
+      .subscribe({ next: () => { if (this.current(generation)) queueMicrotask(() => { if (this.current(generation)) this.load(); }); },
+        error: e => { if (this.current(generation)) this.error.set(adminAccountError(e, 'account')); } });
+  }
   constructor() {
     effect(() => {
       this.auth.getCurrentUser();
@@ -94,7 +131,10 @@ export class UsersPageComponent implements OnInit {
     const request = this.form.getRawValue();
     const generation = this.auth.sessionGeneration;
     this.busy.set(true); this.error.set('');
-    this.service.createEmployee(request).pipe(takeUntilDestroyed(this.destroy), finalize(() => { if (this.current(generation)) this.busy.set(false); })).subscribe({
+    const operation = this.accountRole() === CrmRole.EMPLOYEE
+      ? this.service.createEmployee(request)
+      : this.service.create({ ...request, roleType: this.accountRole() }).pipe(map(() => undefined));
+    operation.pipe(takeUntilDestroyed(this.destroy), finalize(() => { if (this.current(generation)) this.busy.set(false); })).subscribe({
       next: () => {
         if (!this.current(generation)) return;
         this.createdUsername.set(request.username);

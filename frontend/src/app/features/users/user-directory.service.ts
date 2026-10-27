@@ -10,6 +10,7 @@ export interface DirectoryUser {
   phone: string | null; enabled: boolean; accountNonLocked: boolean;
   roles: CrmRole[]; roleType: CrmRole | null; createdAt: string | null;
 }
+export type AdminRole = CrmRole;
 
 @Injectable({ providedIn: 'root' })
 export class UserDirectoryService {
@@ -34,5 +35,17 @@ export class UserDirectoryService {
       .pipe(map(response => {
         if (response.status !== 201) throw new HttpErrorResponse({ status: 502 });
       }));
+  }
+  create(request: RegisterRequest & { roleType: AdminRole }) {
+    return this.http.post<DirectoryUser>(`${this.url}/admin`, request);
+  }
+  update(id: string, request: Pick<DirectoryUser, 'firstName' | 'lastName' | 'email' | 'phone'>) {
+    return this.http.put<DirectoryUser>(`${this.url}/${encodeURIComponent(id)}`, request);
+  }
+  setRoles(id: string, roles: AdminRole[]) {
+    return this.http.put<DirectoryUser>(`${this.url}/${encodeURIComponent(id)}/roles`, { roles });
+  }
+  setEnabled(id: string, enabled: boolean) {
+    return this.http.patch<DirectoryUser>(`${this.url}/${encodeURIComponent(id)}/status`, { enabled });
   }
 }

@@ -16,21 +16,32 @@
       @if (users().length && !filteredUsers().length) { <p role="status">Aucun compte ne correspond aux filtres.</p> }
       @if (filteredUsers().length) {
         <div class="table-scroll"><table><caption>{{filteredUsers().length}} comptes — filtres et pagination sur l’annuaire chargé intégralement</caption><thead><tr>
-          <th scope="col">ID / utilisateur</th><th scope="col">Identité</th><th scope="col">E-mail</th><th scope="col">Rôles</th><th scope="col">État</th>
+          <th scope="col">ID / utilisateur</th><th scope="col">Identité</th><th scope="col">E-mail</th><th scope="col">Rôles</th><th scope="col">État</th><th scope="col">Actions</th>
         </tr></thead><tbody>@for (user of visibleUsers(); track user.id) { <tr>
-          <td><button mat-button (click)="selectedUser.set(user)" [attr.aria-label]="'Consulter le compte ' + user.username">{{ user.id }} — {{ user.username }}</button></td><td>{{ user.firstName }} {{ user.lastName }}</td>
+          <td><button mat-button (click)="selectUser(user)" [attr.aria-label]="'Consulter le compte ' + user.username">{{ user.id }} — {{ user.username }}</button></td><td>{{ user.firstName }} {{ user.lastName }}</td>
           <td>{{ user.email }}</td><td>{{ user.roles.join(', ') || 'Aucun rôle' }}</td>
           <td>{{ user.enabled ? 'Activé' : 'Désactivé' }} / {{ user.accountNonLocked ? 'Non verrouillé' : 'Verrouillé' }}</td>
+          <td class="actions">@if (canManageTarget(user)) { <button mat-button (click)="changeStatus(user)" [disabled]="busy() || loading()">{{ user.enabled ? 'Désactiver' : 'Réactiver' }}</button>
+            @if (selectableRoles().length > 1) { <select #roleChoice value="" aria-label="Remplacer les rôles" [disabled]="busy()" (change)="changeRole(user, $any(roleChoice.value)); roleChoice.value='' "><option value="" disabled>Remplacer les rôles…</option>@for(role of selectableRoles(); track role){<option [value]="role">{{role}}</option>}</select> }
+          } @else { <span>Action SUPER_ADMIN uniquement</span> }</td>
         </tr> }</tbody></table></div>
       }
       <mat-paginator [length]="filteredUsers().length" [pageIndex]="pageIndex()" [pageSize]="pageSize()" [pageSizeOptions]="[10,25,50]" (page)="paginate($event)" aria-label="Pagination des comptes" />
-      @if(selectedUser(); as user){<section aria-label="Détail du compte"><h2>{{user.username}}</h2><dl><dt>Identifiant</dt><dd>{{user.id}}</dd><dt>Identité</dt><dd>{{user.firstName}} {{user.lastName}}</dd><dt>E-mail</dt><dd>{{user.email}}</dd><dt>Téléphone</dt><dd>{{user.phone || 'Non renseigné'}}</dd><dt>Rôles</dt><dd>{{user.roles.join(', ')}}</dd></dl><button mat-button (click)="selectedUser.set(null)">Fermer le détail</button></section>}
+      @if(selectedUser(); as user){<section aria-label="Détail et modification du compte"><h2>{{user.username}}</h2><dl><dt>Identifiant</dt><dd>{{user.id}}</dd><dt>Rôles</dt><dd>{{user.roles.join(', ')}}</dd><dt>État</dt><dd>{{user.enabled ? 'Activé' : 'Désactivé'}}</dd></dl>
+        @if(error()){<p role="alert">{{error()}}</p>}
+        @if(canManageTarget(user)){<form (ngSubmit)="saveUser()"><mat-form-field><mat-label>Prénom</mat-label><input matInput [value]="editFirstName()" (input)="editFirstName.set($any($event.target).value)" required maxlength="100"></mat-form-field>
+          <mat-form-field><mat-label>Nom</mat-label><input matInput [value]="editLastName()" (input)="editLastName.set($any($event.target).value)" required maxlength="100"></mat-form-field>
+          <mat-form-field><mat-label>E-mail</mat-label><input matInput type="email" [value]="editEmail()" (input)="editEmail.set($any($event.target).value)" required maxlength="100"></mat-form-field>
+          <mat-form-field><mat-label>Téléphone</mat-label><input matInput [value]="editPhone()" (input)="editPhone.set($any($event.target).value)" maxlength="20"></mat-form-field>
+          <button mat-flat-button [disabled]="busy()">Enregistrer les informations</button></form>} @else { <p>La modification d’un compte administratif est réservée à SUPER_ADMIN.</p> }
+        <button mat-button (click)="selectedUser.set(null)">Fermer le détail</button></section>}
     </mat-card-content>
   </mat-card>
-  <mat-card><mat-card-header><mat-card-title>Créer un compte EMPLOYEE</mat-card-title></mat-card-header><mat-card-content>
+  <mat-card><mat-card-header><mat-card-title>Créer un compte</mat-card-title></mat-card-header><mat-card-content>
     @if (createdUsername()) {
-      <p role="status">Compte {{ createdUsername() }} créé. Étape compte terminée ; l’association de congés reste à effectuer séparément.</p>
-      <div class="actions"><a mat-flat-button routerLink="/users" fragment="associations">Associer à une fiche employé</a>
+      <p role="status">Compte {{ createdUsername() }} créé avec le rôle {{accountRole()}}. Associez-le à une fiche correspondante si nécessaire.</p>
+      <div class="actions">@if(accountRole() === 'EMPLOYEE'){<a mat-flat-button routerLink="/users" fragment="associations">Associer à une fiche employé</a>}
+      @if(accountRole() === 'CLIENT'){<a mat-flat-button routerLink="/customer-associations">Associer à une fiche client</a>}
       <button mat-button (click)="another()">Créer un autre compte</button></div>
     } @else {
       @if (error()) { <p role="alert">{{ error() }}</p> }
@@ -42,7 +53,8 @@
           <mat-form-field><mat-label>E-mail</mat-label><input matInput type="email" formControlName="email" autocomplete="email"/><mat-error>E-mail valide obligatoire, 100 caractères maximum.</mat-error></mat-form-field>
           <mat-form-field><mat-label>Mot de passe initial</mat-label><input matInput type="password" formControlName="password" autocomplete="new-password"/><mat-error>De 6 à 100 caractères, non vide.</mat-error></mat-form-field>
           <mat-form-field><mat-label>Téléphone facultatif</mat-label><input matInput formControlName="phone" autocomplete="tel"/><mat-error>20 caractères maximum.</mat-error></mat-form-field>
-          <button mat-flat-button type="submit" [disabled]="busy() || form.invalid">Créer le compte EMPLOYEE</button>
+          <mat-form-field><mat-label>Rôle initial</mat-label><select matNativeControl [value]="accountRole()" (change)="accountRole.set($any($event.target).value)">@for(role of selectableRoles(); track role){<option [value]="role">{{role}}</option>}</select></mat-form-field>
+          <button mat-flat-button type="submit" [disabled]="busy() || form.invalid">Créer le compte</button>
         </fieldset>
       </form>
       @if (busy()) { <p role="status">Création en cours…</p> }
