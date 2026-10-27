@@ -8,14 +8,19 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.crm.hr.exception.ResourceNotFoundException;
+import com.crm.hr.repository.LeaveEmployeeAssociationRepository;
+import org.springframework.security.core.Authentication;
 
 @Service @Transactional
 public class HrWorkflowService {
     private final EmployeeEvaluationRepository evaluations;
     private final JobOfferRepository offers;
     private final JobApplicationRepository applications;
-    public HrWorkflowService(EmployeeEvaluationRepository evaluations, JobOfferRepository offers, JobApplicationRepository applications) {
-        this.evaluations=evaluations; this.offers=offers; this.applications=applications;
+    private final EmployeeAssociationService associations;
+    private final EmployeeReferenceValidator employeeReferences;
+    public HrWorkflowService(EmployeeEvaluationRepository evaluations, JobOfferRepository offers, JobApplicationRepository applications, EmployeeAssociationService associations, EmployeeReferenceValidator employeeReferences) {
+        this.evaluations=evaluations; this.offers=offers; this.applications=applications; this.associations=associations; this.employeeReferences=employeeReferences;
     }
     @Transactional(readOnly=true) public Page<EmployeeEvaluation> evaluations(int page,int size,String employeeId,String keyword) {
         Specification<EmployeeEvaluation> spec=(r,q,c)->c.conjunction();
@@ -23,12 +28,22 @@ public class HrWorkflowService {
         if(keyword!=null&&!keyword.isBlank()){String k="%"+keyword.trim().toLowerCase()+"%";spec=spec.and((r,q,c)->c.or(c.like(c.lower(r.get("employeeId")),k),c.like(c.lower(r.get("comments")),k),c.like(c.lower(r.get("criteria")),k)));}
         return evaluations.findAll(spec,paging(page,size));
     }
-    public EmployeeEvaluation saveEvaluation(Long id,EvaluationRequest request){
+    public EmployeeEvaluation saveEvaluation(Long id,EvaluationRequest request,String authorization){
+        employeeReferences.requireExists(request.employeeId().trim(),authorization);
         if(request.periodEnd().isBefore(request.periodStart()))throw new IllegalArgumentException("Evaluation period end precedes start");
         EmployeeEvaluation e=id==null?new EmployeeEvaluation():evaluations.findById(id).orElseThrow(()->new ResourceNotFoundException("Evaluation not found"));
         e.setEmployeeId(request.employeeId().trim());e.setPeriodStart(request.periodStart());e.setPeriodEnd(request.periodEnd());e.setCriteria(request.criteria());e.setComments(request.comments());e.setStatus(request.status());return evaluations.save(e);
     }
     @Transactional(readOnly=true) public EmployeeEvaluation getEvaluation(Long id){return evaluations.findById(id).orElseThrow(()->new ResourceNotFoundException("Evaluation not found"));}
+    @Transactional(readOnly=true) public Page<EmployeeEvaluation> ownFinalizedEvaluations(Authentication authentication, int page, int size) {
+        String employeeId = associations.readOwn(authentication).getEmployeeId();
+        return evaluations.findAllByEmployeeIdAndStatus(employeeId,EmployeeEvaluation.Status.FINALIZED,paging(page,size));
+    }
+    @Transactional(readOnly=true) public EmployeeEvaluation ownFinalizedEvaluation(Authentication authentication, Long id) {
+        String employeeId = associations.readOwn(authentication).getEmployeeId();
+        return evaluations.findByIdAndEmployeeIdAndStatus(id,employeeId,EmployeeEvaluation.Status.FINALIZED)
+                .orElseThrow(()->new ResourceNotFoundException("Evaluation not found"));
+    }
     public void deleteEvaluation(Long id){evaluations.delete(evaluations.findById(id).orElseThrow(()->new ResourceNotFoundException("Evaluation not found")));}
     @Transactional(readOnly=true) public Page<JobOffer> offers(int page,int size,String keyword){
         Specification<JobOffer> spec=(r,q,c)->c.conjunction();if(keyword!=null&&!keyword.isBlank()){String k="%"+keyword.trim().toLowerCase()+"%";spec=spec.and((r,q,c)->c.or(c.like(c.lower(r.get("title")),k),c.like(c.lower(r.get("description")),k)));}

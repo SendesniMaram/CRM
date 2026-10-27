@@ -33,6 +33,8 @@ export const routes: Routes = [
                 loadComponent: () => import('./features/hr-admin/hr-admin-page.component').then(m => m.HrAdminPageComponent) },
             { path: 'leave-calendar', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'] },
                 loadComponent: () => import('./features/leaves/leave-calendar.component').then(m => m.LeaveCalendarComponent) },
+            { path: 'my-evaluations', canActivate: [authGuard, roleGuard], data: { roles: ['EMPLOYEE'] },
+                loadComponent: () => import('./features/hr-admin/my-evaluations.component').then(m => m.MyEvaluationsComponent) },
             { path: 'client', canActivate: [authGuard, roleGuard], data: { roles: ['CLIENT'] },
                 loadComponent: () => import('./features/client/client-workspace.component').then(m => m.ClientWorkspaceComponent) },
             { path: 'customer-associations', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'] },

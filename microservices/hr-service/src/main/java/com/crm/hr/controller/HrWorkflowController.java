@@ -7,15 +7,18 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 @RestController
 public class HrWorkflowController {
     private final HrWorkflowService service;
     public HrWorkflowController(HrWorkflowService service){this.service=service;}
     @GetMapping("/api/evaluations") public Page<EmployeeEvaluation> evaluations(@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="10")int size,@RequestParam(required=false)String employeeId,@RequestParam(required=false)String keyword){return service.evaluations(page,size,employeeId,keyword);}
+    @GetMapping("/api/evaluations/mine") public Page<EmployeeEvaluation> ownEvaluations(Authentication authentication,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="10")int size){return service.ownFinalizedEvaluations(authentication,page,size);}
+    @GetMapping("/api/evaluations/mine/{id}") public EmployeeEvaluation ownEvaluation(Authentication authentication,@PathVariable Long id){return service.ownFinalizedEvaluation(authentication,id);}
     @GetMapping("/api/evaluations/{id}") public EmployeeEvaluation evaluation(@PathVariable Long id){return service.getEvaluation(id);}
-    @PostMapping("/api/evaluations") @ResponseStatus(HttpStatus.CREATED) public EmployeeEvaluation createEvaluation(@Valid @RequestBody EvaluationRequest r){return service.saveEvaluation(null,r);}
-    @PutMapping("/api/evaluations/{id}") public EmployeeEvaluation updateEvaluation(@PathVariable Long id,@Valid @RequestBody EvaluationRequest r){return service.saveEvaluation(id,r);}
+    @PostMapping("/api/evaluations") @ResponseStatus(HttpStatus.CREATED) public EmployeeEvaluation createEvaluation(@Valid @RequestBody EvaluationRequest r,@RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization){return service.saveEvaluation(null,r,authorization);}
+    @PutMapping("/api/evaluations/{id}") public EmployeeEvaluation updateEvaluation(@PathVariable Long id,@Valid @RequestBody EvaluationRequest r,@RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization){return service.saveEvaluation(id,r,authorization);}
     @DeleteMapping("/api/evaluations/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void deleteEvaluation(@PathVariable Long id){service.deleteEvaluation(id);}
     @GetMapping("/api/job-offers") public Page<JobOffer> offers(@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="10")int size,@RequestParam(required=false)String keyword){return service.offers(page,size,keyword);}
     @GetMapping("/api/job-offers/{id}") public JobOffer offer(@PathVariable Long id){return service.getOffer(id);}

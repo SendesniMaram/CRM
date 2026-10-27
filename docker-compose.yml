@@ -28,6 +28,8 @@ volumes:
   mysql-data:
     # Les données MySQL survivent à « docker compose down ».
     # Seul « docker compose down -v » les supprime.
+  hr-documents:
+    # Documents RH privés, hors de tout répertoire web public.
 
 # -----------------------------------------------------------------------------
 # Réseau Docker unique
@@ -243,6 +245,7 @@ services:
     ports:
       - "8086:8086"
     environment:
+      APP_HR_DOCUMENTS_STORAGE_ROOT: /var/lib/crm/hr-documents
       IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
@@ -262,6 +265,8 @@ services:
         condition: service_healthy
     networks:
       - crm-network
+    volumes:
+      - hr-documents:/var/lib/crm/hr-documents
 
   # ===========================================================================
   # 9. Payroll Service (port 8087)

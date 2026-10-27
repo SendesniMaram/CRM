@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { finalize } from 'rxjs';
 import { DepartmentResponse, EmployeeResponse } from '../../models/employee.models';
 import { EmployeeService } from '../../services/employee.service';
+import { EmployeeDossierComponent } from './employee-dossier.component';
 
 @Component({
   selector: 'app-employee-detail',
@@ -20,7 +21,8 @@ import { EmployeeService } from '../../services/employee.service';
     MatCardModule,
     MatDividerModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    EmployeeDossierComponent
   ],
   templateUrl: './employee-detail.component.html',
   styleUrl: './employee-detail.component.scss',

@@ -20,7 +20,7 @@ public class EmployeeContractController {
         return service.page(page, size, keyword, employeeId);
     }
     @GetMapping("/{id}") public EmployeeContract get(@PathVariable Long id) { return service.get(id); }
-    @PostMapping @ResponseStatus(HttpStatus.CREATED) public EmployeeContract create(@Valid @RequestBody EmployeeContractRequest request) { return service.create(request); }
-    @PutMapping("/{id}") public EmployeeContract update(@PathVariable Long id, @Valid @RequestBody EmployeeContractRequest request) { return service.update(id, request); }
+    @PostMapping @ResponseStatus(HttpStatus.CREATED) public EmployeeContract create(@Valid @RequestBody EmployeeContractRequest request,@RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization) { return service.create(request,authorization); }
+    @PutMapping("/{id}") public EmployeeContract update(@PathVariable Long id, @Valid @RequestBody EmployeeContractRequest request,@RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization) { return service.update(id, request,authorization); }
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) public void delete(@PathVariable Long id) { service.delete(id); }
 }

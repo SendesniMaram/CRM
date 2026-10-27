@@ -13,7 +13,8 @@ import java.util.List;
 @Transactional
 public class EmployeeContractService {
     private final EmployeeContractRepository repository;
-    public EmployeeContractService(EmployeeContractRepository repository) { this.repository = repository; }
+    private final EmployeeReferenceValidator employees;
+    public EmployeeContractService(EmployeeContractRepository repository, EmployeeReferenceValidator employees) { this.repository = repository; this.employees = employees; }
 
     @Transactional(readOnly = true)
     public List<EmployeeContract> list(String employeeId) {
@@ -36,8 +37,8 @@ public class EmployeeContractService {
     }
     @Transactional(readOnly = true)
     public EmployeeContract get(Long id) { return repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Contract not found")); }
-    public EmployeeContract create(EmployeeContractRequest request) { return repository.save(toEntity(new EmployeeContract(), request)); }
-    public EmployeeContract update(Long id, EmployeeContractRequest request) { return repository.save(toEntity(get(id), request)); }
+    public EmployeeContract create(EmployeeContractRequest request,String authorization) { employees.requireExists(request.employeeId().trim(),authorization); return repository.save(toEntity(new EmployeeContract(), request)); }
+    public EmployeeContract update(Long id, EmployeeContractRequest request,String authorization) { employees.requireExists(request.employeeId().trim(),authorization); return repository.save(toEntity(get(id), request)); }
     public void delete(Long id) {
         EmployeeContract contract = get(id);
         if (repository.existsByParentContractId(id)) throw new IllegalArgumentException("Contract with amendments cannot be deleted");

@@ -22,6 +22,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(new ApiError(400, "Bad Request", "Invalid request body", getPath(request)));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> handleUploadTooLarge(Exception ex, WebRequest request) {
+        return ResponseEntity.status(413).body(new ApiError(413, "Payload Too Large", "Document exceeds the 10 MiB upload limit", getPath(request)));
+    }
+
     @ExceptionHandler(LeaveAssociationConflictException.class)
     public ResponseEntity<ApiError> handleAssociationConflict(LeaveAssociationConflictException ex, WebRequest request) {
         return ResponseEntity.status(409).body(new ApiError(409, "Conflict", ex.getMessage(), getPath(request)));

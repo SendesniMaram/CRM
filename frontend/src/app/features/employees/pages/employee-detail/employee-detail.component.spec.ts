@@ -1,4 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
@@ -44,6 +46,7 @@ describe('EmployeeDetailComponent', () => {
         { provide: EmployeeService, useValue: employeeService },
         { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ id }) } } },
         { provide: Router, useValue: router },
+        provideHttpClient(), provideHttpClientTesting(),
         provideZonelessChangeDetection()
       ]
     }).compileComponents();

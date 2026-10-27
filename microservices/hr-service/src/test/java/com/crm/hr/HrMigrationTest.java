@@ -10,8 +10,8 @@ class HrMigrationTest {
         String url="jdbc:h2:mem:hr_migrations;MODE=MySQL;DB_CLOSE_DELAY=-1";
         Flyway.configure().dataSource(url,"sa","").locations("classpath:db/migration").load().migrate();
         try(var connection=DriverManager.getConnection(url,"sa","");var statement=connection.createStatement();var rows=statement.executeQuery(
-                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME IN ('EMPLOYEE_CONTRACTS','EMPLOYEE_EVALUATIONS','JOB_OFFERS','JOB_APPLICATIONS')")) {
-            rows.next();assertTrue(rows.getInt(1)>=4);
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME IN ('EMPLOYEE_CONTRACTS','EMPLOYEE_EVALUATIONS','JOB_OFFERS','JOB_APPLICATIONS','EMPLOYEE_DOCUMENTS','EMPLOYEE_CAREER_EVENTS','LEAVE_QUOTAS')")) {
+            rows.next();assertTrue(rows.getInt(1)>=7);
         }
     }
 }
