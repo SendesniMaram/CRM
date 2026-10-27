@@ -30,7 +30,9 @@ describe('HR administrative HTTP contracts',()=>{
     it(module+': supports creation, detail, update and deletion without sending server-only fields',()=>{
       service.save(module,null,{...fixtures[module],arbitraryRole:'SUPER_ADMIN'}).subscribe(row=>expect(row.id).toBe('7'));
       const post=http.expectOne('http://localhost:8080/hr/api/'+module);expect(post.request.method).toBe('POST');
-      for(const key of ['id','certificateObtained','createdAt','arbitraryRole'])expect(post.request.body[key]).toBeUndefined();
+      for(const key of ['id','createdAt','arbitraryRole'])expect(post.request.body[key]).toBeUndefined();
+      if(module==='trainings')expect(post.request.body['certificateObtained']).toBe(false);
+      else expect(post.request.body['certificateObtained']).toBeUndefined();
       post.flush(JSON.stringify(fixtures[module]));
       service.read(module,'7').subscribe(row=>expect(row.id).toBe('7'));
       http.expectOne('http://localhost:8080/hr/api/'+module+'/7').flush(JSON.stringify(fixtures[module]));

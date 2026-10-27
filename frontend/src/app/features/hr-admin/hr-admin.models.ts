@@ -1,6 +1,6 @@
 export type HrModule = 'trainings' | 'attendances' | 'hr-records';
 export interface HrField {
-  key: string; label: string; type: 'text'|'date'|'time'|'datetime-local'|'number'|'select';
+  key: string; label: string; type: 'text'|'date'|'time'|'datetime-local'|'number'|'select'|'checkbox';
   required?: boolean; maxLength?: number; options?: readonly string[];
 }
 export interface HrModuleDefinition {
@@ -9,13 +9,14 @@ export interface HrModuleDefinition {
 const employee: HrField = {key:'employeeId',label:'Référence Employee',type:'text',required:true,maxLength:50};
 export const HR_MODULES: Record<HrModule,HrModuleDefinition> = {
   trainings: {
-    title:'Formations',singular:'formation',columns:['employeeId','title','provider','startDate','endDate','cost','status'],
+    title:'Formations',singular:'formation',columns:['employeeId','title','provider','startDate','endDate','cost','status','certificateObtained'],
     fields:[employee,
       {key:'title',label:'Intitulé',type:'text',required:true,maxLength:200},
       {key:'provider',label:'Organisme',type:'text',required:true,maxLength:200},
       {key:'startDate',label:'Début',type:'date',required:true},
       {key:'endDate',label:'Fin',type:'date',required:true},
       {key:'cost',label:'Coût (devise non fournie par le contrat)',type:'number',required:true},
+      {key:'certificateObtained',label:'Certificat obtenu',type:'checkbox'},
       {key:'status',label:'Statut',type:'select',required:true,options:['PLANNED','IN_PROGRESS','COMPLETED','CANCELLED']}]
   },
   attendances: {

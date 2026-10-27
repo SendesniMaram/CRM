@@ -39,13 +39,23 @@ describe('personal profile route and session integration', () => {
       expect(result === true).toBe(role === CrmRole.EMPLOYEE);
     });
   }
-  it('uses the user bearer only toward HR and preserves session on direct 503', () => {
+  it('preserves the session on direct HR 503', () => {
     configure(CrmRole.EMPLOYEE); const fixture = TestBed.createComponent(EmployeeProfileComponent); fixture.detectChanges();
     const token = auth.getToken(); const request = http.expectOne(url);
     expect(request.request.headers.get('Authorization')).toBe('Bearer ' + token);
     request.flush({}, { status: 503, statusText: 'Unavailable' }); fixture.detectChanges();
     expect(auth.getToken()).toBe(token); http.expectNone(row => row.url.includes('/api/auth/refresh') || row.url.includes('/api/internal/'));
     expect(fixture.nativeElement.textContent).toContain('temporairement indisponible');
+  });
+  it('loads the own department label through the guarded directory endpoint', () => {
+    configure(CrmRole.EMPLOYEE); const fixture = TestBed.createComponent(EmployeeProfileComponent); fixture.detectChanges();
+    const token = auth.getToken(); const profile = http.expectOne(url);
+    expect(profile.request.headers.get('Authorization')).toBe('Bearer ' + token);
+    profile.flush({ employeeId: '103', firstName: 'Test', lastName: 'Employee', jobTitle: 'Developer', departmentId: '7', hireDate: '2026-01-15' });
+    const department = http.expectOne('http://localhost:8080/department/api/departments/7');
+    expect(department.request.headers.get('Authorization')).toBe('Bearer ' + token);
+    department.flush({ id: 7, name: 'Engineering' }); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Engineering');
   });
   it('does not discard session or replay a profile request when refresh is unavailable', () => {
     configure(CrmRole.EMPLOYEE); const fixture = TestBed.createComponent(EmployeeProfileComponent); fixture.detectChanges(); const token = auth.getToken();

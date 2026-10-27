@@ -48,7 +48,9 @@
         <div class="fields">
           @for(field of definition.fields;track field.key){
             <mat-form-field><mat-label>{{field.label}}</mat-label>
-              @if(field.type==='select'){
+              @if(field.type==='checkbox'){
+                <mat-checkbox [formControlName]="field.key" [disabled]="module==='trainings' && form.controls['status']?.value!=='COMPLETED'">{{field.label}}</mat-checkbox>
+              }@else if(field.type==='select'){
                 <mat-select [formControlName]="field.key" [required]="!!field.required">
                   @for(option of field.options;track option){
                     <mat-option [value]="option" [disabled]="module==='trainings' && !selected() && option==='COMPLETED'">{{option}}</mat-option>

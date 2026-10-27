@@ -1,7 +1,7 @@
 import { safeReturnUrl } from './auth-navigation';
 
 describe('safeReturnUrl', () => {
-  for (const path of ['/home', '/dashboard', '/customers/3/edit', '/invoices/4?view=all#detail', '/fees/new', '/payroll/5', '/hr', '/hr?view=all#list', '/employees', '/departments', '/departments/new', '/departments/12/edit', '/departments?view=all#list']) {
+  for (const path of ['/home', '/dashboard', '/customers/3/edit', '/invoices/4?view=all#detail', '/fees/new', '/payroll/5', '/my-payroll', '/my-payroll/5', '/hr', '/hr?view=all#list', '/employees', '/departments', '/departments/new', '/departments/12/edit', '/departments?view=all#list']) {
     it(`preserves the implemented internal destination ${path}`, () => {
       expect(safeReturnUrl(path)).toBe(path);
     });

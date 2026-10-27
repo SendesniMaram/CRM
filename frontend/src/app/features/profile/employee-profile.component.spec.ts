@@ -9,7 +9,7 @@ import { EmployeeProfileService } from './employee-profile.service';
 describe('EmployeeProfileComponent', () => {
   let service: jasmine.SpyObj<EmployeeProfileService>; let role: CrmRole; let generation: number;
   const session = signal(0);
-  const profile = { employeeId: '103', firstName: 'Test', lastName: 'Employee', jobTitle: 'Developer', departmentId: '7', hireDate: '2026-01-15' };
+  const profile = { employeeId: '103', firstName: 'Test', lastName: 'Employee', jobTitle: 'Developer', departmentId: '7', departmentName: 'Engineering', hireDate: '2026-01-15' };
   beforeEach(() => {
     role = CrmRole.EMPLOYEE; generation = 0;
     service = jasmine.createSpyObj('EmployeeProfileService', ['read']); service.read.and.returnValue(of(profile));
@@ -21,7 +21,7 @@ describe('EmployeeProfileComponent', () => {
   function setup() { const fixture = TestBed.createComponent(EmployeeProfileComponent); fixture.detectChanges(); return { fixture, page: fixture.componentInstance as any }; }
   it('shows only professional data in a read-only Material card', () => {
     const { fixture } = setup(); const text = fixture.nativeElement.textContent;
-    for (const value of ['Mon profil', 'Test', 'Employee', 'Developer', '2026-01-15']) expect(text).toContain(value);
+    for (const value of ['Mon profil', 'Test', 'Employee', 'Developer', 'Engineering', '2026-01-15']) expect(text).toContain(value);
     expect(fixture.nativeElement.querySelector('input, form')).toBeNull(); expect(text).not.toContain('Salaire');
   });
   it('shows loading and blocks duplicate requests', () => {

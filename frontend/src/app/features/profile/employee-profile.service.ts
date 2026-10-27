@@ -1,11 +1,11 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { map } from 'rxjs';
+import { catchError, map, of, switchMap } from 'rxjs';
 import { canonicalId } from '../users/association-identifiers';
 
 export interface EmployeeProfile {
   employeeId: string; firstName: string | null; lastName: string | null;
-  jobTitle: string | null; departmentId: string | null; hireDate: string | null;
+  jobTitle: string | null; departmentId: string | null; departmentName: string | null; hireDate: string | null;
 }
 @Injectable({ providedIn: 'root' })
 export class EmployeeProfileService {
@@ -20,6 +20,21 @@ export class EmployeeProfileService {
         || [row.firstName, row.lastName, row.jobTitle].some(text => text !== null && (typeof text !== 'string' || text.length > 500))
         || (row.hireDate !== null && !validDate(row.hireDate))) throw new HttpErrorResponse({ status: 502 });
       return row;
+    }), switchMap(row => {
+      if (!row.departmentId || !Number.isSafeInteger(Number(row.departmentId))
+          || String(Number(row.departmentId)) !== row.departmentId) {
+        return of({ ...row, departmentName: null });
+      }
+      return this.http.get<unknown>(`http://localhost:8080/department/api/departments/${row.departmentId}`).pipe(
+        map(value => {
+          const department = value as { id?: unknown; name?: unknown } | null;
+          return department && typeof department.id === 'number' && Number.isSafeInteger(department.id)
+            && String(department.id) === row.departmentId && typeof department.name === 'string'
+            && department.name.length <= 255 ? department.name : null;
+        }),
+        catchError(() => of(null)),
+        map(departmentName => ({ ...row, departmentName }))
+      );
     }));
   }
 }

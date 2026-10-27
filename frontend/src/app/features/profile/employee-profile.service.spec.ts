@@ -14,13 +14,20 @@ describe('EmployeeProfileService', () => {
   });
   afterEach(() => http.verify());
   it('uses only the fixed personal endpoint without target IDs and preserves long strings', () => {
-    service.read().subscribe(value => expect(value).toEqual(profile));
+    service.read().subscribe(value => expect(value).toEqual({ ...profile, departmentName: null }));
     const request = http.expectOne(url); expect(request.request.method).toBe('GET'); expect(request.request.params.keys()).toEqual([]);
     expect(request.request.body).toBeNull(); expect(request.request.headers.keys()).toEqual([]); request.flush(profile);
+    http.expectNone('http://localhost:8080/department/api/departments/9007199254740993');
+  });
+  it('shows the department name for a safe department identifier', () => {
+    const regular = { ...profile, employeeId: '103', departmentId: '7' };
+    service.read().subscribe(value => expect(value.departmentName).toBe('Engineering'));
+    http.expectOne(url).flush(regular);
+    http.expectOne('http://localhost:8080/department/api/departments/7').flush({ id: 7, name: 'Engineering' });
   });
   it('preserves nullable professional fields', () => {
     const nullable = { employeeId: '103', firstName: null, lastName: null, jobTitle: null, departmentId: null, hireDate: null };
-    service.read().subscribe(value => expect(value).toEqual(nullable)); http.expectOne(url).flush(nullable);
+    service.read().subscribe(value => expect(value).toEqual({ ...nullable, departmentName: null })); http.expectOne(url).flush(nullable);
   });
   for (const value of [null, {}, { ...profile, employeeId: 103 }, { ...profile, employeeId: '01' },
     { ...profile, employeeId: '9223372036854775808' }, { ...profile, departmentId: 7 }, { ...profile, hireDate: '2026-02-30' },
@@ -35,4 +42,11 @@ describe('EmployeeProfileService', () => {
       http.expectOne(url).flush({}, { status, statusText: 'Synthetic refusal' });
     });
   }
+  it('keeps the profile available if its department directory is unavailable', () => {
+    const regular = { ...profile, employeeId: '103', departmentId: '7' };
+    service.read().subscribe(value => expect(value.departmentName).toBeNull());
+    http.expectOne(url).flush(regular);
+    http.expectOne('http://localhost:8080/department/api/departments/7')
+      .flush({}, { status: 503, statusText: 'Unavailable' });
+  });
 });

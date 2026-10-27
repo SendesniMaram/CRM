@@ -85,6 +85,31 @@ describe('Payroll routes with real guards and HTTP interceptor', () => {
     expect(tree.root.children['primary'].segments[0].path).toBe('login');
     expect(tree.queryParams['returnUrl']).toBe('/payroll');
   });
+  it('allows an employee to use only the personal payroll routes through Gateway', async () => {
+    session(CrmRole.EMPLOYEE);
+    const harness = await RouterTestingHarness.create('/my-payroll');
+    const personalUrl = 'http://localhost:8080/payroll/api/payrolls/me';
+    const list = TestBed.inject(HttpTestingController).expectOne(r => r.url === personalUrl);
+    expect(list.request.headers.has('Authorization')).toBeTrue();
+    list.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
+    harness.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/my-payroll');
+    expect(harness.routeNativeElement?.textContent).toContain('Mes bulletins de paie');
+    expect(harness.fixture.nativeElement.querySelector('a[href="/my-payroll"]')).toBeTruthy();
+    await harness.navigateByUrl('/my-payroll/5');
+    const detail = TestBed.inject(HttpTestingController).expectOne(personalUrl + '/5');
+    expect(detail.request.headers.has('Authorization')).toBeTrue();
+    detail.flush({ id: 5, employeeId: '101', baseSalary: 2000, bonuses: 0, deductions: 0,
+      taxAmount: 0, netSalary: 2000, payPeriod: '2026-10', paymentDate: null, currency: 'TND', status: 'PAID' });
+    harness.detectChanges();
+    expect(harness.routeNativeElement?.textContent).toContain('2026-10');
+  });
+  it('does not expose the personal payroll route to administrators', async () => {
+    session(CrmRole.ADMIN); const harness = await RouterTestingHarness.create('/my-payroll');
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    TestBed.inject(HttpTestingController).expectNone(r => r.url.includes('/api/payrolls/me'));
+    expect(harness.fixture.nativeElement.querySelector('a[href="/my-payroll"]')).toBeNull();
+  });
   it('keeps unknown child routes on Page introuvable', async () => {
     session(CrmRole.ADMIN); const harness = await RouterTestingHarness.create('/payroll/4/unknown');
     expect(harness.routeNativeElement?.textContent).toContain('Page introuvable');

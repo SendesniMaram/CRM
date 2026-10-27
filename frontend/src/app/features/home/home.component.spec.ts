@@ -19,7 +19,7 @@ describe('HomeComponent', () => {
     it('renders real session identity and only authorized modules for '+current, () => {
       role.set(current);const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();const element=fixture.nativeElement as HTMLElement;
       expect(element.querySelector('h1')?.textContent).toContain('Compte de test');
-      expect(element.querySelectorAll('.module-card').length).toBe(current===CrmRole.CLIENT?2:current===CrmRole.EMPLOYEE?3:13);
+      expect(element.querySelectorAll('.module-card').length).toBe(current===CrmRole.CLIENT?2:current===CrmRole.EMPLOYEE?4:13);
       const actions=Array.from(element.querySelectorAll('.action-links a')).map(link=>link.getAttribute('href'));
       if(current===CrmRole.EMPLOYEE)expect(actions).toEqual(['/leaves/new','/leaves']);
       else if(current===CrmRole.CLIENT)expect(actions).toEqual([]);

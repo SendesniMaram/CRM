@@ -85,8 +85,9 @@ class CustomerPersonalIntegrationTest extends com.crm.customer.security.TestIden
   try(var c=java.sql.DriverManager.getConnection("jdbc:h2:mem:customer_migration;MODE=MySQL","sa","")){
    c.createStatement().execute("create table customers(id bigint primary key, name varchar(100))");
    c.createStatement().execute("insert into customers values(1,'Preserved')");
-   String script=new String(getClass().getResourceAsStream("/db/migration/V20261023_01__customer_user_associations.sql").readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);
-   c.createStatement().execute(script);c.createStatement().execute(script);
+   var flyway=org.flywaydb.core.Flyway.configure().dataSource("jdbc:h2:mem:customer_migration;MODE=MySQL","sa","")
+    .locations("classpath:db/migration").baselineOnMigrate(true).baselineVersion("1").load();
+   flyway.migrate();flyway.migrate();
    c.createStatement().execute("insert into customer_user_associations values(42,1)");
    org.junit.jupiter.api.Assertions.assertThrows(java.sql.SQLException.class,()->c.createStatement().execute("insert into customer_user_associations values(43,1)"));
    org.junit.jupiter.api.Assertions.assertThrows(java.sql.SQLException.class,()->c.createStatement().execute("insert into customer_user_associations values(44,999)"));

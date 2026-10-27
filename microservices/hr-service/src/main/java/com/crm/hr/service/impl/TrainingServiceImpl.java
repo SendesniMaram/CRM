@@ -54,6 +54,9 @@ public class TrainingServiceImpl implements ITrainingService {
         if (trainingStatus == Training.TrainingStatus.COMPLETED) {
             throw new IllegalArgumentException("Cannot create a training with COMPLETED status. Use update to mark as completed.");
         }
+        if (Boolean.TRUE.equals(request.getCertificateObtained())) {
+            throw new IllegalArgumentException("A certificate can only be recorded for a completed training");
+        }
 
         Training training = trainingMapper.toEntity(request);
         training.setStatus(trainingStatus);
@@ -124,11 +127,16 @@ public class TrainingServiceImpl implements ITrainingService {
             throw new IllegalArgumentException("Invalid status: " + newStatus + ". Allowed values: PLANNED, IN_PROGRESS, COMPLETED, CANCELLED");
         }
 
+        if (Boolean.TRUE.equals(request.getCertificateObtained())
+                && trainingStatus != Training.TrainingStatus.COMPLETED) {
+            throw new IllegalArgumentException("A certificate can only be recorded for a completed training");
+        }
+
         trainingMapper.updateEntityFromRequest(existing, request);
         existing.setStatus(trainingStatus);
 
         // certificateObtained can only be true if status is COMPLETED
-        // If status is not COMPLETED, force certificateObtained to false
+        // If status is not COMPLETED, certificates cannot be recorded.
         if (trainingStatus != Training.TrainingStatus.COMPLETED) {
             existing.setCertificateObtained(false);
         }

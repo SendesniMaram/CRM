@@ -307,12 +307,14 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         completeRequest.setEndDate(LocalDate.now().plusDays(5));
         completeRequest.setCost(1500.0);
         completeRequest.setStatus("COMPLETED");
+        completeRequest.setCertificateObtained(true);
 
         mockMvc.perform(put("/api/trainings/{id}", created.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(completeRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.certificateObtained").value(true));
 
         // Try to update it again - should fail
         TrainingRequest updateRequest = new TrainingRequest();

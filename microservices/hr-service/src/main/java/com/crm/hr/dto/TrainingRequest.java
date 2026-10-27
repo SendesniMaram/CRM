@@ -43,4 +43,6 @@ public class TrainingRequest {
     @NotBlank(message = "Status is required")
     @Size(max = 20, message = "Status must be at most 20 characters")
     private String status;
+
+    private Boolean certificateObtained;
 }

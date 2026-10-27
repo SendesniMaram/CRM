@@ -91,6 +91,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(400).body(body);
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleResponseStatus(
+            org.springframework.web.server.ResponseStatusException ex, WebRequest request) {
+        int status = ex.getStatusCode().value();
+        org.springframework.http.HttpStatus resolved = org.springframework.http.HttpStatus.resolve(status);
+        String message = switch (status) {
+            case 400 -> "The request or filter is invalid";
+            case 401 -> "Authentication is required";
+            case 403 -> "Access is denied";
+            case 404 -> "The requested resource is unavailable";
+            case 502, 503 -> "A required service is temporarily unavailable";
+            default -> "The request could not be completed";
+        };
+        ApiError body = new ApiError(status, resolved == null ? "Request Failed" : resolved.getReasonPhrase(),
+                message, getPath(request));
+        return ResponseEntity.status(status).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
         ApiError body = new ApiError(

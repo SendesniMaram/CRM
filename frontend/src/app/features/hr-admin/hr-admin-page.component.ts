@@ -4,6 +4,7 @@ import { DatePipe } from '@angular/common';
 import { FormControl,FormGroup,ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -19,7 +20,7 @@ import { HrAdminService } from './hr-admin.service';
 
 @Component({
   selector:'app-hr-admin-page',standalone:true,
-  imports:[DatePipe,ReactiveFormsModule,MatButtonModule,MatCardModule,MatFormFieldModule,MatInputModule,MatSelectModule,MatTableModule,MatPaginatorModule],
+  imports:[DatePipe,ReactiveFormsModule,MatButtonModule,MatCardModule,MatCheckboxModule,MatFormFieldModule,MatInputModule,MatSelectModule,MatTableModule,MatPaginatorModule],
   templateUrl:'./hr-admin-page.component.html',styleUrl:'./hr-admin-page.component.scss',
   changeDetection:ChangeDetectionStrategy.OnPush
 })
@@ -119,7 +120,7 @@ export class HrAdminPageComponent {
     const request:Record<string,unknown>={};
     for(const field of this.definition.fields){
       const raw=this.form.controls[field.key].value;
-      request[field.key]=field.type==='number'?Number(raw):raw===null||raw===''?null:String(raw).trim();
+      request[field.key]=field.type==='number'?Number(raw):field.type==='checkbox'?raw:raw===null||raw===''?null:String(raw).trim();
     }
     if(this.module==='trainings'){
       const start=String(request['startDate']),end=String(request['endDate']);
@@ -127,6 +128,7 @@ export class HrAdminPageComponent {
       if(start<today||end<start){this.formError.set('Les dates doivent être actuelles ou futures, avec une fin après le début.');return;}
       if(!Number.isFinite(request['cost'] as number)){this.formError.set('Le coût doit être un nombre valide.');return;}
       if(!this.selected()&&request['status']==='COMPLETED'){this.formError.set('Créez la formation avant de la marquer terminée.');return;}
+      if(request['certificateObtained']===true&&request['status']!=='COMPLETED'){this.formError.set('Un certificat ne peut être enregistré que pour une formation terminée.');return;}
     }
     const g=this.generation;this.busy.set(true);this.formError.set('');
     this.requests.add(this.service.save(this.module,this.selected()?.id??null,request).subscribe({

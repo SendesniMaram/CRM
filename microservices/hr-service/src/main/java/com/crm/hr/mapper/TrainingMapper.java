@@ -42,7 +42,7 @@ public class TrainingMapper {
         training.setEndDate(request.getEndDate());
         training.setCost(request.getCost());
         training.setStatus(Training.TrainingStatus.valueOf(request.getStatus()));
-        training.setCertificateObtained(false);
+        training.setCertificateObtained(Boolean.TRUE.equals(request.getCertificateObtained()));
 
         return training;
     }
@@ -57,5 +57,6 @@ public class TrainingMapper {
         training.setStartDate(request.getStartDate());
         training.setEndDate(request.getEndDate());
         training.setCost(request.getCost());
+        training.setCertificateObtained(Boolean.TRUE.equals(request.getCertificateObtained()));
     }
 }

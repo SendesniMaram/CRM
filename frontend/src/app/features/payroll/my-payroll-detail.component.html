@@ -1,0 +1,18 @@
+<section class="customer-page narrow" aria-labelledby="my-payroll-detail-title" [attr.aria-busy]="loading() || downloading()">
+  <a mat-button routerLink="/my-payroll">Retour à mes bulletins</a>
+  @if (loading()) { <p role="status">Chargement du bulletin…</p> }
+  @if (error()) { <p role="alert">{{ error() }}</p> }
+  @if (row(); as payroll) {
+    <header class="page-header"><div><p class="eyebrow">Bulletin personnel</p><h1 id="my-payroll-detail-title">Période {{ payroll.payPeriod }}</h1></div>
+      <button mat-flat-button type="button" (click)="download()" [disabled]="downloading()">{{ downloading() ? 'Préparation…' : 'Télécharger le PDF' }}</button></header>
+    <mat-card><mat-card-content><dl>
+      <dt>Date de paiement</dt><dd>{{ payroll.paymentDate ? (payroll.paymentDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd>
+      <dt>Salaire de base</dt><dd>{{ payroll.baseSalary | number:'1.2-2' }} {{ payroll.currency || '' }}</dd>
+      <dt>Primes</dt><dd>{{ payroll.bonuses ?? 0 | number:'1.2-2' }} {{ payroll.currency || '' }}</dd>
+      <dt>Retenues</dt><dd>{{ payroll.deductions ?? 0 | number:'1.2-2' }} {{ payroll.currency || '' }}</dd>
+      <dt>Impôt</dt><dd>{{ payroll.taxAmount ?? 0 | number:'1.2-2' }} {{ payroll.currency || '' }}</dd>
+      <dt>Net enregistré</dt><dd>{{ payroll.netSalary | number:'1.2-2' }} {{ payroll.currency || '' }}</dd>
+      <dt>Statut</dt><dd>{{ payroll.status }}</dd>
+    </dl></mat-card-content></mat-card>
+  }
+</section>

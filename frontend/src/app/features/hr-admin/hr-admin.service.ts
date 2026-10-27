@@ -48,6 +48,7 @@ export class HrAdminService {
       const value=row[field.key];
       if(value===null||value===undefined){if(field.required)return false;continue;}
       if(field.type==='number'){if(typeof value!=='number'||!Number.isFinite(value)||value<0)return false;}
+      else if(field.type==='checkbox'){if(typeof value!=='boolean')return false;}
       else if(typeof value!=='string'||(field.maxLength&&value.length>field.maxLength)
         ||(field.options&&!field.options.includes(value)))return false;
     }

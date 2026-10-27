@@ -12,7 +12,7 @@
           <dt>Prénom</dt><dd>{{ record.firstName || 'Non renseigné' }}</dd>
           <dt>Nom</dt><dd>{{ record.lastName || 'Non renseigné' }}</dd>
           <dt>Poste</dt><dd>{{ record.jobTitle || 'Non renseigné' }}</dd>
-          <dt>Département — identifiant</dt><dd>{{ record.departmentId || 'Non renseigné' }}</dd>
+          <dt>Département</dt><dd>{{ record.departmentName || (record.departmentId ? 'Identifiant ' + record.departmentId : 'Non renseigné') }}</dd>
           <dt>Date d’embauche</dt><dd>{{ record.hireDate || 'Non renseignée' }}</dd>
         </dl>
       }
