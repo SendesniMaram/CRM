@@ -10,6 +10,15 @@
   @if (refreshedAt(); as date) { <p class="muted" role="status">Dernière actualisation : {{ date | date:'dd/MM/yyyy HH:mm:ss' }}</p> }
   @if (failed()) { <p role="alert" class="error">Impossible de charger le tableau de bord. Réessayez.</p> }
   @if (scope() === 'client') {
+    <section aria-label="Mes indicateurs de facturation" class="kpis">
+      @for (card of cards(); track card.title) {
+        <mat-card><mat-card-content><mat-icon aria-hidden="true">{{ card.icon }}</mat-icon><h2>{{ card.title }}</h2>
+          <p class="value">{{ loading() ? 'Chargement…' : card.value === null ? 'Indisponible' : card.value }}</p>
+          @if (!loading() && card.error) { <p class="error" role="status">{{ card.error }}</p> }
+          <a mat-button [routerLink]="card.route">Consulter<mat-icon>arrow_forward</mat-icon></a>
+        </mat-card-content></mat-card>
+      }
+    </section>
     <app-client-workspace />
   } @else {
     <section aria-label="Indicateurs clés" class="kpis">
@@ -31,8 +40,29 @@
           } @else { <p>Indisponible</p> }
           <p class="muted">{{ visible()?.invoices?.value?.reason || visible()?.invoices?.error || 'Somme des montants enregistrés, par devise, tous statuts confondus.' }}</p>
         </mat-card-content></mat-card>
-        <mat-card><mat-card-content><h2>Montant total des honoraires</h2><p>Indisponible</p>
-          <p class="muted">Les honoraires ne fournissent pas de devise. Aucun total monétaire global fiable ne peut être présenté.</p>
+        <mat-card><mat-card-content><h2>Honoraires enregistr&eacute;s</h2>
+          @if (loading()) { <p>Chargement...</p> }
+          @else if (visible()?.feeOverview?.value; as fees) {
+            <p>{{ fees.amount | number:'1.2-2' }} (devise non renseign&eacute;e)</p>
+            <p>{{ fees.workedHours | number:'1.0-2' }} heure(s), {{ fees.count }} ligne(s)</p>
+            @for (item of fees.paymentStatuses; track item.label) { <p>{{ item.label }} : {{ item.count }}</p> }
+          } @else { <p>Indisponible</p> }
+          <p class="muted">Aucune devise ni r&egrave;gle de facturation n'est suppos&eacute;e.</p>
+        </mat-card-content></mat-card>
+        <mat-card><mat-card-content><h2>Montants pay&eacute;s et restant dus</h2>
+          @if (loading()) { <p>Chargement...</p> }
+          @else if (visible()?.invoices?.value?.paidAmounts; as paid) {
+            @if (paid.length === 0) { <p>Aucune facture.</p> }
+            @for (total of paid; track total.currency) { <p>Pay&eacute; : {{ total.value }} {{ total.currency }}</p> }
+            @for (total of visible()?.invoices?.value?.outstandingAmounts ?? []; track total.currency) { <p>Reste d&ucirc; : {{ total.value }} {{ total.currency }}</p> }
+          } @else { <p>Indisponible</p> }
+        </mat-card-content></mat-card>
+        <mat-card><mat-card-content><h2>Devis</h2>
+          @if (visible()?.invoices?.value?.quoteStatuses; as statuses) {
+            @if (statuses.length === 0) { <p>Aucun devis.</p> }
+            @for (item of statuses; track item.label) { <p>{{ item.label }} : {{ item.count }}</p> }
+            @for (total of visible()?.invoices?.value?.quoteAmounts ?? []; track total.currency) { <p>{{ total.value }} {{ total.currency }}</p> }
+          } @else { <p>Indisponible</p> }
         </mat-card-content></mat-card>
       </section>
     }
@@ -46,6 +76,12 @@
           <mat-progress-bar mode="determinate" [value]="item.percent" [attr.aria-label]="item.label + ' : ' + item.count" />
         }
       </mat-card-content></mat-card>
+      @if (scope() === 'employee') { <mat-card><mat-card-content><h2>Informations personnelles</h2>
+          @if (visible()?.personalProfile?.value; as profile) {
+            <p>{{ profile.jobTitle || 'Fonction non renseignee' }}</p>
+            <p>{{ profile.departmentName || (profile.departmentId ? 'Departement ' + profile.departmentId : 'Departement non renseigne') }}</p>
+          } @else { <p>{{ visible()?.personalProfile?.error || 'Indisponible' }}</p> }
+        </mat-card-content></mat-card> }
       @if (scope() === 'admin') {
         <mat-card><mat-card-content><h2>Factures par statut</h2>
           @if (loading()) { <p>Chargement…</p> }
@@ -56,6 +92,13 @@
               <mat-progress-bar mode="determinate" [value]="item.percent" [attr.aria-label]="item.label + ' : ' + item.count" />
             }
           } @else { <p>Indisponible</p><p class="muted">{{ visible()?.invoices?.value?.reason || visible()?.invoices?.error }}</p> }
+        </mat-card-content></mat-card>
+        <mat-card><mat-card-content><h2>Opportunit&eacute;s par &eacute;tape</h2>
+          <p class="muted">Montant estim&eacute; par &eacute;tape; aucune devise n'est d&eacute;finie.</p>
+          @if (visible()?.contacts?.value; as contacts) {
+            @if (opportunityStages().length === 0) { <p>Aucune opportunit&eacute;.</p> }
+            @for (item of opportunityStages(); track item.stage) { <div class="bar-label"><span>{{ item.stage }} : {{ item.estimatedAmount | number:'1.2-2' }}</span><strong>{{ item.count }}</strong></div> }
+          } @else { <p>Indisponible</p> }
         </mat-card-content></mat-card>
       }
     </section>

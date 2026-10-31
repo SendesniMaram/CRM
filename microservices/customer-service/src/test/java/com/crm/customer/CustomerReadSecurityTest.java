@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
-@WebMvcTest(controllers = {CustomerController.class, SalesController.class})
+@WebMvcTest(controllers = {CustomerController.class, SalesController.class, com.crm.customer.controller.CustomerDashboardController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
 class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySupport {
@@ -67,6 +67,23 @@ class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySup
         when(service0.getAllCustomersPaged(anyInt(), anyInt(), any(), anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(row0)));
         when(service0.getCustomerById(1L)).thenReturn(row0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void commercialStatisticsAreAdministratorOnlyAndUseContactAndOpportunityAggregates() throws Exception {
+        var stage = mock(SalesOpportunityRepository.StageSummary.class);
+        when(stage.getStage()).thenReturn("NEW"); when(stage.getCount()).thenReturn(2L); when(stage.getAmount()).thenReturn(java.math.BigDecimal.valueOf(500));
+        when(customerRepository.countByContactType("CUSTOMER")).thenReturn(8L);
+        when(customerRepository.countByContactType("LEAD")).thenReturn(4L);
+        when(customerRepository.countByContactType("SUPPLIER")).thenReturn(3L);
+        when(opportunityRepository.summarizeStages()).thenReturn(List.of(stage));
+        mvc.perform(get("/api/customers/statistics").header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(customerRepository, opportunityRepository);
+        mvc.perform(get("/api/customers/statistics").header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.customers").value(8))
+                .andExpect(jsonPath("$.prospects").value(4)).andExpect(jsonPath("$.suppliers").value(3))
+                .andExpect(jsonPath("$.opportunitiesByStage.NEW.count").value(2));
     }
 
     @org.junit.jupiter.api.Test

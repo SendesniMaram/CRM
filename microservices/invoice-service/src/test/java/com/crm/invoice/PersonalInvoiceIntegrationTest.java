@@ -2,6 +2,8 @@ package com.crm.invoice;
 import com.crm.invoice.client.PersonalCustomerClient;
 import com.crm.invoice.entity.Invoice;
 import com.crm.invoice.repository.InvoiceRepository;
+import com.crm.invoice.repository.InvoicePaymentRepository;
+import com.crm.invoice.entity.InvoicePayment;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,13 +23,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties={"eureka.client.enabled=false","spring.cloud.service-registry.auto-registration.enabled=false"})
 @AutoConfigureMockMvc
 class PersonalInvoiceIntegrationTest extends com.crm.invoice.security.TestIdentitySupport {
- @Autowired MockMvc mvc;@Autowired InvoiceRepository invoices;@MockBean PersonalCustomerClient customers;
+ @Autowired MockMvc mvc;@Autowired InvoiceRepository invoices;@Autowired InvoicePaymentRepository payments;@MockBean PersonalCustomerClient customers;
  String a,b;Long own,foreign;
  String bearer(long uid,String username,String role){return "Bearer "+signed(username,true,List.of(role),""+uid,Instant.now().plusSeconds(3600));}
  @BeforeEach void data(){
-  invoices.deleteAll();a=bearer(42,"same","CLIENT");b=bearer(43,"same","CLIENT");
+  payments.deleteAll();invoices.deleteAll();a=bearer(42,"same","CLIENT");b=bearer(43,"same","CLIENT");
   when(customers.own(a)).thenReturn("101");when(customers.own(b)).thenReturn("202");
   own=save("A","101");foreign=save("B","202");
+ }
+ @Test void personalStatisticsAreBoundToTheAuthenticatedCustomerAndIncludeOnlyTheirPayments()throws Exception{
+  InvoicePayment payment=new InvoicePayment();payment.setInvoiceId(own);payment.setAmount(BigDecimal.valueOf(3));payment.setPaidAt(java.time.LocalDate.of(2026,10,1));payments.saveAndFlush(payment);
+  mvc.perform(get("/api/invoices/me/statistics").header("Authorization",a).header("X-Customer-Id","202"))
+   .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
+   .andExpect(jsonPath("$.invoiceCount").value(1)).andExpect(jsonPath("$.paidInvoiceCount").value(0))
+   .andExpect(jsonPath("$.unpaidInvoiceCount").value(1)).andExpect(jsonPath("$.byCurrency.EUR.total").value(10))
+   .andExpect(jsonPath("$.byCurrency.EUR.paid").value(3)).andExpect(jsonPath("$.byCurrency.EUR.outstanding").value(7));
+  mvc.perform(get("/api/invoices/me/statistics").header("Authorization",b))
+   .andExpect(status().isOk()).andExpect(jsonPath("$.invoiceCount").value(1))
+   .andExpect(jsonPath("$.byCurrency.EUR.paid").value(0));
+  mvc.perform(get("/api/invoices/me/statistics").header("Authorization",bearer(42,"x","ADMIN")))
+   .andExpect(status().isForbidden());
  }
  Long save(String number,String customer){
   Invoice i=new Invoice();i.setInvoiceNumber(number);i.setCustomerId(customer);i.setSubtotal(BigDecimal.TEN);i.setTotalAmount(BigDecimal.TEN);

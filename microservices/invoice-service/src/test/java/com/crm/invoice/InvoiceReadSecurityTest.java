@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
-@WebMvcTest(controllers = {InvoiceController.class, QuoteController.class})
+@WebMvcTest(controllers = {InvoiceController.class, QuoteController.class, com.crm.invoice.controller.InvoiceStatisticsController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
 class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySupport {
@@ -51,6 +51,19 @@ class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySuppo
         when(service0.getAllInvoicesPaged(anyInt(), anyInt(), any(), anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(row0)));
         when(service0.getInvoiceById(1L)).thenReturn(row0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void invoiceDashboardStatisticsAreAdministratorOnly() throws Exception {
+        when(invoiceRepository.summarizeByStatusAndCurrency()).thenReturn(List.of());
+        when(paymentRepository.summarizePaidByCurrency()).thenReturn(List.of());
+        when(quoteRepository.summarizeByStatusAndCurrency()).thenReturn(List.of());
+        mvc.perform(get("/api/invoices/statistics").header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(invoiceRepository, paymentRepository, quoteRepository);
+        mvc.perform(get("/api/invoices/statistics").header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.invoiceCountsByStatus").exists())
+                .andExpect(jsonPath("$.invoicesByCurrency").isMap());
     }
 
     @org.junit.jupiter.api.Test

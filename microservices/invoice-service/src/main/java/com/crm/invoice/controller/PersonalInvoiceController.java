@@ -14,6 +14,9 @@ public class PersonalInvoiceController {
   if(r.getParameterMap().keySet().stream().anyMatch(k->!java.util.Set.of("page","size").contains(k))) throw new IllegalArgumentException("Target parameters are not allowed");
   return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.list(a,b,page,size));
  }
+ @GetMapping("/statistics") public ResponseEntity<PersonalInvoiceService.PersonalStatistics> statistics(Authentication a,@RequestHeader("Authorization") String b){
+  return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.statistics(a,b));
+ }
  @GetMapping("/{id}") public ResponseEntity<PersonalInvoiceService.Summary> detail(Authentication a,@RequestHeader("Authorization") String b,@PathVariable String id,HttpServletRequest r){
   noTarget(r); return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.detail(a,b,id));
  }

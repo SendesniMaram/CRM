@@ -13,5 +13,6 @@ public interface CustomerRepository extends JpaRepository<Customer, Long>, JpaSp
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);
+    long countByContactType(String contactType);
 }
 

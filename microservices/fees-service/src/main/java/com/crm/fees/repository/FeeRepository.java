@@ -8,5 +8,14 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface FeeRepository extends JpaRepository<Fee, Long>, JpaSpecificationExecutor<Fee> {
 
+    interface Totals { long getCount(); java.math.BigDecimal getAmount(); Double getHours(); }
+    interface StatusCount { String getStatus(); long getCount(); }
+    @org.springframework.data.jpa.repository.Query("select count(f) as count, sum(f.amount) as amount, sum(f.workedHours) as hours from Fee f")
+    Totals aggregateTotals();
+    @org.springframework.data.jpa.repository.Query("select f.invoiceStatus as status, count(f) as count from Fee f group by f.invoiceStatus")
+    java.util.List<StatusCount> countByInvoiceStatus();
+    @org.springframework.data.jpa.repository.Query("select f.paymentStatus as status, count(f) as count from Fee f group by f.paymentStatus")
+    java.util.List<StatusCount> countByPaymentStatus();
+
     boolean existsByEmployeeId(String employeeId);
 }

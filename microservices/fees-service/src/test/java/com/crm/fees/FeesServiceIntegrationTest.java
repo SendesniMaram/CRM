@@ -60,6 +60,23 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     }
 
     @Test
+    void statisticsAggregateRecordedAmountsHoursAndStatuses() throws Exception {
+        mockMvc.perform(post("/api/fees")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/fees/statistics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.amount").value(1500.00))
+                .andExpect(jsonPath("$.workedHours").value(10.0))
+                .andExpect(jsonPath("$.invoiceStatuses.PENDING").value(1))
+                .andExpect(jsonPath("$.paymentStatuses.UNPAID").value(1))
+                .andExpect(jsonPath("$.currencyDefined").value(false));
+    }
+
+    @Test
     void descriptionAccepts500CharactersAndRejects501() throws Exception {
         validRequest.setDescription("a".repeat(500));
         String responseJson = mockMvc.perform(post("/api/fees")

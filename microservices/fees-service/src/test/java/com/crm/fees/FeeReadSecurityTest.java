@@ -1,6 +1,8 @@
 package com.crm.fees;
 
 import com.crm.fees.controller.FeeController;
+import com.crm.fees.controller.FeeStatisticsController;
+import com.crm.fees.repository.FeeRepository;
 import com.crm.fees.dto.FeeResponse;
 import com.crm.fees.service.IFeeService;
 import com.crm.fees.config.SecurityConfig;
@@ -28,13 +30,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
-@WebMvcTest(controllers = {FeeController.class})
+@WebMvcTest(controllers = {FeeController.class, FeeStatisticsController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
 class FeeReadSecurityTest extends com.crm.fees.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @MockBean IFeeService service0;
+    @MockBean FeeRepository feeRepository;
 
     @BeforeEach
     void responses() {
@@ -44,6 +47,30 @@ class FeeReadSecurityTest extends com.crm.fees.security.TestIdentitySupport {
         when(service0.getAllFeesPaged(anyInt(), anyInt(), any(), anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(row0)));
         when(service0.getFeeById(1L)).thenReturn(row0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void feeStatisticsAreRestrictedToAdministrators() throws Exception {
+        FeeRepository.Totals totals = mock(FeeRepository.Totals.class);
+        when(totals.getCount()).thenReturn(2L);
+        when(totals.getAmount()).thenReturn(java.math.BigDecimal.valueOf(350));
+        when(totals.getHours()).thenReturn(7d);
+        when(feeRepository.aggregateTotals()).thenReturn(totals);
+        when(feeRepository.countByInvoiceStatus()).thenReturn(List.of());
+        when(feeRepository.countByPaymentStatus()).thenReturn(List.of());
+
+        mvc.perform(get("/api/fees/statistics")
+                        .header("Authorization", "Bearer " + com.crm.fees.security.TestIdentitySupport.token(
+                                "security-test-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(feeRepository);
+
+        mvc.perform(get("/api/fees/statistics")
+                        .header("Authorization", "Bearer " + com.crm.fees.security.TestIdentitySupport.token(
+                                "security-test-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(2))
+                .andExpect(jsonPath("$.currencyDefined").value(false));
     }
 
 

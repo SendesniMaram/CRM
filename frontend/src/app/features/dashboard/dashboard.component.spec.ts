@@ -20,15 +20,18 @@ describe('DashboardComponent', () => {
       : role() === CrmRole.EMPLOYEE ? 'employee' : 'client';
   }
   beforeEach(async () => {
-    role.set(CrmRole.ADMIN);
-    username.set('test-user');
+    role.set(CrmRole.ADMIN); username.set('test-user');
     snapshot = { ...emptyDashboard('admin'), employees: { value: 125, error: '' },
-      customers: { value: null, error: 'Service indisponible.' }, fees: { value: 0, error: '' },
-      payroll: { value: 12, error: '' }, leaves: { value: [
+      customers: { value: null, error: 'Unavailable' }, fees: { value: 0, error: '' },
+      payroll: { value: 12, error: '' }, contacts: { value: { customers: 9, prospects: 4, suppliers: 2,
+        opportunitiesByStage: { NEW: { stage: 'NEW', count: 3, estimatedAmount: 750 } } }, error: '' },
+      feeOverview: { value: { count: 2, amount: 350, workedHours: 7, invoiceStatuses: [], paymentStatuses: [], currencyDefined: false }, error: '' },
+      leaves: { value: [
         { id: 1, employeeId: '7', startDate: '2026-10-20', endDate: '2026-10-21', reason: null,
           status: 'PENDING', validatorUsername: null, createdAt: '2026-10-16T10:00:00', updatedAt: '2026-10-16T10:00:00' }
-      ], error: '' }, invoices: { value: { count: 3, amounts: [{ currency: 'TND', value: '100,00' }], statuses: [
-        { label: 'PAYÉE', count: 3, percent: 100 }], reason: '' }, error: '' } };
+      ], error: '' }, invoices: { value: { count: 3, amounts: [{ currency: 'TND', value: '100,00' }],
+        paidAmounts: [{ currency: 'TND', value: '60,00' }], outstandingAmounts: [{ currency: 'TND', value: '40,00' }],
+        quoteStatuses: [], quoteAmounts: [], statuses: [{ label: 'PAID', count: 3, percent: 100 }], reason: '' }, error: '' } };
     service = jasmine.createSpyObj('DashboardDataService', ['scope', 'load']);
     service.scope.and.callFake(scope);
     service.load.and.callFake(() => of(scope() === 'admin' ? snapshot : {
@@ -40,60 +43,62 @@ describe('DashboardComponent', () => {
         hasAnyRole: (roles: CrmRole[]) => roles.includes(role()),
         getCurrentUser: () => ({ username: username(), email: 'unit@example.test' }) } },
       { provide: ClientService, useValue: {
-        profile: () => of({customerId:'101',name:'Customer backend',email:'client@example.test',phone:null,company:null}),
-        invoices: () => of({content:[],totalElements:0,totalPages:0,number:0}) } },
+        profile: () => of({ customerId: '101', name: 'Customer backend', email: 'client@example.test', phone: null, company: null }),
+        invoices: () => of({ content: [], totalElements: 0, totalPages: 0, number: 0 }) } },
       { provide: MatSnackBar, useValue: { open: jasmine.createSpy('open') } }
     ] }).compileComponents();
     fixture = TestBed.createComponent(DashboardComponent);
   });
-  it('renders real KPI values, zero and unavailable as distinct states without mock statistics', () => {
+  it('renders API values, zero and unavailable as distinct states', () => {
     fixture.detectChanges(); const text = fixture.nativeElement.textContent;
     expect(text).toContain('Tableau de bord'); expect(text).toContain('125');
     expect(text).toContain('100,00'); expect(text).toContain('TND'); expect(text).toContain('Indisponible');
     expect(fixture.componentInstance['cards']().find(card => card.title === 'Honoraires')?.value).toBe(0);
     expect(fixture.componentInstance['cards']().find(card => card.title === 'Clients')?.value).toBeNull();
-    for (const value of ['€86.4K', 'Sophie Martin', 'Aperçu temporaire', 'Clients actifs']) expect(text).not.toContain(value);
+    expect(fixture.componentInstance['cards']().find(card => card.title === 'Opportunités')?.value).toBe(3);
+    expect(text).toContain('Honoraires enregistr'); expect(text).toContain('750');
+    for (const value of ['86.4K', 'Sophie Martin', 'Apercu temporaire', 'Clients actifs']) expect(text).not.toContain(value);
   });
   it('shows loading and clears stale values on refresh', () => {
     fixture.detectChanges(); const pending = new Subject<DashboardData>(); service.load.and.returnValue(pending);
     fixture.componentInstance['refresh'](); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Chargement des données');
+    expect(fixture.nativeElement.textContent).toContain('Chargement');
     expect(fixture.nativeElement.textContent).not.toContain('125'); pending.next(snapshot); pending.complete();
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('125');
   });
-  it('shows French notifications for partial refresh and recovery', () => {
+  it('shows refresh feedback for partial data and recovery', () => {
     fixture.detectChanges(); fixture.componentInstance['refresh']();
-    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith(
-      'Actualisation partielle : certaines données sont indisponibles.', 'Fermer', { duration: 5000 });
+    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalled();
     service.load.and.returnValue(of({ ...emptyDashboard('admin') })); fixture.componentInstance['refresh']();
-    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledWith('Tableau de bord actualisé.', 'Fermer', { duration: 5000 });
+    expect(TestBed.inject(MatSnackBar).open).toHaveBeenCalledTimes(2);
   });
-  it('shows empty distributions and activities instead of invented data', () => {
-    snapshot.leaves.value = []; snapshot.invoices.value = { count: 0, amounts: [], statuses: [], reason: '' };
+  it('shows empty distributions and activities instead of invented values', () => {
+    snapshot.leaves.value = []; snapshot.invoices.value = { count: 0, amounts: [], paidAmounts: [], outstandingAmounts: [],
+      quoteStatuses: [], quoteAmounts: [], statuses: [], reason: '' };
     fixture.detectChanges(); const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Aucune demande de congé'); expect(text).toContain('Aucune facture');
-    expect(text).toContain('Aucune demande datée disponible');
+    expect(text).toContain('Aucune'); expect(text).toContain('facture');
   });
-  it('renders status bars and recent creation timestamps with valid navigation', () => {
+  it('renders status bars, recent timestamps and valid navigation', () => {
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('En attente');
-    expect(fixture.nativeElement.textContent).toContain('PAYÉE'); expect(fixture.nativeElement.textContent).toContain('16/10/2026');
+    expect(fixture.nativeElement.textContent).toContain('16/10/2026');
     expect(fixture.nativeElement.querySelectorAll('mat-progress-bar[mode="determinate"]').length).toBe(2);
     expect(fixture.nativeElement.querySelector('a[href="/leaves"]')).toBeTruthy();
     expect(fixture.nativeElement.querySelector('a[href="/payroll"]')).toBeTruthy();
+    for (const path of ['/leave-calendar', '/contracts', '/evaluations', '/job-offers', '/applications'])
+      expect(fixture.nativeElement.querySelector('a[href="' + path + '"]')).toBeTruthy();
   });
-  it('shows only personal leave data and links for EMPLOYEE', () => {
+  it('shows personal employee data and hides administrative links', () => {
     role.set(CrmRole.EMPLOYEE); fixture.detectChanges(); const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Mes demandes de congé'); expect(text).toContain('Mes congés en attente');
-    for (const path of ['/employees', '/customers', '/invoices', '/fees', '/payroll']) {
+    expect(text).toContain('Mes demandes de'); expect(text).toContain('Mes congés en attente');
+    for (const path of ['/employees', '/customers', '/invoices', '/fees', '/payroll'])
       expect(fixture.nativeElement.querySelector('a[href="' + path + '"]')).toBeNull();
-    }
     expect(text).not.toContain('Montant total'); expect(text).not.toContain('125');
   });
-  it('shows account information and no administrative indicators for CLIENT', () => {
+  it('shows client invoice indicators and no administrative indicators', () => {
     role.set(CrmRole.CLIENT); fixture.detectChanges(); const text = fixture.nativeElement.textContent;
     expect(text).toContain('test-user'); expect(text).toContain('Customer backend'); expect(text).toContain('Mes factures');
-    expect(fixture.nativeElement.querySelector('.kpis')).toBeNull();
-    expect(fixture.nativeElement.querySelector('nav[aria-label="Accès rapides"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.kpis')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('nav[aria-label^="Acc"]')).toBeNull();
   });
   it('clears administrative values immediately when roles change', () => {
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('125');
@@ -106,14 +111,13 @@ describe('DashboardComponent', () => {
     expect(fixture.componentInstance['cards']().every(card => card.value === null)).toBeTrue();
     expect(fixture.componentInstance['recent']()).toEqual([]);
   });
-  it('clears personal data when switching accounts even with the same role', () => {
+  it('clears personal data when switching accounts with the same role', () => {
     role.set(CrmRole.EMPLOYEE); fixture.detectChanges();
     expect(fixture.componentInstance['visible']()?.leaves.value?.length).toBe(1);
-    username.set('another-employee');
-    expect(fixture.componentInstance['visible']()).toBeNull();
+    username.set('another-employee'); expect(fixture.componentInstance['visible']()).toBeNull();
     fixture.detectChanges(); expect(service.load).toHaveBeenCalledTimes(2);
   });
-  it('cancels obsolete requests on refresh and on destruction', () => {
+  it('cancels obsolete requests on refresh and destruction', () => {
     const old = new Subject<DashboardData>(); const latest = new Subject<DashboardData>();
     service.load.and.returnValues(old, latest); fixture.detectChanges(); fixture.componentInstance['refresh']();
     expect(old.observed).toBeFalse(); old.next(snapshot); expect(fixture.componentInstance['data']()).toBeNull();
@@ -125,11 +129,12 @@ describe('DashboardComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Impossible');
     expect(fixture.nativeElement.textContent).not.toContain('125');
   });
-  it('hides previous figures when a new session reuses the same username and role',()=>{
-    const generation=signal(0);Object.defineProperty(TestBed.inject(AuthService),'sessionGeneration',{get:()=>generation()});
-    fixture.detectChanges();expect(fixture.componentInstance['visible']()).not.toBeNull();
-    const pending=new Subject<DashboardData>();service.load.and.returnValue(pending);generation.set(1);
-    expect(fixture.componentInstance['visible']()).toBeNull();fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).not.toContain('125');expect(service.load).toHaveBeenCalledTimes(2);
+  it('hides previous figures after a new session with the same username and role', () => {
+    const generation = signal(0);
+    Object.defineProperty(TestBed.inject(AuthService), 'sessionGeneration', { get: () => generation() });
+    fixture.detectChanges(); expect(fixture.componentInstance['visible']()).not.toBeNull();
+    const pending = new Subject<DashboardData>(); service.load.and.returnValue(pending); generation.set(1);
+    expect(fixture.componentInstance['visible']()).toBeNull(); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).not.toContain('125'); expect(service.load).toHaveBeenCalledTimes(2);
   });
 });

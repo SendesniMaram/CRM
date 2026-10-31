@@ -3,6 +3,8 @@ package com.crm.invoice;
 import com.crm.invoice.dto.InvoiceRequest;
 import com.crm.invoice.dto.InvoiceResponse;
 import com.crm.invoice.repository.InvoiceRepository;
+import com.crm.invoice.repository.InvoicePaymentRepository;
+import com.crm.invoice.entity.InvoicePayment;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,10 +44,14 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
     @Autowired
     private InvoiceRepository invoiceRepository;
 
+    @Autowired
+    private InvoicePaymentRepository paymentRepository;
+
     private InvoiceRequest validRequest;
 
     @BeforeEach
     void setUp() {
+        paymentRepository.deleteAll();
         invoiceRepository.deleteAll();
         invoiceRepository.flush();
 
@@ -59,6 +65,27 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         validRequest.setCurrency("EUR");
         validRequest.setStatus("PENDING");
         validRequest.setNotes("Invoice for January services");
+    }
+
+    @Test
+    void statisticsAggregateAmountsAndRecordedPaymentsByCurrency() throws Exception {
+        String created = mockMvc.perform(post("/api/invoices")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        Long invoiceId = objectMapper.readTree(created).get("id").asLong();
+        InvoicePayment payment = new InvoicePayment();
+        payment.setInvoiceId(invoiceId); payment.setAmount(new BigDecimal("250.00"));
+        payment.setPaidAt(LocalDate.of(2024, 2, 1)); payment.setMethod("MANUAL");
+        paymentRepository.saveAndFlush(payment);
+
+        mockMvc.perform(get("/api/invoices/statistics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.invoiceCountsByStatus.PENDING").value(1))
+                .andExpect(jsonPath("$.invoicesByCurrency.EUR.count").value(1))
+                .andExpect(jsonPath("$.invoicesByCurrency.EUR.total").value(1200.00))
+                .andExpect(jsonPath("$.invoicesByCurrency.EUR.paid").value(250.00))
+                .andExpect(jsonPath("$.invoicesByCurrency.EUR.outstanding").value(950.00));
     }
 
     @Test
