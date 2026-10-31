@@ -1,0 +1,107 @@
+<main class="customer-page" aria-labelledby="opportunities-title">
+  <header class="page-header">
+    <div><p class="eyebrow">Relation client</p><h1 id="opportunities-title">Pipeline commercial</h1>
+      <p class="subtitle">Suivez les opportunités, leurs étapes, leurs montants et leurs échéances prévisionnelles.</p></div>
+    <a mat-button routerLink="/customers">Contacts commerciaux</a>
+  </header>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <mat-card class="directory-card"><mat-card-content>
+    <div class="page-header compact"><h2>{{ selected() ? 'Modifier l’opportunité' : 'Nouvelle opportunité' }}</h2>
+      @if (selected()) { <button mat-button type="button" (click)="startNew()">Nouvelle</button> }
+    </div>
+    <form [formGroup]="form" (ngSubmit)="save()" class="form-grid" [attr.aria-busy]="saving()">
+      <mat-form-field appearance="outline"><mat-label>Prospect ou client</mat-label>
+        <mat-select formControlName="customerId">
+          @for (customer of customers(); track customer.id) {
+            <mat-option [value]="customer.id">{{ customer.name }} — {{ customer.contactType === 'LEAD' ? 'Prospect' : 'Client' }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.customerId.hasError('min')) { <mat-error>Choisissez un prospect ou un client.</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Employé assigné (ID)</mat-label>
+        <input matInput type="number" min="1" formControlName="employeeId" />
+        <mat-hint>Le service vérifie l’existence du collaborateur avant l’enregistrement.</mat-hint>
+        @if (form.controls.employeeId.hasError('pattern')) { <mat-error>Identifiant positif requis.</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Titre</mat-label>
+        <input matInput formControlName="title" maxlength="200" />
+        @if (form.controls.title.hasError('required')) { <mat-error>Le titre est obligatoire.</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Étape</mat-label>
+        <mat-select formControlName="stage">
+          @for (stage of stages; track stage) { <mat-option [value]="stage">{{ stageLabel(stage) }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Montant estimé</mat-label>
+        <input matInput type="number" min="0" step="0.01" formControlName="estimatedAmount" />
+        @if (form.controls.estimatedAmount.hasError('pattern')) { <mat-error>Montant invalide (maximum deux décimales).</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Date de clôture prévisionnelle</mat-label>
+        <input matInput type="date" formControlName="expectedCloseDate" />
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width"><mat-label>Description</mat-label>
+        <textarea matInput rows="3" maxlength="1000" formControlName="description"></textarea>
+      </mat-form-field>
+      <div class="form-actions full-width">
+        <button mat-flat-button type="submit" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : selected() ? 'Enregistrer' : 'Créer l’opportunité' }}</button>
+      </div>
+    </form>
+
+    @if (selected()) {
+      <section class="opportunity-history" aria-labelledby="opportunity-history-title">
+        <h3 id="opportunity-history-title">Historique des étapes</h3>
+        @if (historyError()) { <p class="error" role="alert">{{ historyError() }}</p> }
+        @if (history().length === 0 && !historyError()) { <p class="muted">Aucun changement de statut enregistré.</p> }
+        <ol>
+          @for (item of history(); track item.id) {
+            <li>{{ item.previousStage ? stageLabel(item.previousStage) : 'Création' }} → {{ stageLabel(item.newStage) }}
+              <time [attr.datetime]="item.changedAt">{{ item.changedAt | date:'dd/MM/yyyy HH:mm' }}</time>
+            </li>
+          }
+        </ol>
+      </section>
+    }
+  </mat-card-content></mat-card>
+
+  <mat-card class="directory-card"><mat-card-content>
+    <h2>Opportunités</h2>
+    <form class="toolbar" (ngSubmit)="find()">
+      <mat-form-field appearance="outline" class="search-field"><mat-label>Rechercher</mat-label>
+        <input matInput [formControl]="search" placeholder="Titre ou description" />
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Étape</mat-label>
+        <mat-select [formControl]="stageFilter" (selectionChange)="find()">
+          <mat-option value="">Toutes</mat-option>
+          @for (stage of stages; track stage) { <mat-option [value]="stage">{{ stageLabel(stage) }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button type="submit">Rechercher</button>
+    </form>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement du pipeline…</p></div> }
+    @if (!loading() && !error() && rows().length === 0) { <p class="muted">Aucune opportunité à afficher.</p> }
+    @if (rows().length > 0) {
+      <div class="table-scroll" tabindex="0" aria-label="Pipeline commercial, défilement horizontal">
+        <table class="opportunities-table">
+          <thead><tr><th>Opportunité</th><th>Montant estimé</th><th>Clôture prévue</th><th>Étape</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (row of rows(); track row.id) {
+              <tr>
+                <td><button mat-button type="button" (click)="edit(row)">{{ row.title }}</button><small>Contact #{{ row.customerId }} · {{ row.employeeId ? 'Collaborateur #' + row.employeeId : 'Non assignée' }}</small></td>
+                <td>{{ row.estimatedAmount === null ? '—' : (row.estimatedAmount | number:'1.2-2') }}</td>
+                <td>{{ row.expectedCloseDate ? (row.expectedCloseDate | date:'dd/MM/yyyy') : '—' }}</td>
+                <td><mat-form-field appearance="outline"><mat-select [value]="row.stage" (selectionChange)="changeStage(row, $event.value)" [disabled]="busy()">
+                  @for (stage of stages; track stage) { <mat-option [value]="stage">{{ stageLabel(stage) }}</mat-option> }
+                </mat-select></mat-form-field></td>
+                <td><button mat-button type="button" (click)="edit(row)">Modifier</button>
+                  <button mat-button type="button" (click)="remove(row)" [disabled]="busy() || row.stage === 'WON'">Supprimer</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <mat-paginator [length]="total()" [pageIndex]="page()" [pageSize]="size()" [pageSizeOptions]="[10,25,50]" [disabled]="loading() || !!error()" (page)="paginate($event)" aria-label="Pagination des opportunités" />
+  </mat-card-content></mat-card>
+</main>

@@ -45,13 +45,13 @@ describe('CustomerFormComponent', () => {
   it('creates a trimmed request with null optional fields and returns to the list', () => {
     const component = start(); component['form'].patchValue({ name: ' Client ', email: ' ', company: ' Société ' });
     component['submit']();
-    expect(service.create).toHaveBeenCalledOnceWith({ name: 'Client', email: null, phone: null, company: 'Société', address: null });
+    expect(service.create).toHaveBeenCalledOnceWith({ name: 'Client', email: null, phone: null, company: 'Société', address: null, contactType: 'CUSTOMER', category: null, segment: null });
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/customers']);
   });
   it('prefills and updates an existing customer', () => {
     const component = start('4'); expect(component['form'].controls.name.value).toBe(row.name);
     component['form'].controls.name.setValue('Modifié'); component['submit']();
-    expect(service.update).toHaveBeenCalledOnceWith(4, { name: 'Modifié', email: null, phone: null, company: null, address: null });
+    expect(service.update).toHaveBeenCalledOnceWith(4, { name: 'Modifié', email: null, phone: null, company: null, address: null, contactType: 'CUSTOMER', category: null, segment: null });
     expect(service.create).not.toHaveBeenCalled();
   });
   it('prevents duplicate submission while saving', () => {

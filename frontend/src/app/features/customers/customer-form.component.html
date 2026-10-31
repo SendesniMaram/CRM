@@ -10,6 +10,11 @@
       <p class="muted">Le nom du client est obligatoire. Les autres informations sont facultatives.</p>
       <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
+          <mat-form-field appearance="outline"><mat-label>Type de fiche</mat-label>
+            <mat-select formControlName="contactType"><mat-option value="LEAD">Prospect</mat-option><mat-option value="CUSTOMER">Client</mat-option><mat-option value="SUPPLIER">Fournisseur</mat-option></mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Catégorie</mat-label><input matInput formControlName="category" maxlength="100" /></mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Segment</mat-label><input matInput formControlName="segment" maxlength="100" /></mat-form-field>
           @for (field of fields; track field.key) {
             <mat-form-field appearance="outline">
               <mat-label>{{ field.label }}</mat-label>

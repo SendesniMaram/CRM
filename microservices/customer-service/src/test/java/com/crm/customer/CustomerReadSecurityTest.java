@@ -1,8 +1,15 @@
 package com.crm.customer;
 
 import com.crm.customer.controller.CustomerController;
+import com.crm.customer.controller.SalesController;
 import com.crm.customer.dto.CustomerResponse;
+import com.crm.customer.client.CustomerEmployeeDirectory;
+import com.crm.customer.entity.CustomerInteraction;
+import com.crm.customer.repository.CustomerInteractionRepository;
+import com.crm.customer.repository.CustomerRepository;
+import com.crm.customer.repository.SalesOpportunityRepository;
 import com.crm.customer.service.ICustomerService;
+import com.crm.customer.service.CustomerCsvService;
 import com.crm.customer.config.SecurityConfig;
 import com.crm.security.JwtSecurityAutoConfiguration;
 import com.crm.security.JwtService;
@@ -28,7 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
-@WebMvcTest(controllers = {CustomerController.class})
+@WebMvcTest(controllers = {CustomerController.class, SalesController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
 class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySupport {
@@ -45,6 +52,12 @@ class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySup
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("private-database-diagnostic"))));
     }
     @MockBean ICustomerService service0;
+    @MockBean CustomerRepository customerRepository;
+    @MockBean CustomerInteractionRepository interactionRepository;
+    @MockBean SalesOpportunityRepository opportunityRepository;
+    @MockBean com.crm.customer.repository.OpportunityStageHistoryRepository opportunityHistoryRepository;
+    @MockBean CustomerEmployeeDirectory employeeDirectory;
+    @MockBean CustomerCsvService csvService;
 
     @BeforeEach
     void responses() {
@@ -54,6 +67,63 @@ class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySup
         when(service0.getAllCustomersPaged(anyInt(), anyInt(), any(), anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(row0)));
         when(service0.getCustomerById(1L)).thenReturn(row0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void commercialInteractionEndpointsRequireAdministrativeRole() throws Exception {
+        when(customerRepository.existsById(1L)).thenReturn(true);
+        when(interactionRepository.findByCustomerIdOrderByOccurredAtDesc(1L)).thenReturn(List.of());
+        when(interactionRepository.save(any(CustomerInteraction.class))).thenAnswer(invocation -> {
+            CustomerInteraction row = invocation.getArgument(0);
+            row.setId(9L);
+            return row;
+        });
+
+        mvc.perform(get("/api/customers/1/interactions")
+                        .header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/customers/1/interactions")
+                        .header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk());
+
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/customers/1/interactions")
+                        .header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT")))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"interactionType":"CALL","occurredAt":"2026-10-20T09:30:00"}
+                                """))
+                .andExpect(status().isForbidden());
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .post("/api/customers/1/interactions")
+                        .header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN")))
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"interactionType":"CALL","occurredAt":"2026-10-20T09:30:00"}
+                                """))
+                .andExpect(status().isCreated());
+    }
+
+    @org.junit.jupiter.api.Test
+    void opportunityPipelineRequiresAdministrativeRole() throws Exception {
+        when(opportunityRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<
+                        com.crm.customer.entity.SalesOpportunity>>any(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class)))
+                .thenReturn(List.of());
+        mvc.perform(get("/api/opportunities")
+                        .header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(opportunityRepository);
+
+        mvc.perform(get("/api/opportunities")
+                        .header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+        verify(opportunityRepository).findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<
+                        com.crm.customer.entity.SalesOpportunity>>any(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Sort.class));
     }
 
 

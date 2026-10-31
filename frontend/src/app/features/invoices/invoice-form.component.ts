@@ -57,7 +57,7 @@ export class InvoiceFormComponent implements OnInit {
   protected readonly customerTotal = signal(0);
   protected readonly customerSearch = new FormControl('', { nonNullable: true });
   protected readonly form = this.fb.group({
-    invoiceNumber: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)]),
+    invoiceNumber: this.fb.nonNullable.control('', Validators.maxLength(50)),
     customerId: this.fb.control<number | null>(null, [Validators.required, control =>
       Number.isSafeInteger(control.value) && control.value > 0 &&
         (this.selected()?.id === control.value || this.choices().some(c => c.id === control.value))
@@ -135,7 +135,7 @@ export class InvoiceFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     if (value.customerId === null || value.subtotal === null) return;
-    const request: InvoiceRequest = { invoiceNumber: value.invoiceNumber.trim(), customerId: String(value.customerId),
+    const request: InvoiceRequest = { customerId: String(value.customerId),
       issueDate: value.issueDate || null, dueDate: value.dueDate || null, subtotal: value.subtotal,
       tax: value.tax, currency: value.currency.trim() || null, status: value.status.trim(), notes: value.notes.trim() || null };
     this.saving.set(true); this.error.set('');

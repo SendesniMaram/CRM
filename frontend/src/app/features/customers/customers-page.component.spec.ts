@@ -23,6 +23,7 @@ describe('CustomersPageComponent', () => {
   let snack: jasmine.SpyObj<MatSnackBar>;
   let confirmation: Subject<boolean>;
   let view: { search: FormControl<string>; page: WritableSignal<number>; find(): void;
+    category: FormControl<string>; segment: FormControl<string>; contactType: FormControl<string>;
     paginate(event: PageEvent): void; sort(event: Sort): void; remove(row: CustomerResponse): void };
   beforeEach(async () => {
     service = jasmine.createSpyObj('CustomerService', ['list', 'delete']);
@@ -51,7 +52,7 @@ describe('CustomersPageComponent', () => {
     const pending = new Subject<CustomerPage>(); service.list.and.returnValue(pending);
     fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Chargement des clients');
     pending.next({ ...result, content: [], totalElements: 0 }); pending.complete(); fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Aucun client à afficher');
+    expect(fixture.nativeElement.textContent).toContain('Aucun contact à afficher');
   });
   it('shows an API error without stale rows', () => {
     service.list.and.returnValue(throwError(() => ({ status: 503 }))); fixture.detectChanges();
@@ -61,6 +62,17 @@ describe('CustomersPageComponent', () => {
   it('resets the page when searching and passes the supported keyword', () => {
     fixture.detectChanges(); view.page.set(2); view.search.setValue(' test '); view.find();
     expect(service.list.calls.mostRecent().args[0]).toEqual({ page: 0, size: 10, sortBy: 'name', direction: 'asc', keyword: 'test' });
+  });
+  it('filters commercial contacts by type, category and segment', () => {
+    fixture.detectChanges();
+    view.contactType.setValue('SUPPLIER');
+    view.category.setValue('  Entreprise ');
+    view.segment.setValue('Nord');
+    view.find();
+    expect(service.list.calls.mostRecent().args[0]).toEqual({
+      page: 0, size: 10, sortBy: 'name', direction: 'asc',
+      contactType: 'SUPPLIER', category: 'Entreprise', segment: 'Nord'
+    });
   });
   it('requests server pagination and sorting', () => {
     fixture.detectChanges(); view.paginate({ pageIndex: 2, pageSize: 25, length: 80 });

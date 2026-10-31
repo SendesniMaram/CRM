@@ -44,6 +44,18 @@ public class Customer {
     @Column(name = "address", length = 500)
     private String address;
 
+    @Column(name = "contact_type", nullable = false, length = 20)
+    private String contactType = "CUSTOMER";
+
+    @Column(name = "category", length = 100)
+    private String category;
+
+    @Column(name = "segment", length = 100)
+    private String segment;
+
+    @Column(name = "assigned_employee_id")
+    private Long assignedEmployeeId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

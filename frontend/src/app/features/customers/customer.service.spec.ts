@@ -31,6 +31,17 @@ describe('CustomerService', () => {
     expect(call.request.params.get('sortBy')).toBe('name');
     expect(call.request.params.has('keyword')).toBeFalse(); call.flush({ content: [] });
   });
+  it('sends contact type, category and segment filters to the paged endpoint', () => {
+    service.list({
+      page: 0, size: 10, sortBy: 'name', direction: 'asc',
+      contactType: 'SUPPLIER', category: '  Entreprise ', segment: 'Nord'
+    }).subscribe();
+    const call = http.expectOne(r => r.url === url);
+    expect(call.request.params.get('contactType')).toBe('SUPPLIER');
+    expect(call.request.params.get('category')).toBe('Entreprise');
+    expect(call.request.params.get('segment')).toBe('Nord');
+    call.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
+  });
   it('reads a detail through Gateway', () => {
     service.get(4).subscribe(); const call = http.expectOne(url + '/4');
     expect(call.request.method).toBe('GET'); call.flush({ id: 4, ...request });
@@ -46,5 +57,30 @@ describe('CustomerService', () => {
   it('deletes the requested customer', () => {
     service.delete(4).subscribe(); const call = http.expectOne(url + '/4');
     expect(call.request.method).toBe('DELETE'); call.flush(null);
+  });
+  it('loads and creates interaction history for the selected customer', () => {
+    const interaction = {
+      id: 8, customerId: 4, employeeId: null, interactionType: 'MEETING' as const,
+      occurredAt: '2026-10-20T09:30', notes: 'Présentation', createdAt: null
+    };
+    service.listInteractions(4).subscribe();
+    const list = http.expectOne(`${url}/4/interactions`);
+    expect(list.request.method).toBe('GET');
+    list.flush([]);
+
+    const { id: _id, customerId: _customerId, employeeId: _employeeId, createdAt: _createdAt, ...request } = interaction;
+    service.addInteraction(4, request).subscribe();
+    const create = http.expectOne(`${url}/4/interactions`);
+    expect(create.request.method).toBe('POST');
+    expect(create.request.body).toEqual(request);
+    create.flush(interaction);
+  });
+  it('downloads a filtered Excel workbook through Gateway', () => {
+    service.exportExcel({ keyword: ' Acme ', contactType: 'LEAD', category: 'Tech', segment: 'SMB' }).subscribe();
+    const call = http.expectOne(r => r.url === `${url}/export.xlsx`);
+    expect(call.request.responseType).toBe('blob');
+    expect(call.request.params.get('keyword')).toBe('Acme');
+    expect(call.request.params.get('contactType')).toBe('LEAD');
+    call.flush(new Blob());
   });
 });

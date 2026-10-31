@@ -1,5 +1,5 @@
 export interface InvoiceRequest {
-  invoiceNumber: string;
+  invoiceNumber?: string;
   customerId: string;
   issueDate: string | null;
   dueDate: string | null;
@@ -9,6 +9,9 @@ export interface InvoiceRequest {
   status: string;
   notes: string | null;
 }
+export interface InvoicePayment { id: number; invoiceId: number; amount: number; paidAt: string; method: string | null; reference: string | null; notes: string | null; }
+export interface InvoicePaymentSummary { payments: InvoicePayment[]; paidAmount: number; outstandingAmount: number; }
+export interface InvoiceReminder { id: number; invoiceId: number; recordedAt: string; channel: string; notes: string | null; recordedBy: string | null; }
 export interface InvoiceResponse extends InvoiceRequest {
   id: number;
   totalAmount: number;

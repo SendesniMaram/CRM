@@ -13,9 +13,57 @@
         <div><dt>E-mail</dt><dd>{{ row.email || 'Non renseigné' }}</dd></div>
         <div><dt>Téléphone</dt><dd>{{ row.phone || 'Non renseigné' }}</dd></div>
         <div><dt>Adresse</dt><dd class="address">{{ row.address || 'Non renseignée' }}</dd></div>
+        <div><dt>Type</dt><dd>{{ row.contactType === 'LEAD' ? 'Prospect' : row.contactType === 'SUPPLIER' ? 'Fournisseur' : 'Client' }}</dd></div>
+        <div><dt>Catégorie</dt><dd>{{ row.category || 'Non renseignée' }}</dd></div>
+        <div><dt>Segment</dt><dd>{{ row.segment || 'Non renseigné' }}</dd></div>
         <div><dt>Créé le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
         <div><dt>Modifié le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
       </dl>
     }
   </mat-card-content></mat-card>
+  @if (customer()) {
+    <header class="section-header"><div><p class="eyebrow">Suivi commercial</p><h2>Historique des interactions</h2></div></header>
+    <mat-card class="directory-card"><mat-card-content>
+      <form class="interaction-form" [formGroup]="interactionForm" (ngSubmit)="submitInteraction()" [attr.aria-busy]="savingInteraction()">
+        <mat-form-field appearance="outline"><mat-label>Type d’interaction</mat-label>
+          <mat-select formControlName="interactionType">
+            <mat-option value="CALL">Appel</mat-option><mat-option value="EMAIL">E-mail</mat-option>
+            <mat-option value="MEETING">Réunion</mat-option><mat-option value="NOTE">Note</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Date et heure</mat-label>
+          <input matInput type="datetime-local" formControlName="occurredAt" />
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width"><mat-label>Notes</mat-label>
+          <textarea matInput formControlName="notes" rows="3" maxlength="5000"></textarea>
+          @if (interactionForm.controls.notes.hasError('maxlength')) { <mat-error>Maximum 5 000 caractères.</mat-error> }
+        </mat-form-field>
+        @if (interactionError()) { <p class="error full-width" role="alert">{{ interactionError() }}</p> }
+        <div class="form-actions full-width">
+          <button mat-flat-button type="submit" [disabled]="savingInteraction()">
+            {{ savingInteraction() ? 'Enregistrement…' : 'Ajouter à l’historique' }}
+          </button>
+        </div>
+      </form>
+      @if (interactionsLoading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de l’historique…</p></div> }
+      @if (interactionsError()) { <p class="error" role="alert">{{ interactionsError() }}</p> }
+      @if (!interactionsLoading() && !interactionsError() && interactions().length === 0) {
+        <p class="muted">Aucune interaction enregistrée pour ce contact.</p>
+      }
+      @if (interactions().length > 0) {
+        <ol class="interaction-list" aria-label="Interactions commerciales">
+          @for (interaction of interactions(); track interaction.id) {
+            <li>
+              <div class="interaction-heading">
+                <strong>{{ interactionLabel(interaction.interactionType) }}</strong>
+                <time [attr.datetime]="interaction.occurredAt">{{ interaction.occurredAt | date:'dd/MM/yyyy HH:mm' }}</time>
+              </div>
+              @if (interaction.notes) { <p>{{ interaction.notes }}</p> }
+              @if (interaction.employeeId) { <small>Collaborateur #{{ interaction.employeeId }}</small> }
+            </li>
+          }
+        </ol>
+      }
+    </mat-card-content></mat-card>
+  }
 </section>

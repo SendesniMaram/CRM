@@ -68,7 +68,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.invoiceNumber").value("INV-001"))
+                .andExpect(jsonPath("$.invoiceNumber").value(org.hamcrest.Matchers.startsWith("INV-")))
                 .andExpect(jsonPath("$.customerId").value("CUST001"))
                 .andExpect(jsonPath("$.issueDate").isNotEmpty())
                 .andExpect(jsonPath("$.dueDate").isNotEmpty())
@@ -88,26 +88,23 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         assertNotNull(response.getId());
 
         invoiceRepository.flush();
-        assertTrue(invoiceRepository.existsByInvoiceNumber("INV-001"));
+        assertTrue(invoiceRepository.findAll().getFirst().getInvoiceNumber().startsWith("INV-"));
     }
 
     @Test
-    void createInvoice_WithDuplicateInvoiceNumber_ShouldReturn400() throws Exception {
-        mockMvc.perform(post("/api/invoices")
+    void createInvoice_IgnoresClientNumberAndGeneratesUniqueNumber() throws Exception {
+        String first = mockMvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isCreated());
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
 
         invoiceRepository.flush();
 
-        mockMvc.perform(post("/api/invoices")
+        String second = mockMvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("Bad Request"))
-                .andExpect(jsonPath("$.message").value(containsString("Invoice number already exists")))
-                .andExpect(jsonPath("$.path").value("/api/invoices"));
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        assertNotEquals(objectMapper.readTree(first).get("invoiceNumber").asText(), objectMapper.readTree(second).get("invoiceNumber").asText());
     }
 
     @Test
@@ -204,7 +201,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         mockMvc.perform(get("/api/invoices")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("keyword", "INV-001"))
+                        .param("keyword", "CUST001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(1));
@@ -225,7 +222,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         mockMvc.perform(get("/api/invoices/{id}", created.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
-                .andExpect(jsonPath("$.invoiceNumber").value("INV-001"))
+                .andExpect(jsonPath("$.invoiceNumber").value(org.hamcrest.Matchers.startsWith("INV-")))
                 .andExpect(jsonPath("$.customerId").value("CUST001"))
                 .andExpect(jsonPath("$.subtotal").value(1000.00))
                 .andExpect(jsonPath("$.tax").value(200.00))
@@ -273,7 +270,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
-                .andExpect(jsonPath("$.invoiceNumber").value("INV-001"))
+                .andExpect(jsonPath("$.invoiceNumber").value(created.getInvoiceNumber()))
                 .andExpect(jsonPath("$.subtotal").value(2000.00))
                 .andExpect(jsonPath("$.tax").value(400.00))
                 .andExpect(jsonPath("$.totalAmount").value(2400.00))
@@ -282,7 +279,37 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
                 .andExpect(jsonPath("$.notes").value("Updated invoice"));
 
         invoiceRepository.flush();
-        assertTrue(invoiceRepository.existsByInvoiceNumber("INV-001"));
+        assertTrue(invoiceRepository.existsByInvoiceNumber(created.getInvoiceNumber()));
+    }
+
+    @Test
+    void partialPaymentsArePersistedAndOutstandingNeverGoesNegative() throws Exception {
+        String json = mockMvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = objectMapper.readTree(json).get("id").asLong();
+        mockMvc.perform(post("/api/invoices/{id}/payments", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":500,\"paidAt\":\"2026-10-27\",\"method\":\"TRANSFER\"}"))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.amount").value(500));
+        mockMvc.perform(get("/api/invoices/{id}/payments", id))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.paidAmount").value(500))
+                .andExpect(jsonPath("$.outstandingAmount").value(700)).andExpect(jsonPath("$.payments.length()").value(1));
+        mockMvc.perform(post("/api/invoices/{id}/payments", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"amount\":800,\"paidAt\":\"2026-10-27\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void manualReminderIsRecordedAsHistoryWithoutSending() throws Exception {
+        String json = mockMvc.perform(post("/api/invoices").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        long id = objectMapper.readTree(json).get("id").asLong();
+        mockMvc.perform(post("/api/invoices/{id}/reminders", id).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"channel\":\"MANUAL\",\"notes\":\"Relance téléphonique effectuée\"}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(get("/api/invoices/{id}/reminders", id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].channel").value("MANUAL"));
     }
 
     @Test

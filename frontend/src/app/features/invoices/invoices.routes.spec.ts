@@ -46,6 +46,10 @@ describe('Invoices routes with real guards and interceptor', () => {
             expect(client.request.headers.has('Authorization')).toBeTrue();
             client.flush({ id: 2, name: 'Client test', company: null, email: null, phone: null, address: null, createdAt: null, updatedAt: null });
           }
+          if (!form) {
+            http.expectOne(invoices + '/4/payments').flush({ payments: [], paidAmount: 0, outstandingAmount: 100 });
+            http.expectOne(invoices + '/4/reminders').flush([]);
+          }
         }
         harness.detectChanges(); expect(TestBed.inject(Router).url).toBe(path);
         expect(harness.fixture.nativeElement.querySelector('a[href="/invoices"]')).toBeTruthy();
@@ -67,6 +71,20 @@ describe('Invoices routes with real guards and interceptor', () => {
     const tree = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url);
     expect(tree.root.children['primary'].segments[0].path).toBe('login');
     expect(tree.queryParams['returnUrl']).toBe('/invoices');
+  });
+  it('loads the quote workflow and client selector for an administrator', async () => {
+    session(CrmRole.ADMIN);
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/invoices/quotes');
+    const http = TestBed.inject(HttpTestingController);
+    const quoteRequest = http.expectOne(r => r.url === 'http://localhost:8080/invoice/api/quotes');
+    expect(quoteRequest.request.headers.has('Authorization')).toBeTrue();
+    quoteRequest.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
+    const customerRequest = http.expectOne(r => r.url === customers);
+    expect(customerRequest.request.headers.has('Authorization')).toBeTrue();
+    customerRequest.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 25 });
+    expect(TestBed.inject(Router).url).toBe('/invoices/quotes');
+    expect(harness.fixture.nativeElement.textContent).toContain('Devis');
   });
   it('preserves unknown invoice paths as Page introuvable', async () => {
     session(CrmRole.ADMIN); const harness = await RouterTestingHarness.create('/invoices/4/unknown');

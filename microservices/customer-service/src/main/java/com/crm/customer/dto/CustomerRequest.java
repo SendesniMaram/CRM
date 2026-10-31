@@ -30,5 +30,16 @@ public class CustomerRequest {
 
     @Size(max = 500, message = "Address must be at most 500 characters")
     private String address;
+
+    @jakarta.validation.constraints.Pattern(regexp = "^(LEAD|CUSTOMER|SUPPLIER)$", message = "Contact type must be LEAD, CUSTOMER or SUPPLIER")
+    private String contactType;
+
+    @Size(max = 100)
+    private String category;
+
+    @Size(max = 100)
+    private String segment;
+
+    private Long assignedEmployeeId;
 }
 

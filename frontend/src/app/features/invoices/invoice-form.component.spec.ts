@@ -40,10 +40,11 @@ describe('InvoiceFormComponent', () => {
     component['form'].patchValue({ invoiceNumber: ' FACT-TEST ', customerId: 2, subtotal: 100, status: ' À traiter ' });
     component['selectCustomer'](2);
   }
-  it('requires invoice number, existing client, positive subtotal and status', () => {
+  it('generates invoice number server-side while requiring an existing client, positive subtotal and status', () => {
     const c = start(); c['submit'](); expect(service.create).not.toHaveBeenCalled();
     fill(c); expect(c['form'].valid).toBeTrue();
-    for (const field of ['invoiceNumber', 'status'] as const) {
+    expect(c['form'].controls.invoiceNumber.valid).toBeTrue();
+    for (const field of ['status'] as const) {
       c['form'].controls[field].setValue(' '); expect(c['form'].controls[field].invalid).toBeTrue();
     }
     c['form'].controls.subtotal.setValue(0); expect(c['form'].controls.subtotal.invalid).toBeTrue();
@@ -60,7 +61,7 @@ describe('InvoiceFormComponent', () => {
   });
   it('converts a selected numeric client to a string and never sends totalAmount', () => {
     const c = start(); fill(c); c['submit']();
-    expect(service.create).toHaveBeenCalledOnceWith({ invoiceNumber: 'FACT-TEST', customerId: '2',
+    expect(service.create).toHaveBeenCalledOnceWith({ customerId: '2',
       issueDate: null, dueDate: null, subtotal: 100, tax: null, currency: null, status: 'À traiter', notes: null });
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/invoices']);
   });
@@ -105,7 +106,7 @@ describe('InvoiceFormComponent', () => {
     expect(service.create).not.toHaveBeenCalled();
   });
   function rowRequest() {
-    return { invoiceNumber: row.invoiceNumber, customerId: row.customerId, issueDate: null, dueDate: null,
+    return { customerId: row.customerId, issueDate: null, dueDate: null,
       subtotal: row.subtotal, tax: null, currency: null, status: row.status, notes: null };
   }
   it('handles invalid legacy or missing customer references without silently converting them', () => {

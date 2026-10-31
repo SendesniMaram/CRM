@@ -23,6 +23,11 @@ public class CustomerResponse {
 
     private String address;
 
+    private String contactType;
+    private String category;
+    private String segment;
+    private Long assignedEmployeeId;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

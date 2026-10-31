@@ -36,8 +36,10 @@ export const CRM_NAVIGATION: readonly CrmNavigationItem[] = [
     action: { label: 'Créer une fiche de paie', route: '/payroll/new', roles: admins } },
   { label: 'Clients', route: '/customers', icon: 'groups', description: 'Centralisez les informations clients et simplifiez le suivi des relations commerciales.', category: 'Relation client et facturation', roles: admins,
     action: { label: 'Ajouter un client', route: '/customers/new', roles: admins } },
+  { label: 'Pipeline commercial', route: '/customers/opportunities', icon: 'trending_up', description: 'Suivez les opportunités et leurs étapes commerciales.', category: 'Relation client et facturation', roles: admins },
   { label: 'Factures', route: '/invoices', icon: 'description', description: 'Gérez les factures, consultez leurs montants et suivez leurs statuts.', category: 'Relation client et facturation', roles: admins,
     action: { label: 'Créer une facture', route: '/invoices/new', roles: admins } },
+  { label: 'Devis', route: '/invoices/quotes', icon: 'request_quote', description: 'Créez des devis avec lignes, statuts, PDF et conversion en facture.', category: 'Relation client et facturation', roles: admins },
   { label: 'Associations clients', route: '/customer-associations', icon: 'link', description: 'Associez explicitement un compte CLIENT à une fiche.', category: 'Relation client et facturation', roles: admins },
   { label: 'Honoraires', route: '/fees', icon: 'receipt_long', description: 'Suivez les prestations et les honoraires enregistrés dans le système.', category: 'Relation client et facturation', roles: admins,
     action: { label: 'Ajouter des honoraires', route: '/fees/new', roles: admins } }

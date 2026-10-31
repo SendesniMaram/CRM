@@ -1,0 +1,26 @@
+CREATE TABLE quotes (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ quote_number VARCHAR(50) NOT NULL UNIQUE,
+ customer_id VARCHAR(50) NOT NULL,
+ issue_date DATE NULL,
+ expiry_date DATE NULL,
+ subtotal DECIMAL(12,2) NOT NULL,
+ tax DECIMAL(12,2) NOT NULL DEFAULT 0,
+ total_amount DECIMAL(12,2) NOT NULL,
+ currency VARCHAR(10) NULL,
+ status VARCHAR(20) NOT NULL,
+ notes VARCHAR(500) NULL,
+ converted_invoice_id BIGINT NULL UNIQUE,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE quote_lines (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ quote_id BIGINT NOT NULL,
+ description VARCHAR(255) NOT NULL,
+ quantity DECIMAL(12,3) NOT NULL,
+ unit_price DECIMAL(12,2) NOT NULL,
+ line_total DECIMAL(12,2) NOT NULL,
+ CONSTRAINT fk_quote_line_quote FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE,
+ INDEX idx_quote_lines_quote (quote_id)
+);

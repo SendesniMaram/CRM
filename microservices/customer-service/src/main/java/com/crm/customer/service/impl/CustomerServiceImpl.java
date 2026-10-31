@@ -66,6 +66,11 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Page<CustomerResponse> getAllCustomersPaged(int page, int size, String sortBy, String direction, String keyword) {
+        return getAllCustomersPaged(page, size, sortBy, direction, keyword, null, null, null, null);
+    }
+
+    @Override
+    public Page<CustomerResponse> getAllCustomersPaged(int page, int size, String sortBy, String direction, String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
         String sortField = StringUtils.hasText(sortBy) ? sortBy : "id";
         Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
         Sort sort = Sort.by(sortDirection, sortField);
@@ -73,14 +78,17 @@ public class CustomerServiceImpl implements ICustomerService {
 
         Page<Customer> customerPage;
 
-        if (StringUtils.hasText(keyword)) {
-            customerPage = customerRepository.findAll(
-                    CustomerSpecification.searchByKeyword(keyword), pageable);
-        } else {
-            customerPage = customerRepository.findAll(pageable);
-        }
+        customerPage = customerRepository.findAll(CustomerSpecification.filters(keyword, contactType, category, segment, assignedEmployeeId), pageable);
 
         return customerPage.map(customerMapper::toResponse);
+    }
+
+    @Override
+    public CustomerResponse convertLead(Long id) {
+        Customer existing = customerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        if (!"LEAD".equals(existing.getContactType())) throw new IllegalArgumentException("Only leads can be converted");
+        existing.setContactType("CUSTOMER");
+        return customerMapper.toResponse(customerRepository.save(existing));
     }
 
     @Override

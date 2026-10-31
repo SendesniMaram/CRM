@@ -3,6 +3,9 @@ package com.crm.customer;
 import com.crm.customer.dto.CustomerRequest;
 import com.crm.customer.dto.CustomerResponse;
 import com.crm.customer.repository.CustomerRepository;
+import com.crm.customer.repository.CustomerInteractionRepository;
+import com.crm.customer.repository.OpportunityStageHistoryRepository;
+import com.crm.customer.repository.SalesOpportunityRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,10 +43,22 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
     @Autowired
     private CustomerRepository customerRepository;
 
+    @Autowired
+    private CustomerInteractionRepository interactionRepository;
+
+    @Autowired
+    private SalesOpportunityRepository opportunityRepository;
+
+    @Autowired
+    private OpportunityStageHistoryRepository stageHistoryRepository;
+
     private CustomerRequest validRequest;
 
     @BeforeEach
     void setUp() {
+        stageHistoryRepository.deleteAll();
+        opportunityRepository.deleteAll();
+        interactionRepository.deleteAll();
         customerRepository.deleteAll();
 
         validRequest = new CustomerRequest();
@@ -97,6 +112,145 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
         // Verify persistence in H2
         assertTrue(customerRepository.existsByName("Acme Corp"));
         assertTrue(customerRepository.existsByEmail("contact@acme.com"));
+    }
+
+    @Test
+    void leadClassificationFilteringAndConversionPreserveTheExistingRecord() throws Exception {
+        validRequest.setContactType("LEAD"); validRequest.setCategory("Enterprise"); validRequest.setSegment("North");
+        String created = mockMvc.perform(post("/api/customers").contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.contactType").value("LEAD"))
+                .andReturn().getResponse().getContentAsString();
+        long id = objectMapper.readTree(created).get("id").asLong();
+        mockMvc.perform(get("/api/customers").param("page", "0").param("size", "10")
+                        .param("sortBy", "name").param("contactType", "LEAD").param("segment", "North"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1));
+        mockMvc.perform(post("/api/customers/{id}/convert", id)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.contactType").value("CUSTOMER"));
+        assertEquals("Enterprise", customerRepository.findById(id).orElseThrow().getCategory());
+        mockMvc.perform(post("/api/customers/{id}/convert", id)).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void interactionsArePersistedAndListedNewestFirst() throws Exception {
+        String customerJson = mockMvc.perform(post("/api/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long customerId = objectMapper.readTree(customerJson).get("id").asLong();
+
+        mockMvc.perform(post("/api/customers/{id}/interactions", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"interactionType":"CALL","occurredAt":"2026-10-20T09:30:00","notes":"Premier appel"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.customerId").value(customerId))
+                .andExpect(jsonPath("$.interactionType").value("CALL"));
+        mockMvc.perform(post("/api/customers/{id}/interactions", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"interactionType":"EMAIL","occurredAt":"2026-10-21T11:00:00","notes":"Envoi du devis"}
+                                """))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/customers/{id}/interactions", customerId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].notes").value("Envoi du devis"))
+                .andExpect(jsonPath("$[1].notes").value("Premier appel"));
+        assertEquals(2, interactionRepository.findByCustomerIdOrderByOccurredAtDesc(customerId).size());
+    }
+
+    @Test
+    void interactionEndpointsRejectUnknownCustomersAndInvalidTypes() throws Exception {
+        mockMvc.perform(get("/api/customers/{id}/interactions", 99999L))
+                .andExpect(status().isNotFound());
+
+        String customerJson = mockMvc.perform(post("/api/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long customerId = objectMapper.readTree(customerJson).get("id").asLong();
+
+        mockMvc.perform(post("/api/customers/{id}/interactions", customerId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"interactionType":"SMS","occurredAt":"2026-10-20T09:30:00"}
+                                """))
+                .andExpect(status().isBadRequest());
+        assertTrue(interactionRepository.findByCustomerIdOrderByOccurredAtDesc(customerId).isEmpty());
+    }
+
+    @Test
+    void opportunitiesSupportSearchStageHistoryAndControlledDeletion() throws Exception {
+        validRequest.setContactType("LEAD");
+        String customerJson = mockMvc.perform(post("/api/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long customerId = objectMapper.readTree(customerJson).get("id").asLong();
+
+        String opportunityJson = mockMvc.perform(post("/api/opportunities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerId":%d,"title":"CRM Renewal","description":"Annual renewal","estimatedAmount":1250.50,"stage":"NEW","expectedCloseDate":"2027-01-15"}
+                                """.formatted(customerId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.stage").value("NEW"))
+                .andExpect(jsonPath("$.expectedCloseDate").value("2027-01-15"))
+                .andReturn().getResponse().getContentAsString();
+        long opportunityId = objectMapper.readTree(opportunityJson).get("id").asLong();
+
+        mockMvc.perform(patch("/api/opportunities/{id}/stage", opportunityId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"stage":"QUALIFICATION"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.stage").value("QUALIFICATION"));
+        mockMvc.perform(get("/api/opportunities")
+                        .param("page", "0").param("size", "10")
+                        .param("keyword", "renewal").param("stage", "QUALIFICATION"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(opportunityId));
+        mockMvc.perform(get("/api/opportunities/{id}/history", opportunityId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].previousStage").value("NEW"))
+                .andExpect(jsonPath("$[0].newStage").value("QUALIFICATION"));
+
+        mockMvc.perform(patch("/api/opportunities/{id}/stage", opportunityId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"stage":"WON"}
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(delete("/api/opportunities/{id}", opportunityId))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void opportunitiesRejectSuppliersAsSalesContactsAndInvalidStages() throws Exception {
+        validRequest.setContactType("SUPPLIER");
+        String customerJson = mockMvc.perform(post("/api/customers")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        long customerId = objectMapper.readTree(customerJson).get("id").asLong();
+
+        mockMvc.perform(post("/api/opportunities")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"customerId":%d,"title":"Invalid owner","stage":"NEW"}
+                                """.formatted(customerId)))
+                .andExpect(status().isBadRequest());
+        assertTrue(opportunityRepository.findAll().isEmpty());
     }
 
     @Test
@@ -353,4 +507,3 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
                 .andExpect(jsonPath("$.path").value("/api/customers/99999"));
     }
 }
-

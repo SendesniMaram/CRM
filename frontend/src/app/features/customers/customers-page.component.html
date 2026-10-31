@@ -1,9 +1,31 @@
 <section class="customer-page" aria-labelledby="customers-title">
   <header class="page-header">
-    <div><p class="eyebrow">Relation client</p><h1 id="customers-title">Clients</h1>
-      <p class="subtitle">Retrouvez vos clients et gérez leurs coordonnées au même endroit.</p></div>
-    @if (canManage()) { <a mat-flat-button routerLink="/customers/new"><mat-icon>person_add</mat-icon>Nouveau client</a> }
+    <div><p class="eyebrow">Relation client</p><h1 id="customers-title">Contacts commerciaux</h1>
+      <p class="subtitle">Retrouvez clients, prospects et fournisseurs, puis filtrez-les par catégorie et segment.</p></div>
+    @if (canManage()) {
+      <div class="page-actions">
+        <a mat-flat-button routerLink="/customers/new"><mat-icon>person_add</mat-icon>Nouveau contact</a>
+        <button mat-stroked-button type="button" (click)="exportCsv()" [disabled]="exporting()">
+          @if (exporting()) { Export en cours… } @else { <mat-icon>download</mat-icon>Exporter CSV }
+        </button>
+        <button mat-stroked-button type="button" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>table_view</mat-icon>Exporter Excel
+        </button>
+        <button mat-stroked-button type="button" (click)="csvInput.click()" [disabled]="importing()">
+          @if (importing()) { Import en cours… } @else { <mat-icon>upload_file</mat-icon>Importer CSV }
+        </button>
+        <input #csvInput type="file" accept=".csv,text/csv" hidden (change)="importCsv($event)" />
+      </div>
+    }
   </header>
+  @if (importError()) { <p class="error" role="alert">{{ importError() }}</p> }
+  @if (importReport(); as report) {
+    <mat-card class="directory-card import-report" aria-live="polite"><mat-card-content>
+      <h2>Résultat de l’import</h2>
+      <p>{{ report.acceptedRows }} ligne(s) importée(s), {{ report.rejectedRows }} rejetée(s), sur {{ report.totalRows }}.</p>
+      @if (report.issues.length) { <ul>@for (issue of report.issues; track issue.row) { <li>Ligne {{ issue.row }} : {{ issue.message }}</li> }</ul> }
+    </mat-card-content></mat-card>
+  }
   <mat-card class="directory-card">
     <mat-card-content>
       <form class="toolbar" (ngSubmit)="find()">
@@ -12,12 +34,15 @@
           <input matInput [formControl]="search" placeholder="Nom, e-mail, société ou téléphone" />
         </mat-form-field>
         <button mat-stroked-button type="submit">Rechercher</button>
+        <mat-form-field appearance="outline"><mat-label>Type</mat-label><mat-select [formControl]="contactType" (selectionChange)="find()"><mat-option value="">Tous</mat-option><mat-option value="LEAD">Prospects</mat-option><mat-option value="CUSTOMER">Clients</mat-option><mat-option value="SUPPLIER">Fournisseurs</mat-option></mat-select></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Catégorie</mat-label><input matInput [formControl]="category" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Segment</mat-label><input matInput [formControl]="segment" /></mat-form-field>
         <button mat-icon-button type="button" (click)="load()" [disabled]="loading() || busy()" aria-label="Recharger les clients"><mat-icon>refresh</mat-icon></button>
       </form>
       @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement des clients…</p></div> }
       @if (error()) { <div class="state error" role="alert"><mat-icon>cloud_off</mat-icon><p>{{ error() }}</p><button mat-button (click)="load()">Réessayer</button></div> }
       @if (!loading() && !error() && rows().length === 0) {
-        <div class="state"><mat-icon>groups</mat-icon><h2>Aucun client à afficher</h2>
+        <div class="state"><mat-icon>groups</mat-icon><h2>Aucun contact à afficher</h2>
           <p>{{ search.value.trim() ? 'Essayez une autre recherche.' : 'Ajoutez votre premier client pour commencer.' }}</p>
           @if (!search.value.trim() && canManage()) { <a mat-button routerLink="/customers/new">Créer un client</a> }
         </div>
@@ -26,13 +51,14 @@
         <div class="table-scroll" tabindex="0" aria-label="Tableau des clients, défilement horizontal">
           <table mat-table [dataSource]="rows()" matSort [matSortActive]="sortBy()" [matSortDirection]="direction()" (matSortChange)="sort($event)" aria-label="Clients">
             <ng-container matColumnDef="name"><th mat-header-cell *matHeaderCellDef mat-sort-header>Client</th><td mat-cell *matCellDef="let row"><a class="client-name" [routerLink]="['/customers', row.id]">{{ row.name }}</a></td></ng-container>
-            <ng-container matColumnDef="company"><th mat-header-cell *matHeaderCellDef mat-sort-header>Société</th><td mat-cell *matCellDef="let row">{{ row.company || '—' }}</td></ng-container>
+            <ng-container matColumnDef="company"><th mat-header-cell *matHeaderCellDef mat-sort-header>Société</th><td mat-cell *matCellDef="let row">{{ row.company || '—' }} <small>{{ row.contactType === 'LEAD' ? 'Prospect' : row.contactType === 'SUPPLIER' ? 'Fournisseur' : 'Client' }}</small></td></ng-container>
             <ng-container matColumnDef="email"><th mat-header-cell *matHeaderCellDef mat-sort-header>E-mail</th><td mat-cell *matCellDef="let row">{{ row.email || '—' }}</td></ng-container>
             <ng-container matColumnDef="phone"><th mat-header-cell *matHeaderCellDef mat-sort-header>Téléphone</th><td mat-cell *matCellDef="let row">{{ row.phone || '—' }}</td></ng-container>
             <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Actions</th><td mat-cell *matCellDef="let row">
               <a mat-icon-button [routerLink]="['/customers', row.id]" [attr.aria-label]="'Consulter ' + row.name"><mat-icon>visibility</mat-icon></a>
               @if (canManage()) {
                 <a mat-icon-button [routerLink]="['/customers', row.id, 'edit']" [attr.aria-label]="'Modifier ' + row.name"><mat-icon>edit</mat-icon></a>
+                @if (row.contactType === 'LEAD') { <button mat-icon-button type="button" (click)="convert(row)" [disabled]="busy() || loading()" [attr.aria-label]="'Convertir le prospect ' + row.name"><mat-icon>how_to_reg</mat-icon></button> }
                 <button mat-icon-button type="button" (click)="remove(row)" [disabled]="busy() || loading()" [attr.aria-label]="'Supprimer ' + row.name"><mat-icon>delete_outline</mat-icon></button>
               }
             </td></ng-container>

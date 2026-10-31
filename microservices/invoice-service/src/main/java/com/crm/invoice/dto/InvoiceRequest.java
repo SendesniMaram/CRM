@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InvoiceRequest {
 
-    @NotBlank(message = "Invoice number is required")
     @Size(max = 50, message = "Invoice number must be at most 50 characters")
     private String invoiceNumber;
 

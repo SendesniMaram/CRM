@@ -35,6 +35,11 @@ describe('Customers routes with real guards and HTTP interceptor', () => {
           const request = http.expectOne(url + '/4');
           expect(request.request.headers.has('Authorization')).toBeTrue();
           request.flush({ id: 4, name: 'Client test', email: null, phone: null, company: null, address: null, createdAt: null, updatedAt: null });
+          if (path === '/customers/4') {
+            const interactions = http.expectOne(url + '/4/interactions');
+            expect(interactions.request.headers.has('Authorization')).toBeTrue();
+            interactions.flush([]);
+          }
         }
         harness.detectChanges(); expect(TestBed.inject(Router).url).toBe(path);
         expect(harness.routeNativeElement?.textContent).not.toContain('Page introuvable');
@@ -57,6 +62,27 @@ describe('Customers routes with real guards and HTTP interceptor', () => {
     const tree = TestBed.inject(Router).parseUrl(TestBed.inject(Router).url);
     expect(tree.root.children['primary'].segments[0].path).toBe('login');
     expect(tree.queryParams['returnUrl']).toBe('/customers');
+  });
+  it('loads the commercial pipeline and client directory through Gateway for admins', async () => {
+    session(CrmRole.ADMIN);
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/customers/opportunities');
+    const http = TestBed.inject(HttpTestingController);
+    const opportunities = http.expectOne(r => r.url === 'http://localhost:8080/customer/api/opportunities');
+    expect(opportunities.request.headers.has('Authorization')).toBeTrue();
+    opportunities.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
+    const contacts = http.expectOne(r => r.url === url);
+    expect(contacts.request.headers.has('Authorization')).toBeTrue();
+    contacts.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 100 });
+    expect(TestBed.inject(Router).url).toBe('/customers/opportunities');
+    expect(harness.fixture.nativeElement.textContent).toContain('Pipeline commercial');
+  });
+  it('denies the commercial pipeline to clients before any API call', async () => {
+    session(CrmRole.CLIENT);
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/customers/opportunities');
+    expect(TestBed.inject(Router).url).toBe('/access-denied');
+    TestBed.inject(HttpTestingController).expectNone(r => r.url.includes('/api/opportunities'));
   });
   it('keeps unknown child routes on Page introuvable', async () => {
     session(CrmRole.ADMIN); const harness = await RouterTestingHarness.create('/customers/4/unknown');

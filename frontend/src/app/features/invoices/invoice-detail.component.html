@@ -21,4 +21,28 @@
       </dl>
     }
   </mat-card-content></mat-card>
+  @if (invoice(); as row) {
+    <mat-card class="directory-card"><mat-card-content>
+      <h2>Règlements</h2>
+      @if (paymentError()) { <p class="error" role="alert">{{ paymentError() }}</p> }
+      @if (historyLoading()) { <p role="status">Chargement de l’historique financier…</p> }
+      @if (paymentSummary(); as summary) {
+        <p>Payé : {{ summary.paidAmount | invoiceAmount }} {{ row.currency || '' }} · Reste dû : {{ summary.outstandingAmount | invoiceAmount }} {{ row.currency || '' }}</p>
+        @if (summary.payments.length === 0) { <p>Aucun paiement enregistré.</p> }
+        <ul>@for (payment of summary.payments; track payment.id) { <li>{{ payment.paidAt | date:'dd/MM/yyyy' }} — {{ payment.amount | invoiceAmount }} {{ row.currency || '' }} · {{ payment.method || 'Mode non précisé' }}</li> }</ul>
+      }
+      <form [formGroup]="paymentForm" (ngSubmit)="recordPayment()" class="form-grid">
+        <mat-form-field appearance="outline"><mat-label>Montant reçu</mat-label><input matInput type="number" min="0.01" step="0.01" formControlName="amount" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Date du paiement</mat-label><input matInput type="date" formControlName="paidAt" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Mode</mat-label><input matInput formControlName="method" maxlength="50" /></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Référence</mat-label><input matInput formControlName="reference" maxlength="100" /></mat-form-field>
+        <button mat-flat-button type="submit" [disabled]="paymentBusy() || !paymentSummary() || paymentSummary()!.outstandingAmount <= 0">Enregistrer le paiement</button>
+      </form>
+      <h2>Relances manuelles</h2>
+      <mat-form-field appearance="outline" class="full-width"><mat-label>Note de relance (facultatif)</mat-label><textarea matInput [formControl]="reminderNotes" maxlength="500"></textarea></mat-form-field>
+      <button mat-stroked-button type="button" (click)="recordReminder()" [disabled]="reminderBusy()">Consigner une relance</button>
+      @if (reminders().length === 0) { <p>Aucune relance consignée.</p> }
+      <ul>@for (reminder of reminders(); track reminder.id) { <li>{{ reminder.recordedAt | date:'dd/MM/yyyy HH:mm' }} — {{ reminder.recordedBy || 'Administrateur' }}{{ reminder.notes ? ' — ' + reminder.notes : '' }}</li> }</ul>
+    </mat-card-content></mat-card>
+  }
 </section>

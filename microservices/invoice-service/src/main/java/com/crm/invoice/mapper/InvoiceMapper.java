@@ -25,6 +25,8 @@ public class InvoiceMapper {
         response.setCurrency(invoice.getCurrency());
         response.setStatus(invoice.getStatus());
         response.setNotes(invoice.getNotes());
+        response.setLines(invoice.getLines().stream().map(line -> new com.crm.invoice.dto.InvoiceLineResponse(
+                line.getId(), line.getDescription(), line.getQuantity(), line.getUnitPrice(), line.getLineTotal())).toList());
         response.setCreatedAt(invoice.getCreatedAt());
         response.setUpdatedAt(invoice.getUpdatedAt());
 
@@ -37,7 +39,6 @@ public class InvoiceMapper {
         }
 
         Invoice invoice = new Invoice();
-        invoice.setInvoiceNumber(request.getInvoiceNumber());
         invoice.setCustomerId(request.getCustomerId());
         invoice.setIssueDate(request.getIssueDate());
         invoice.setDueDate(request.getDueDate());
@@ -54,7 +55,6 @@ public class InvoiceMapper {
         if (request == null) {
             return;
         }
-        invoice.setInvoiceNumber(request.getInvoiceNumber());
         invoice.setCustomerId(request.getCustomerId());
         invoice.setIssueDate(request.getIssueDate());
         invoice.setDueDate(request.getDueDate());

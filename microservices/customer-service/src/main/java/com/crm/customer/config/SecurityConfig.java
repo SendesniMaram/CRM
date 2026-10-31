@@ -37,6 +37,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/customers/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/customers/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/customers/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
+                        .requestMatchers("/api/opportunities/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

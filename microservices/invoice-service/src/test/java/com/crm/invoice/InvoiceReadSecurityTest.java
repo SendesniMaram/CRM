@@ -1,7 +1,10 @@
 package com.crm.invoice;
 
 import com.crm.invoice.controller.InvoiceController;
+import com.crm.invoice.controller.QuoteController;
 import com.crm.invoice.dto.InvoiceResponse;
+import com.crm.invoice.repository.InvoiceRepository;
+import com.crm.invoice.repository.QuoteRepository;
 import com.crm.invoice.service.IInvoiceService;
 import com.crm.invoice.config.SecurityConfig;
 import com.crm.security.JwtSecurityAutoConfiguration;
@@ -28,13 +31,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 // Real SecurityFilterChain and JWT filter; only business services are replaced.
-@WebMvcTest(controllers = {InvoiceController.class})
+@WebMvcTest(controllers = {InvoiceController.class, QuoteController.class})
 @Import({SecurityConfig.class, JwtSecurityAutoConfiguration.class})
 @AutoConfigureMockMvc(addFilters = true, print = MockMvcPrint.NONE)
 class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySupport {
     @Autowired MockMvc mvc;
     @Autowired JwtService jwt;
     @MockBean IInvoiceService service0;
+    @MockBean QuoteRepository quoteRepository;
+    @MockBean InvoiceRepository invoiceRepository;
+    @MockBean com.crm.invoice.repository.InvoicePaymentRepository paymentRepository;
+    @MockBean com.crm.invoice.repository.InvoiceReminderRepository reminderRepository;
 
     @BeforeEach
     void responses() {
@@ -44,6 +51,27 @@ class InvoiceReadSecurityTest extends com.crm.invoice.security.TestIdentitySuppo
         when(service0.getAllInvoicesPaged(anyInt(), anyInt(), any(), anyString(), any()))
                 .thenReturn(new PageImpl<>(List.of(row0)));
         when(service0.getInvoiceById(1L)).thenReturn(row0);
+    }
+
+    @org.junit.jupiter.api.Test
+    void quoteEndpointsRequireAdministrativeRole() throws Exception {
+        mvc.perform(get("/api/quotes")
+                        .header("Authorization", "Bearer " + token("client-user", "", true, List.of("CLIENT"))))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(quoteRepository, invoiceRepository);
+
+        when(quoteRepository.findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<
+                        com.crm.invoice.entity.Quote>>any(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of()));
+        mvc.perform(get("/api/quotes")
+                        .header("Authorization", "Bearer " + token("admin-user", "", true, List.of("ADMIN"))))
+                .andExpect(status().isOk());
+        verify(quoteRepository).findAll(
+                org.mockito.ArgumentMatchers.<org.springframework.data.jpa.domain.Specification<
+                        com.crm.invoice.entity.Quote>>any(),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class));
     }
 
 

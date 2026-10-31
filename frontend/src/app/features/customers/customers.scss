@@ -24,6 +24,23 @@ td:last-child { white-space: nowrap; }
 .form-grid, .details-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.5rem; margin-top: 1.5rem; }
 .full-width { grid-column: 1 / -1; }
 .form-actions { display: flex; justify-content: flex-end; gap: .75rem; border-top: 1px solid #e2e9ed; padding-top: 1rem; }
+.section-header { margin: 1.5rem 0 .75rem; }
+.section-header h2 { margin: 0; font-size: 1.35rem; }
+.interaction-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
+.interaction-list { list-style: none; margin: 1rem 0 0; padding: 0; }
+.interaction-list li { border-top: 1px solid #e2e9ed; padding: 1rem 0; }
+.interaction-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.interaction-heading time, .interaction-list small { color: var(--mat-sys-on-surface-variant); }
+.interaction-list p { margin: .5rem 0; white-space: pre-line; overflow-wrap: anywhere; }
+.compact { padding: 0; margin: 0 0 1rem; background: none; color: inherit; }
+.compact h2 { margin: 0; font-size: 1.3rem; }
+.opportunities-table { min-width: 900px; }
+.opportunities-table td small { display: block; color: var(--mat-sys-on-surface-variant); }
+.opportunities-table mat-form-field { width: 170px; }
+.opportunity-history { border-top: 1px solid #e2e9ed; margin-top: 1.25rem; padding-top: 1rem; }
+.opportunity-history ol { padding-left: 1.25rem; }
+.opportunity-history li { padding: .35rem 0; }
+.opportunity-history time { color: var(--mat-sys-on-surface-variant); margin-left: .75rem; }
 dt { font-size: .85rem; margin-bottom: .4rem; }
 dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
 .address { white-space: pre-line; }
@@ -32,6 +49,8 @@ dd { margin: 0; font-weight: 500; overflow-wrap: anywhere; }
   .page-header { align-items: flex-start; flex-direction: column; }
   .page-header > a { width: 100%; }
   .form-grid, .details-grid { grid-template-columns: 1fr; }
+  .interaction-form { grid-template-columns: 1fr; }
+  .interaction-heading { align-items: flex-start; flex-direction: column; gap: .25rem; }
   .search-field { min-width: 0; width: 100%; flex-basis: 100%; max-width: none; }
   mat-paginator { max-width: 100%; }
 }

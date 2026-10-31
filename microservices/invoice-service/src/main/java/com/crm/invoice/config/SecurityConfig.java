@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/invoices/me", "/api/invoices/me/**").hasRole("CLIENT")
+                        .requestMatchers("/api/quotes/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/invoices/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/invoices/**").hasAnyRole("SUPER_ADMIN", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/invoices/**").hasAnyRole("SUPER_ADMIN", "ADMIN")

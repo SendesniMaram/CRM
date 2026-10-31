@@ -6,12 +6,14 @@ import { InvoiceDetailComponent } from './invoice-detail.component';
 import { InvoiceService } from './invoice.service';
 describe('InvoiceDetailComponent', () => {
   async function create(id: string, fails = false) {
-    const service = jasmine.createSpyObj<InvoiceService>('InvoiceService', ['get']);
+    const service = jasmine.createSpyObj<InvoiceService>('InvoiceService', ['get', 'payments', 'reminders', 'recordPayment', 'recordReminder']);
     service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({
       id: 4, invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: '2026-10-14', dueDate: null,
       subtotal: 100, tax: 10, totalAmount: 123.45, currency: 'TND', status: 'Statut libre',
       notes: null, createdAt: null, updatedAt: null
     }));
+    service.payments.and.returnValue(of({ payments: [], paidAmount: 0, outstandingAmount: 123.45 }));
+    service.reminders.and.returnValue(of([]));
     await TestBed.configureTestingModule({ imports: [InvoiceDetailComponent], providers: [provideRouter([]),
       provideZonelessChangeDetection(), { provide: InvoiceService, useValue: service },
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id })) } }] }).compileComponents();

@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EMPTY, catchError, finalize, switchMap, tap } from 'rxjs';
 import { CustomerRequest } from './customer.models';
@@ -19,7 +20,7 @@ const notBlank = (control: AbstractControl) => control.value.trim() ? null : { r
 @Component({
   selector: 'app-customer-form', standalone: true,
   imports: [ReactiveFormsModule, RouterLink, MatButtonModule, MatCardModule, MatFormFieldModule,
-    MatIconModule, MatInputModule, MatProgressSpinnerModule],
+    MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule],
   templateUrl: './customer-form.component.html', styleUrl: './customers.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -50,6 +51,9 @@ export class CustomerFormComponent implements OnInit {
       return !value || /^(\+\d{1,3}[- ]?)?\d{6,14}$/.test(value) ? null : { pattern: true };
     }]],
     address: ['', Validators.maxLength(500)]
+    ,contactType: ['CUSTOMER' as 'LEAD' | 'CUSTOMER' | 'SUPPLIER']
+    ,category: ['', Validators.maxLength(100)]
+    ,segment: ['', Validators.maxLength(100)]
   });
   ngOnInit() {
     this.route.paramMap.pipe(switchMap(params => {
@@ -61,7 +65,7 @@ export class CustomerFormComponent implements OnInit {
       this.id.set(id); this.loading.set(true);
       return this.service.get(id).pipe(tap(row => {
         this.form.patchValue({ name: row.name, company: row.company ?? '', email: row.email ?? '',
-          phone: row.phone ?? '', address: row.address ?? '' }); this.ready.set(true);
+          phone: row.phone ?? '', address: row.address ?? '', contactType: row.contactType ?? 'CUSTOMER', category: row.category ?? '', segment: row.segment ?? '' }); this.ready.set(true);
       }), catchError((e: { status?: number }) => {
         this.error.set(e.status === 404 ? 'Client introuvable.' : 'Impossible de charger ce client. Réessayez.');
         return EMPTY;
@@ -75,7 +79,8 @@ export class CustomerFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     const request: CustomerRequest = { name: value.name.trim(), company: value.company.trim() || null,
-      email: value.email.trim() || null, phone: value.phone.trim() || null, address: value.address.trim() || null };
+      email: value.email.trim() || null, phone: value.phone.trim() || null, address: value.address.trim() || null,
+      contactType: value.contactType, category: value.category.trim() || null, segment: value.segment.trim() || null };
     this.saving.set(true); this.error.set('');
     const id = this.id();
     (id === null ? this.service.create(request) : this.service.update(id, request)).pipe(

@@ -23,11 +23,10 @@
         }
       </div>
       @if (customerNotice()) { <p role="status">{{ customerNotice() }}</p> }
-      <p class="muted">Numéro, client, sous-total et statut sont obligatoires. Le total sera affiché après enregistrement.</p>
+      <p class="muted">Le numéro de facture est généré automatiquement. Choisissez le client, le sous-total et le statut.</p>
       <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
         <div class="form-grid">
-          <mat-form-field appearance="outline"><mat-label>Numéro de facture</mat-label><input matInput formControlName="invoiceNumber" required maxlength="50" />
-            @if (form.controls.invoiceNumber.invalid) { <mat-error>Numéro obligatoire, unique et limité à 50 caractères.</mat-error> }</mat-form-field>
+          @if (id() !== null) { <mat-form-field appearance="outline"><mat-label>Numéro de facture</mat-label><input matInput formControlName="invoiceNumber" readonly maxlength="50" /></mat-form-field> }
           <mat-form-field appearance="outline"><mat-label>Client</mat-label><mat-select formControlName="customerId" required (selectionChange)="selectCustomer($event.value)">
             @if (pinnedCustomer(); as client) { <mat-option [value]="client.id">{{ client.name }} — {{ client.id }}</mat-option> }
             @for (client of choices(); track client.id) { <mat-option [value]="client.id">{{ client.name }} — {{ client.id }}</mat-option> }

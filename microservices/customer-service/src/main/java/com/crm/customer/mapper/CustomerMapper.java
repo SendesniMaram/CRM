@@ -20,6 +20,10 @@ public class CustomerMapper {
         response.setPhone(customer.getPhone());
         response.setCompany(customer.getCompany());
         response.setAddress(customer.getAddress());
+        response.setContactType(customer.getContactType());
+        response.setCategory(customer.getCategory());
+        response.setSegment(customer.getSegment());
+        response.setAssignedEmployeeId(customer.getAssignedEmployeeId());
         response.setCreatedAt(customer.getCreatedAt());
         response.setUpdatedAt(customer.getUpdatedAt());
 
@@ -37,6 +41,10 @@ public class CustomerMapper {
         customer.setPhone(request.getPhone());
         customer.setCompany(request.getCompany());
         customer.setAddress(request.getAddress());
+        customer.setContactType(request.getContactType() == null ? "CUSTOMER" : request.getContactType());
+        customer.setCategory(request.getCategory());
+        customer.setSegment(request.getSegment());
+        customer.setAssignedEmployeeId(request.getAssignedEmployeeId());
 
         return customer;
     }
@@ -50,6 +58,10 @@ public class CustomerMapper {
         customer.setPhone(request.getPhone());
         customer.setCompany(request.getCompany());
         customer.setAddress(request.getAddress());
+        if (request.getContactType() != null) customer.setContactType(request.getContactType());
+        customer.setCategory(request.getCategory());
+        customer.setSegment(request.getSegment());
+        customer.setAssignedEmployeeId(request.getAssignedEmployeeId());
     }
 }
 

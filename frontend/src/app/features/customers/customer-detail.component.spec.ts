@@ -7,10 +7,16 @@ import { CustomerService } from './customer.service';
 
 describe('CustomerDetailComponent', () => {
   async function create(id: string, fails = false) {
-    const service = jasmine.createSpyObj<CustomerService>('CustomerService', ['get']);
+    const service = jasmine.createSpyObj<CustomerService>('CustomerService', ['get', 'listInteractions', 'addInteraction']);
     service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({
       id: 4, name: 'Client test', company: 'Société test', email: null, phone: null, address: null,
+      contactType: 'LEAD', category: 'Entreprise', segment: 'Nord',
       createdAt: '2026-10-14T10:00:00', updatedAt: null
+    }));
+    service.listInteractions.and.returnValue(of([]));
+    service.addInteraction.and.returnValue(of({
+      id: 8, customerId: 4, employeeId: null, interactionType: 'CALL',
+      occurredAt: '2026-10-14T10:00:00', notes: 'Premier échange', createdAt: null
     }));
     await TestBed.configureTestingModule({ imports: [CustomerDetailComponent], providers: [
       provideRouter([]), provideZonelessChangeDetection(), { provide: CustomerService, useValue: service },
@@ -25,7 +31,22 @@ describe('CustomerDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Société test');
     expect(fixture.nativeElement.textContent).toContain('Non renseigné');
     expect(fixture.nativeElement.textContent).toContain('14/10/2026');
+    expect(fixture.nativeElement.textContent).toContain('Prospect');
+    expect(fixture.nativeElement.textContent).toContain('Entreprise');
+    expect(service.listInteractions).toHaveBeenCalledOnceWith(4);
     expect(fixture.nativeElement.querySelector('a[href="/customers/4/edit"]')).toBeTruthy();
+  });
+  it('creates an interaction and adds the persisted result to the history', async () => {
+    const { fixture, service } = await create('4');
+    fixture.componentInstance['interactionForm'].patchValue({
+      interactionType: 'CALL', occurredAt: '2026-10-14T10:00', notes: ' Premier échange '
+    });
+    fixture.componentInstance['submitInteraction']();
+    expect(service.addInteraction).toHaveBeenCalledOnceWith(4, {
+      interactionType: 'CALL', occurredAt: '2026-10-14T10:00', notes: 'Premier échange'
+    });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Premier échange');
   });
   it('rejects an invalid ID without calling the API', async () => {
     const { fixture, service } = await create('invalid');

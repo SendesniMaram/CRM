@@ -35,6 +35,8 @@ public class InvoiceResponse {
 
     private String notes;
 
+    private java.util.List<InvoiceLineResponse> lines;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;

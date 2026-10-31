@@ -41,5 +41,13 @@ public class CustomerSpecification {
             return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
         };
     }
+
+    public static Specification<Customer> filters(String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
+        return searchByKeyword(keyword)
+                .and((root, query, cb) -> !StringUtils.hasText(contactType) ? cb.conjunction() : cb.equal(root.get("contactType"), contactType))
+                .and((root, query, cb) -> !StringUtils.hasText(category) ? cb.conjunction() : cb.equal(cb.lower(root.get("category")), category.trim().toLowerCase()))
+                .and((root, query, cb) -> !StringUtils.hasText(segment) ? cb.conjunction() : cb.equal(cb.lower(root.get("segment")), segment.trim().toLowerCase()))
+                .and((root, query, cb) -> assignedEmployeeId == null ? cb.conjunction() : cb.equal(root.get("assignedEmployeeId"), assignedEmployeeId));
+    }
 }
 

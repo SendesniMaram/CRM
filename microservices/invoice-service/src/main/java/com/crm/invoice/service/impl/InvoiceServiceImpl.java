@@ -6,6 +6,7 @@ import com.crm.invoice.entity.Invoice;
 import com.crm.invoice.exception.ResourceNotFoundException;
 import com.crm.invoice.mapper.InvoiceMapper;
 import com.crm.invoice.repository.InvoiceRepository;
+import com.crm.invoice.repository.InvoiceNumberSequenceRepository;
 import com.crm.invoice.service.IInvoiceService;
 import com.crm.invoice.util.InvoiceSpecification;
 import org.springframework.data.domain.Page;
@@ -25,20 +26,19 @@ public class InvoiceServiceImpl implements IInvoiceService {
 
     private final InvoiceRepository invoiceRepository;
     private final InvoiceMapper invoiceMapper;
+    private final InvoiceNumberSequenceRepository sequenceRepository;
 
     public InvoiceServiceImpl(InvoiceRepository invoiceRepository,
-                              InvoiceMapper invoiceMapper) {
+                              InvoiceMapper invoiceMapper, InvoiceNumberSequenceRepository sequenceRepository) {
         this.invoiceRepository = invoiceRepository;
         this.invoiceMapper = invoiceMapper;
+        this.sequenceRepository = sequenceRepository;
     }
 
     @Override
     public InvoiceResponse createInvoice(InvoiceRequest request) {
-        if (invoiceRepository.existsByInvoiceNumber(request.getInvoiceNumber())) {
-            throw new IllegalArgumentException("Invoice number already exists: " + request.getInvoiceNumber());
-        }
-
         Invoice invoice = invoiceMapper.toEntity(request);
+        invoice.setInvoiceNumber(nextInvoiceNumber());
         calculateTotalAmount(invoice);
         Invoice saved = invoiceRepository.save(invoice);
         return invoiceMapper.toResponse(saved);
@@ -82,12 +82,8 @@ public class InvoiceServiceImpl implements IInvoiceService {
         Invoice existing = invoiceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
 
-        if (!existing.getInvoiceNumber().equals(request.getInvoiceNumber())
-                && invoiceRepository.existsByInvoiceNumber(request.getInvoiceNumber())) {
-            throw new IllegalArgumentException("Invoice number already exists: " + request.getInvoiceNumber());
-        }
-
         invoiceMapper.updateEntityFromRequest(existing, request);
+        existing.setInvoiceNumber(invoiceRepository.findById(id).orElseThrow().getInvoiceNumber());
         calculateTotalAmount(existing);
         Invoice saved = invoiceRepository.save(existing);
         return invoiceMapper.toResponse(saved);
@@ -108,5 +104,14 @@ public class InvoiceServiceImpl implements IInvoiceService {
         BigDecimal sub = invoice.getSubtotal() != null ? invoice.getSubtotal() : BigDecimal.ZERO;
         BigDecimal tax = invoice.getTax() != null ? invoice.getTax() : BigDecimal.ZERO;
         invoice.setTotalAmount(sub.add(tax));
+    }
+
+    private String nextInvoiceNumber() {
+        var sequence = sequenceRepository.lockSequence();
+        if (sequence == null) throw new IllegalStateException("Invoice number sequence is not initialized");
+        long value = sequence.getNextValue();
+        sequence.setNextValue(value + 1);
+        sequenceRepository.save(sequence);
+        return "INV-" + java.time.Year.now().getValue() + "-" + String.format("%06d", value);
     }
 }
