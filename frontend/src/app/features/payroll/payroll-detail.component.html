@@ -2,7 +2,7 @@
   <a mat-button routerLink="/payroll"><mat-icon>arrow_back</mat-icon>Retour à la paie</a>
   <header class="page-header pdf-detail-header"><div><p class="eyebrow">Rémunération</p><h1 id="payroll-detail-title">{{ payroll() ? 'Paie — ' + payroll()!.payPeriod : 'Fiche de paie' }}</h1>
     <p class="subtitle">Détail des montants et informations de paiement.</p></div>
-    @if (payroll(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="payroll" [id]="row.id" /> <a mat-flat-button [routerLink]="['/payroll', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
+    @if (payroll(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="payroll" [id]="row.id" /> @if(!row.published&&!row.cancelled&&row.status==='PENDING'){<a mat-flat-button [routerLink]="['/payroll', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a>}</div> }</header>
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la fiche de paie…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
@@ -20,7 +20,12 @@
         <div><dt>Statut</dt><dd><span class="status-badge">{{ row.status }}</span></dd></div>
         <div><dt>Créée le</dt><dd>{{ row.createdAt ? (row.createdAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
         <div><dt>Modifiée le</dt><dd>{{ row.updatedAt ? (row.updatedAt | date:'dd/MM/yyyy HH:mm') : 'Non renseigné' }}</dd></div>
+        <div><dt>Heures supplémentaires / taux saisi</dt><dd>{{row.overtimeHours ?? "Non renseignées"}} × {{row.overtimeHourlyRate ?? "Non renseigné"}}</dd></div>
+        <div><dt>Montant supplémentaire</dt><dd>{{row.overtimeAmount | invoiceAmount}} {{row.currency}}</dd></div>
       </dl>
+      @if(row.cancelled){<p role="status">Bulletin annulé et remplacé par la référence {{row.replacementPayrollId}}. Les montants originaux sont conservés.</p>}
+      @if(row.correctionOfId){<p>Brouillon correctif du bulletin {{row.correctionOfId}}.</p>}
+      <app-payroll-settlements [payroll]="row" (changed)="refresh()" />
     }
   </mat-card-content></mat-card>
 </section>

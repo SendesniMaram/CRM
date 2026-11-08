@@ -25,6 +25,11 @@ public class PayrollResponse {
 
     private BigDecimal taxAmount;
 
+    private BigDecimal overtimeHours;
+    private BigDecimal overtimeHourlyRate;
+    private BigDecimal overtimeAmount;
+
+
     private BigDecimal netSalary;
 
     private String payPeriod;
@@ -36,6 +41,11 @@ public class PayrollResponse {
     private String status;
 
     private boolean published;
+
+    private boolean cancelled;
+    private Long replacementPayrollId;
+    private Long correctionOfId;
+
 
     private LocalDateTime createdAt;
 

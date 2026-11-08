@@ -18,7 +18,7 @@ import java.util.TreeMap;
 public class PersonalInvoiceService {
  private final InvoiceRepository repository; private final PersonalCustomerClient customers; private final InvoicePaymentRepository payments;
  public PersonalInvoiceService(InvoiceRepository r,PersonalCustomerClient c,InvoicePaymentRepository p){repository=r;customers=c;payments=p;}
- public record Summary(String id,String invoiceNumber,LocalDate issueDate,LocalDate dueDate,String totalAmount,String currency,String status){}
+ public record Summary(String id,String invoiceNumber,LocalDate issueDate,LocalDate dueDate,String totalAmount,String currency,String status,boolean archived){public Summary(String id,String invoiceNumber,LocalDate issueDate,LocalDate dueDate,String totalAmount,String currency,String status){this(id,invoiceNumber,issueDate,dueDate,totalAmount,currency,status,false);}}
  public record PageResult(java.util.List<Summary> content,long totalElements,int totalPages,int number){}
  public record MoneySummary(long invoiceCount,BigDecimal total,BigDecimal paid,BigDecimal outstanding){}
  public record PersonalStatistics(long invoiceCount,long paidInvoiceCount,long unpaidInvoiceCount,Map<String,MoneySummary> byCurrency){}
@@ -51,9 +51,17 @@ public class PersonalInvoiceService {
   var row=repository.findByIdAndCustomerId(key,customer(a,bearer)).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Invoice unavailable"));
   return summary(row);
  }
+ public record Payment(String id,String amount,LocalDate paidAt,String method) {}
+ public java.util.List<Payment> payments(Authentication authentication,String bearer,String id){
+  long key=parseId(id);
+  repository.findByIdAndCustomerId(key,customer(authentication,bearer))
+   .orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Invoice unavailable"));
+  return payments.findByInvoiceIdOrderByPaidAtDescIdDesc(key).stream()
+   .map(p->new Payment(p.getId().toString(),p.getAmount().toPlainString(),p.getPaidAt(),p.getMethod())).toList();
+ }
  private long parseId(String s){
   if(s==null || !s.matches("[1-9][0-9]{0,18}")) throw new IllegalArgumentException("Invalid identifier");
   try{return Long.parseLong(s);}catch(NumberFormatException e){throw new IllegalArgumentException("Invalid identifier");}
  }
- private Summary summary(Invoice r){return new Summary(r.getId().toString(),r.getInvoiceNumber(),r.getIssueDate(),r.getDueDate(),r.getTotalAmount().toPlainString(),r.getCurrency(),r.getStatus());}
+ private Summary summary(Invoice r){return new Summary(r.getId().toString(),r.getInvoiceNumber(),r.getIssueDate(),r.getDueDate(),r.getTotalAmount().toPlainString(),r.getCurrency(),r.getStatus(),r.isArchived());}
 }

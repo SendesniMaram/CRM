@@ -13,6 +13,7 @@ export const CRM_NAVIGATION: readonly CrmNavigationItem[] = [
   { label: 'Accueil', route: '/home', icon: 'home', description: 'Votre point de départ.', category: 'Général', roles: everyone },
   { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard', description: 'Consultez les indicateurs accessibles à votre rôle.', category: 'Général', roles: everyone },
   { label: 'Mon profil', route: '/profile', icon: 'badge', description: 'Consultez votre fiche professionnelle personnelle.', category: 'Général', roles: [CrmRole.EMPLOYEE] },
+  { label: 'Mes documents', route: '/my-documents', icon: 'folder', description: 'Documents partagés avec vous.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
 	{ label: 'Mes bulletins', route: '/my-payroll', icon: 'payments', description: 'Consultez uniquement vos bulletins de paie.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
 	{ label: 'Mes évaluations', route: '/my-evaluations', icon: 'rate_review', description: 'Consultez vos évaluations finalisées.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
   { label: 'Mon espace client', route: '/client', icon: 'account_circle', description: 'Mon profil et mes factures.', category: 'Général', roles: [CrmRole.CLIENT] },
@@ -24,6 +25,7 @@ export const CRM_NAVIGATION: readonly CrmNavigationItem[] = [
   { label: 'Congés', route: '/leaves', icon: 'event_note', description: 'Consultez les demandes de congé, suivez leur état et gérez les validations selon vos autorisations.', category: 'Ressources humaines', roles: [...admins, CrmRole.EMPLOYEE],
     action: { label: 'Demander un congé', route: '/leaves/new', roles: [CrmRole.EMPLOYEE] } },
   { label: 'Associations employés', route: '/leaves', fragment: 'associations', icon: 'link', description: 'Associez les comptes aux collaborateurs.', category: 'Ressources humaines', roles: admins },
+  { label: 'Pilotage RH', route: '/hr-insights', icon: 'insights', description: 'Consultez les indicateurs RH par période.', category: 'Ressources humaines', roles: admins },
   { label: 'Formations', route: '/trainings', icon: 'school', description: 'Planifiez et suivez les formations des collaborateurs.', category: 'Ressources humaines', roles: admins },
   { label: 'Présences', route: '/attendances', icon: 'schedule', description: 'Consultez et gérez les présences et absences enregistrées.', category: 'Ressources humaines', roles: admins },
   { label: 'Dossiers RH', route: '/hr-records', icon: 'folder_shared', description: 'Gérez les informations contractuelles et professionnelles.', category: 'Ressources humaines', roles: admins },
@@ -43,6 +45,7 @@ export const CRM_NAVIGATION: readonly CrmNavigationItem[] = [
   { label: 'Associations clients', route: '/customer-associations', icon: 'link', description: 'Associez explicitement un compte CLIENT à une fiche.', category: 'Relation client et facturation', roles: admins },
   { label: 'Honoraires', route: '/fees', icon: 'receipt_long', description: 'Suivez les prestations et les honoraires enregistrés dans le système.', category: 'Relation client et facturation', roles: admins,
     action: { label: 'Ajouter des honoraires', route: '/fees/new', roles: admins } }
+  ,{label:'Mes contacts affectés',route:'/my-contacts',icon:'contacts',description:'Consultez vos contacts et journalisez vos interactions.',category:'Relation client et facturation',roles:[CrmRole.EMPLOYEE]}
 ];
 
 @Injectable({ providedIn: 'root' })

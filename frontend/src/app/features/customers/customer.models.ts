@@ -12,6 +12,7 @@ export interface CustomerRequest {
 
 export interface CustomerResponse extends CustomerRequest {
   id: number;
+  archived?:boolean;
   createdAt: string | null;
   updatedAt: string | null;
 }
@@ -24,6 +25,8 @@ export interface CustomerPageParams {
   sortBy: CustomerSort;
   direction: 'asc' | 'desc';
   keyword?: string;
+  assignedEmployeeId?:string;
+  status?:'ACTIVE'|'ARCHIVED';
   contactType?: string;
   category?: string;
   segment?: string;

@@ -62,6 +62,9 @@ public class Customer {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(nullable=false)
+    private boolean archived;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

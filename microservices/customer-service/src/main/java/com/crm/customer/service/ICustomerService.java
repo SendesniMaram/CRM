@@ -16,6 +16,8 @@ public interface ICustomerService {
 
     Page<CustomerResponse> getAllCustomersPaged(int page, int size, String sortBy, String direction, String keyword);
     Page<CustomerResponse> getAllCustomersPaged(int page, int size, String sortBy, String direction, String keyword, String contactType, String category, String segment, Long assignedEmployeeId);
+    Page<CustomerResponse> search(int page,int size,String sortBy,String direction,String keyword,String contactType,String category,String segment,Long assignedEmployeeId,String status);
+    CustomerResponse restore(Long id);
     CustomerResponse convertLead(Long id);
 
     CustomerResponse updateCustomer(Long id, CustomerRequest request);

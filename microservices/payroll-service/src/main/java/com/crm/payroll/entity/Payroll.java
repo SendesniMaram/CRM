@@ -48,6 +48,14 @@ public class Payroll {
     @Column(name = "tax_amount", precision = 12, scale = 2)
     private BigDecimal taxAmount;
 
+    @Column(name="overtime_hours",precision=8,scale=2)
+    private BigDecimal overtimeHours;
+    @Column(name="overtime_hourly_rate",precision=12,scale=2)
+    private BigDecimal overtimeHourlyRate;
+    @Column(name="overtime_amount",precision=12,scale=2)
+    private BigDecimal overtimeAmount;
+
+
     @Column(name = "net_salary", nullable = false, precision = 12, scale = 2)
     private BigDecimal netSalary;
 
@@ -67,6 +75,17 @@ public class Payroll {
 
     @Column(name = "published", nullable = false)
     private boolean published;
+
+    @Column(name="cancelled",nullable=false)
+    private boolean cancelled;
+    @Column(name="replacement_payroll_id")
+    private Long replacementPayrollId;
+    @Column(name="correction_of_id")
+    private Long correctionOfId;
+    @Column(name="correction_reason",length=500) private String correctionReason;
+    @Column(name="corrected_by") private Long correctedBy;
+    @Column(name="corrected_at") private LocalDateTime correctedAt;
+
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

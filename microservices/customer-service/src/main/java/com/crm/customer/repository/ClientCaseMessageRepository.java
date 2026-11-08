@@ -1,0 +1,2 @@
+package com.crm.customer.repository;import com.crm.customer.entity.ClientCaseMessage;import org.springframework.data.jpa.repository.JpaRepository;import org.springframework.data.domain.*;import java.util.Optional;
+public interface ClientCaseMessageRepository extends JpaRepository<ClientCaseMessage,Long>{Optional<ClientCaseMessage> findByRequestId(String id);Page<ClientCaseMessage> findByCaseId(long caseId,Pageable page);}

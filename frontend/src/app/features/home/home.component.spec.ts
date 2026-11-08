@@ -19,7 +19,15 @@ describe('HomeComponent', () => {
     it('renders real session identity and only authorized modules for '+current, () => {
       role.set(current);const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();const element=fixture.nativeElement as HTMLElement;
       expect(element.querySelector('h1')?.textContent).toContain('Compte de test');
-      expect(element.querySelectorAll('.module-card').length).toBe(current===CrmRole.CLIENT?2:current===CrmRole.EMPLOYEE?5:20);
+      const administrativeRoutes = ['/dashboard', '/users', '/employees', '/departments', '/leaves',
+        '/hr-insights', '/trainings', '/attendances', '/hr-records', '/contracts', '/leave-calendar',
+        '/evaluations', '/job-offers', '/applications', '/payroll', '/customers', '/customers/opportunities',
+        '/invoices', '/invoices/quotes', '/customer-associations', '/fees'];
+      const expectedRoutes = current === CrmRole.CLIENT ? ['/dashboard', '/client']
+        : current === CrmRole.EMPLOYEE ? ['/dashboard', '/profile', '/my-documents', '/my-payroll', '/my-evaluations', '/leaves', '/my-contacts']
+        : administrativeRoutes;
+      const moduleRoutes = Array.from(element.querySelectorAll('.module-card')).map(link => link.getAttribute('href'));
+      expect(moduleRoutes.slice().sort()).toEqual(expectedRoutes.slice().sort());
       const actions=Array.from(element.querySelectorAll('.action-links a')).map(link=>link.getAttribute('href'));
       if(current===CrmRole.EMPLOYEE)expect(actions).toEqual(['/leaves/new','/leaves']);
       else if(current===CrmRole.CLIENT)expect(actions).toEqual([]);

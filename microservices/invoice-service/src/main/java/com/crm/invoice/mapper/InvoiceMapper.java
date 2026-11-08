@@ -15,6 +15,7 @@ public class InvoiceMapper {
 
         InvoiceResponse response = new InvoiceResponse();
         response.setId(invoice.getId());
+        response.setArchived(invoice.isArchived());response.setIssued(invoice.isIssued());response.setReconciliationId(invoice.getReconciliationId());
         response.setInvoiceNumber(invoice.getInvoiceNumber());
         response.setCustomerId(invoice.getCustomerId());
         response.setIssueDate(invoice.getIssueDate());

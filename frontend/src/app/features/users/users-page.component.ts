@@ -97,7 +97,11 @@ export class UsersPageComponent implements OnInit {
     const generation = this.auth.sessionGeneration; this.busy.set(true); this.error.set('');
     this.service.setRoles(user.id, [role]).pipe(takeUntilDestroyed(this.destroy),
       finalize(() => { if (this.current(generation)) this.busy.set(false); }))
-      .subscribe({ next: () => { if (this.current(generation)) queueMicrotask(() => { if (this.current(generation)) this.load(); }); },
+      .subscribe({ next: () => { if (this.current(generation)) {
+          if (user.username === this.auth.getCurrentUser()?.username && !this.auth.getRoles().every(r => r === role)) {
+            this.auth.expireSession('/users', generation);
+          } else queueMicrotask(() => { if (this.current(generation)) this.load(); });
+        } },
         error: e => { if (this.current(generation)) this.error.set(adminAccountError(e, 'account')); } });
   }
   constructor() {

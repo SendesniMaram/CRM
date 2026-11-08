@@ -88,10 +88,11 @@ public class SalesController {
 
     @GetMapping("/api/customers/{customerId}/interactions")
     public List<CustomerInteraction> interactions(@PathVariable Long customerId) {
-        requireCustomer(customerId);
+        if(!customers.existsById(customerId))throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Contact unavailable");
         return interactions.findByCustomerIdOrderByOccurredAtDesc(customerId);
     }
 
+    @Transactional
     @PostMapping("/api/customers/{customerId}/interactions")
     @ResponseStatus(HttpStatus.CREATED)
     public CustomerInteraction addInteraction(
@@ -231,17 +232,17 @@ public class SalesController {
     }
 
     private void requireOpportunityCustomer(Long id) {
-        var customer = customers.findById(id)
+        var customer = customers.lockById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact not found"));
+        if(customer.isArchived())throw new ResponseStatusException(HttpStatus.CONFLICT,"Archived contact is read-only");
         if ("SUPPLIER".equals(customer.getContactType())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A supplier cannot own a sales opportunity");
         }
     }
 
     private void requireCustomer(Long id) {
-        if (!customers.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found");
-        }
+        var row=customers.lockById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Contact unavailable"));
+        if(row.isArchived())throw new ResponseStatusException(HttpStatus.CONFLICT,"Archived contact is read-only");
     }
 
     private void requireEmployee(Long id, String bearer) {

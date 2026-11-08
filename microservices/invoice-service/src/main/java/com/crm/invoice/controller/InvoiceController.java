@@ -40,6 +40,7 @@ public class InvoiceController {
     private final InvoiceRepository invoiceRepository;
     private final InvoicePaymentRepository paymentRepository;
     private final InvoiceReminderRepository reminderRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.crm.invoice.repository.ReminderTaskRepository tasks;
 
     public InvoiceController(IInvoiceService invoiceService, InvoiceRepository invoiceRepository,
                              InvoicePaymentRepository paymentRepository, InvoiceReminderRepository reminderRepository) {
@@ -63,6 +64,9 @@ public class InvoiceController {
     @Transactional
     public ResponseEntity<InvoicePayment> recordPayment(@PathVariable Long id, @Valid @RequestBody InvoicePaymentRequest request) {
         var invoice = invoiceRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
+        if(invoice.isArchived())throw new ResponseStatusException(HttpStatus.CONFLICT,"Archived invoice is immutable");
+        if (!java.util.Set.of("PENDING", "UNPAID", "PARTIALLY_PAID").contains(invoice.getStatus()))
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Invoice state does not allow payments");
         var paid = paymentRepository.sumForInvoice(id);
         var outstanding = invoice.getTotalAmount().subtract(paid);
         if (outstanding.signum() <= 0) throw new ResponseStatusException(HttpStatus.CONFLICT, "Invoice is already fully paid");
@@ -73,6 +77,7 @@ public class InvoiceController {
         var saved = paymentRepository.save(payment);
         invoice.setStatus(request.amount().compareTo(outstanding) == 0 ? "PAID" : "PARTIALLY_PAID");
         invoiceRepository.save(invoice);
+        if(tasks!=null&&"PAID".equals(invoice.getStatus()))tasks.cancelForInvoice(id);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -85,7 +90,8 @@ public class InvoiceController {
     @PostMapping("/{id}/reminders")
     @Transactional
     public ResponseEntity<InvoiceReminder> recordReminder(@PathVariable Long id, @Valid @RequestBody InvoiceReminderRequest request) {
-        if (!invoiceRepository.existsById(id)) throw new ResourceNotFoundException("Invoice not found with id: " + id);
+        var invoice=invoiceRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("Invoice not found with id: " + id));
+        if(!com.crm.invoice.service.InvoiceLifecycle.reminders(invoice,paymentRepository.sumForInvoice(id)))throw new ResponseStatusException(HttpStatus.CONFLICT,"Invoice not eligible for reminders");
         var reminder = new InvoiceReminder(); reminder.setInvoiceId(id); reminder.setChannel(request.channel()); reminder.setNotes(request.notes());
         var auth = SecurityContextHolder.getContext().getAuthentication();
         reminder.setRecordedBy(auth == null ? null : auth.getName());

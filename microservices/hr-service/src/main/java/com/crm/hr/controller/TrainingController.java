@@ -31,8 +31,8 @@ public class TrainingController {
     }
 
     @PostMapping
-    public ResponseEntity<TrainingResponse> createTraining(@Valid @RequestBody TrainingRequest request) {
-        TrainingResponse response = trainingService.createTraining(request);
+    public ResponseEntity<TrainingResponse> createTraining(@Valid @RequestBody TrainingRequest request, @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authorization) {
+        TrainingResponse response = trainingService.createTraining(request, authorization);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -62,8 +62,8 @@ public class TrainingController {
     @PutMapping("/{id}")
     public ResponseEntity<TrainingResponse> updateTraining(
             @PathVariable Long id,
-            @Valid @RequestBody TrainingRequest request) {
-        TrainingResponse response = trainingService.updateTraining(id, request);
+            @Valid @RequestBody TrainingRequest request, @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authorization) {
+        TrainingResponse response = trainingService.updateTraining(id, request, authorization);
         return ResponseEntity.ok(response);
     }
 

@@ -20,6 +20,8 @@ export class CustomerService {
     // for its default parameters instead of a Spring Page.
     let params = new HttpParams().set('page', query.page).set('size', query.size)
       .set('sortBy', query.sortBy).set('direction', query.direction);
+    if(query.assignedEmployeeId?.trim())params=params.set('assignedEmployeeId',query.assignedEmployeeId.trim());
+    if(query.status)params=params.set('status',query.status);
     if (query.keyword?.trim()) params = params.set('keyword', query.keyword.trim());
     if (query.contactType) params = params.set('contactType', query.contactType);
     if (query.category?.trim()) params = params.set('category', query.category.trim());
@@ -32,6 +34,8 @@ export class CustomerService {
     return this.http.put<CustomerResponse>(`${this.url}/${id}`, request);
   }
   delete(id: number) { return this.http.delete<void>(`${this.url}/${id}`); }
+  restore(id:number){return this.http.patch<CustomerResponse>(this.url+'/'+id+'/restore',{});}
+  importExcel(file:File){const form=new FormData();form.append('file',file);return this.http.post<CustomerCsvImportReport>(this.url+'/import.xlsx',form);}
   convertLead(id: number) { return this.http.post<CustomerResponse>(`${this.url}/${id}/convert`, {}); }
   listInteractions(customerId: number) {
     return this.http.get<CustomerInteraction[]>(`${this.url}/${customerId}/interactions`);
@@ -44,14 +48,14 @@ export class CustomerService {
     form.append('file', file);
     return this.http.post<CustomerCsvImportReport>(`${this.url}/import`, form);
   }
-  exportCsv(query: Pick<CustomerPageParams, 'keyword' | 'contactType' | 'category' | 'segment'>) {
+  exportCsv(query: Pick<CustomerPageParams, 'keyword' | 'contactType' | 'category' | 'segment' | 'assignedEmployeeId' | 'status'>) {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) {
       if (value?.trim()) params = params.set(key, value.trim());
     }
     return this.http.get(`${this.url}/export`, { params, responseType: 'blob' });
   }
-  exportExcel(query: Pick<CustomerPageParams, 'keyword' | 'contactType' | 'category' | 'segment'>) {
+  exportExcel(query: Pick<CustomerPageParams, 'keyword' | 'contactType' | 'category' | 'segment' | 'assignedEmployeeId' | 'status'>) {
     let params = new HttpParams();
     for (const [key, value] of Object.entries(query)) {
       if (value?.trim()) params = params.set(key, value.trim());

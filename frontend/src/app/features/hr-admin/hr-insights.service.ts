@@ -1,0 +1,19 @@
+import { HttpClient,HttpErrorResponse } from '@angular/common/http';
+import { Injectable,inject } from '@angular/core';import { map } from 'rxjs';
+export interface LeaveBalance {employeeId:string;from:string;to:string;policy:string;state:string;grantedDays:number|null;consumedDays:number;pendingDays:number;remainingDays:number|null;availableAfterPending:number|null;overlapsDetected:boolean;quotas:{id:string;from:string;to:string;type:string;days:number}[];requests:{id:string;from:string;to:string;status:string;daysInPeriod:number}[]}
+export interface HrInsights {from:string;to:string;policy:string;leaves:Record<string,number>;approvedEmployeeDays:number;trainings:Record<string,number>;evaluations:Record<string,number>;offers:Record<string,number>;applications:Record<string,number>}
+export function validHrPeriod(from:string,to:string){const parse=(s:string)=>{if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s))return NaN;const d=new Date(s+'T00:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s&&s>='0001-01-01'&&s<='9998-12-31'?d.getTime():NaN;};const a=parse(from),b=parse(to);return Number.isFinite(a)&&Number.isFinite(b)&&b>=a&&b-a<=365*86400000;}
+const count=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
+const numberOrNull=(n:unknown)=>n===null||typeof n==='number'&&Number.isFinite(n);
+@Injectable({providedIn:'root'}) export class HrInsightsService {
+ private readonly http=inject(HttpClient);private readonly url='http://localhost:8080/hr/api';
+ balance(from:string,to:string,employee?:string){this.range(from,to);if(employee!==undefined&&!/^[1-9][0-9]{0,18}$/.test(employee))throw new Error('Invalid employee reference');
+  const path=employee===undefined?'/leaves/balance/me':'/leaves/balance/employees/'+employee;
+  return this.http.get<LeaveBalance>(this.url+path,{params:{from,to}}).pipe(map(v=>{
+   if(!v||v.from!==from||v.to!==to||typeof v.employeeId!=='string'||employee!==undefined&&v.employeeId!==employee||v.policy!=='CALENDAR_DAYS_ALL_LEAVE_REQUESTS_NON_LEGAL'||!['NO_QUOTA','QUOTA_PERIOD_MISMATCH','QUOTA_TYPE_AMBIGUOUS','TECHNICAL_BALANCE'].includes(v.state)||!count(v.consumedDays)||!count(v.pendingDays)||![v.grantedDays,v.remainingDays,v.availableAfterPending].every(numberOrNull)||!Array.isArray(v.requests)||!Array.isArray(v.quotas)||(v.state==='TECHNICAL_BALANCE'&&[v.grantedDays,v.remainingDays,v.availableAfterPending].some(n=>n===null))||(v.state!=='TECHNICAL_BALANCE'&&(v.remainingDays!==null||v.availableAfterPending!==null))||typeof v.overlapsDetected!=='boolean'||v.requests.some(r=>!r||!count(r.daysInPeriod)||!['PENDING','APPROVED','REJECTED'].includes(r.status)))throw new HttpErrorResponse({status:502});return v;}));
+ }
+ statistics(from:string,to:string){this.range(from,to);return this.http.get<HrInsights>(this.url+'/hr-insights',{params:{from,to}}).pipe(map(v=>{
+  const groups:Record<string,string[]>={leaves:['PENDING','APPROVED','REJECTED'],trainings:['PLANNED','IN_PROGRESS','COMPLETED','CANCELLED'],evaluations:['DRAFT','FINALIZED'],offers:['OPEN','CLOSED'],applications:['RECEIVED','IN_REVIEW','ACCEPTED','REJECTED']};
+  if(!v||v.from!==from||v.to!==to||typeof v.policy!=='string'||!count(v.approvedEmployeeDays)||Object.entries(groups).some(([key,states])=>{const group=v[key as keyof HrInsights];return !group||typeof group!=='object'||Object.keys(group).length!==states.length||states.some(s=>!count((group as Record<string,number>)[s]));}))throw new HttpErrorResponse({status:502});return v;}));}
+ private range(from:string,to:string){if(!validHrPeriod(from,to))throw new Error('Invalid period, maximum 366 calendar days');}
+}

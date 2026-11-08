@@ -1,0 +1,10 @@
+<main><h1>Pilotage RH</h1><a routerLink="/dashboard">Tableau de bord général</a>
+<p>Comptes opérationnels selon les statuts actuels, pas des scores de performance. Dates civiles inclusives ; aucun solde légal de congés.</p>
+<form (ngSubmit)="load()"><label>Du <input type="date" name="from" [(ngModel)]="from" required></label><label>Au <input type="date" name="to" [(ngModel)]="to" required></label><button [disabled]="loading()">Afficher les indicateurs</button></form>
+@if(loading()){<p role="status">Chargement des indicateurs…</p>}@if(error()){<p role="alert">{{error()}}</p>}
+@if(result();as r){<p>Période calculée : {{r.from}} au {{r.to}}.</p>@if(empty()){<p>Aucune activité RH enregistrée sur cette période.</p>}<section class="cards" aria-label="Indicateurs RH">
+<article><h2>Jours calendaires d’absence approuvée</h2><strong>{{r.approvedEmployeeDays}}</strong><p>Jours uniques par employé, bornés à la période. Les chevauchements du même employé ne sont comptés qu’une fois.</p></article>
+@for(group of groups;track group.key){<article><h2>{{group.title}}</h2><table><thead><tr><th>Statut actuel</th><th>Nombre</th></tr></thead><tbody>@for(row of rows(group.key);track row[0]){<tr><td>{{labels[row[0]] || row[0]}}</td><td>{{row[1]}}</td></tr>}</tbody></table></article>}
+</section><p>Congés, formations et évaluations : chevauchement de leurs dates. Offres et candidatures : création dans la période, classées selon leur statut actuel. Aucun historique de transition n’est reconstruit.</p>
+<p>L’effectif relève du service Employee et reste consultable dans le tableau de bord général. Aucun taux d’absentéisme sans effectif et durée de travail définis.</p>}
+</main>

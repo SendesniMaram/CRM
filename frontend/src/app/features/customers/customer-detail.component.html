@@ -2,8 +2,9 @@
   <a mat-button routerLink="/customers"><mat-icon>arrow_back</mat-icon>Retour aux clients</a>
   <header class="page-header"><div><p class="eyebrow">Relation client</p><h1 id="customer-detail-title">{{ customer()?.name || 'Fiche client' }}</h1>
     <p class="subtitle">Coordonnées et informations du client.</p></div>
-    @if (customer(); as row) { <a mat-flat-button [routerLink]="['/customers', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }
+    @if (customer(); as row) { <a mat-flat-button [routerLink]="row.archived ? null : ['/customers', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }
   </header>
+  @if(customer()?.archived){<p role="status">Contact archivé : historique conservé et fiche en lecture seule.</p>}
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement du client…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
@@ -40,7 +41,7 @@
         </mat-form-field>
         @if (interactionError()) { <p class="error full-width" role="alert">{{ interactionError() }}</p> }
         <div class="form-actions full-width">
-          <button mat-flat-button type="submit" [disabled]="savingInteraction()">
+          <button mat-flat-button [disabled]="savingInteraction() || !!customer()?.archived" type="submit">
             {{ savingInteraction() ? 'Enregistrement…' : 'Ajouter à l’historique' }}
           </button>
         </div>

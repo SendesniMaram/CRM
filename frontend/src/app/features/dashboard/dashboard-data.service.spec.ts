@@ -11,7 +11,8 @@ import { DepartmentService } from '../departments/services/department.service';
 import { HrAdminService } from '../hr-admin/hr-admin.service';
 import { EmployeeProfileService } from '../profile/employee-profile.service';
 import { MyPayrollService } from '../payroll/my-payroll.service';
-import { DashboardData, DashboardDataService } from './dashboard-data.service';
+import samples from '../../core/testing/client-invoice-statistics.json';
+import { DashboardData, DashboardDataService, validateClientInvoices } from './dashboard-data.service';
 
 describe('DashboardDataService', () => {
   const base = 'http://localhost:8080';
@@ -34,10 +35,10 @@ describe('DashboardDataService', () => {
   });
   afterEach(() => http.verify());
   function start() { service.load().subscribe(value => result = value); }
-  function flushAdminStats() {
+  function flushAdminStats(amount:number|null=900) {
     http.expectOne(base + '/customer/api/customers/statistics').flush({ customers: 4, prospects: 5, suppliers: 2,
       opportunitiesByStage: { NEW: { stage: 'NEW', count: 3, estimatedAmount: 1200 } } });
-    http.expectOne(base + '/fees/api/fees/statistics').flush({ count: 6, amount: 900, workedHours: 12,
+    http.expectOne(base + '/fees/api/fees/statistics').flush({ count: 6, amount, workedHours: 12,
       invoiceStatuses: {}, paymentStatuses: {}, currencyDefined: false });
     http.expectOne(base + '/invoice/api/invoices/statistics').flush({ invoiceCountsByStatus: { PAID: 2, UNPAID: 1 },
       invoicesByCurrency: { TND: { count: 3, total: 500, paid: 200, outstanding: 300 } },
@@ -55,6 +56,7 @@ describe('DashboardDataService', () => {
     expect(result?.invoices.value?.outstandingAmounts).toEqual([{ currency: 'TND', value: '300,00' }]);
     expect(result?.invoices.value?.quoteStatuses?.[0].label).toBe('ACCEPTED');
   });
+  it('preserves the explicit absence of a global fee amount instead of inventing zero',()=>{start();flushAdminStats(null);expect(result?.feeOverview.value?.amount).toBeNull();expect(result?.feeOverview.error).toBe('');});
   it('loads only the authenticated employee personal endpoints and finalized evaluation count', () => {
     role = CrmRole.EMPLOYEE; start();
     const evaluation = http.expectOne(r => r.url === base + '/hr/api/evaluations/mine');
@@ -69,7 +71,7 @@ describe('DashboardDataService', () => {
   it('loads only client scoped invoice statistics', () => {
     role = CrmRole.CLIENT; start();
     http.expectOne(base + '/invoice/api/invoices/me/statistics').flush({ invoiceCount: 3, paidInvoiceCount: 1,
-      unpaidInvoiceCount: 2, byCurrency: [{ currency: 'TND', invoiceCount: 3, total: 300, paid: 100, outstanding: 200 }] });
+      unpaidInvoiceCount: 2, byCurrency: { TND: { invoiceCount: 3, total: 300, paid: 100, outstanding: 200 } } });
     expect(result?.scope).toBe('client'); expect(result?.clientInvoices.value?.invoiceCount).toBe(3);
     http.expectNone(r => r.url.includes('/statistics') && !r.url.includes('/me/statistics'));
   });
@@ -98,10 +100,30 @@ describe('DashboardDataService', () => {
     expect(result?.personalEvaluations.value).toBeNull();
     expect(result?.personalEvaluations.error).toContain('indisponible');
   });
+  for (const [name, sample] of Object.entries(samples)) {
+    it("accepts Java serialization fixture: " + name, () => {
+      role = CrmRole.CLIENT; start();
+      http.expectOne(base + "/invoice/api/invoices/me/statistics").flush(sample);
+      expect(result?.clientInvoices.value?.invoiceCount).toBe(sample.invoiceCount);
+      expect(result?.clientInvoices.value?.byCurrency.map(row => row.currency)).toEqual(Object.keys(sample.byCurrency).sort());
+      expect(result?.clientInvoices.error).toBe("");
+    });
+  }
+  it("rejects null amounts, incomplete successful responses and inconsistent totals", () => {
+    for (const value of [{ ...samples.single, byCurrency: null }, { ...samples.single, byCurrency: {} },
+      { ...samples.single, byCurrency: { TND: { invoiceCount: 1, total: 100.25, paid: null, outstanding: 100.25 } } },
+      { ...samples.single, byCurrency: { TND: { invoiceCount: 1, total: 100.25, paid: 0 } } },
+      { ...samples.single, paidInvoiceCount: 4 }]) expect(() => validateClientInvoices(value)).toThrow();
+  });
+  it("keeps a partial 200 response unavailable instead of showing invented zero amounts", () => {
+    role = CrmRole.CLIENT; start();
+    http.expectOne(base + "/invoice/api/invoices/me/statistics").flush({ invoiceCount: 1, paidInvoiceCount: 0, unpaidInvoiceCount: 1 });
+    expect(result?.clientInvoices.value).toBeNull(); expect(result?.clientInvoices.error).toContain("invalide");
+  });
   it('does not turn an invalid client statistics payload into zero-valued indicators', () => {
     role = CrmRole.CLIENT; start();
     http.expectOne(base + '/invoice/api/invoices/me/statistics').flush({ invoiceCount: 'many', byCurrency: [] });
     expect(result?.clientInvoices.value).toBeNull();
-    expect(result?.clientInvoices.error).toContain('indisponible');
+    expect(result?.clientInvoices.error).toContain('invalide');
   });
 });

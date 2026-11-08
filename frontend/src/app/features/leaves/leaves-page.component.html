@@ -1,6 +1,7 @@
 <mat-card>
   <mat-card-header><mat-card-title>Demandes de congé</mat-card-title></mat-card-header>
   <mat-card-content>
+    @if (isEmployee()) { <app-leave-balance [refresh]="balanceRefresh()" /> }
     @if (isEmployee()) { <a mat-flat-button routerLink="/leaves/new">Nouvelle demande</a> }
     <button mat-button (click)="load()" [disabled]="loading() || busy()">Recharger</button>
     @if (loading()) { <p role="status">Chargement des demandes…</p> }

@@ -1,0 +1,6 @@
+package com.crm.fees.repository;import com.crm.fees.entity.FeeTariff;import java.util.*;import java.time.LocalDate;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;import org.springframework.data.domain.*;
+public interface FeeTariffRepository extends JpaRepository<FeeTariff,Long> {
+ @Query("select t from FeeTariff t where t.offeringId=:o and (:active is null or t.active=:active)") Page<FeeTariff> list(@Param("o") Long offering,@Param("active") Boolean active,Pageable page);
+ @Query("select count(t) from FeeTariff t where t.offeringId=:o and t.active=true and t.id<>:exclude and t.validFrom<=:until and (t.validTo is null or t.validTo>=:from)") long overlaps(@Param("o") Long offering,@Param("exclude") Long exclude,@Param("from") LocalDate from,@Param("until") LocalDate until);
+ @Query("select t from FeeTariff t where t.offeringId=:o and t.active=true and t.validFrom<=:date and (t.validTo is null or t.validTo>=:date)") List<FeeTariff> applicable(@Param("o") Long offering,@Param("date") LocalDate date,Pageable limit);
+}

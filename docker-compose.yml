@@ -65,6 +65,7 @@ services:
 
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./docker/validation/mysql-init:/docker-entrypoint-initdb.d:ro
 
     networks:
       - crm-network

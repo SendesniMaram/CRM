@@ -1,0 +1,9 @@
+package com.crm.fees.repository;
+import com.crm.fees.entity.Fee;import java.math.BigDecimal;import java.time.LocalDate;import java.util.List;import org.springframework.data.repository.Repository;import org.springframework.data.jpa.repository.Query;import org.springframework.data.repository.query.Param;import org.springframework.data.domain.Pageable;
+public interface FeeReportRepository extends Repository<Fee,Long> {
+ interface Row {Long getOfferingId();String getTitle();String getCustomerId();String getCurrency();long getCount();BigDecimal getHours();BigDecimal getAmount();}
+ @Query(value="select f.offering_id as offeringId,f.service_name as title,f.customer_id as customerId,f.currency as currency,count(*) as count,case when count(f.exact_hours)=count(*) then sum(f.exact_hours) else null end as hours,case when f.currency is null then null else sum(f.amount) end as amount from fees f where f.work_date>=:from and f.work_date<=:to and (:offering is null or f.offering_id=:offering) and (:customer is null or f.customer_id=:customer) group by f.offering_id,f.service_name,f.customer_id,f.currency",nativeQuery=true)
+ List<Row> recorded(@Param("from") LocalDate from,@Param("to") LocalDate to,@Param("offering") Long offering,@Param("customer") String customer,Pageable limit);
+ @Query(value="select o.id as offeringId,o.title as title,o.customer_id as customerId,o.currency as currency,count(*) as count,sum(t.hours) as hours,sum(t.amount) as amount from fee_time_entries t join fee_offerings o on o.id=t.offering_id where t.work_date>=:from and t.work_date<=:to and t.cancelled=false and t.fee_id is null and (:offering is null or o.id=:offering) and (:customer is null or o.customer_id=:customer) group by o.id,o.title,o.customer_id,o.currency",nativeQuery=true)
+ List<Row> unrecorded(@Param("from") LocalDate from,@Param("to") LocalDate to,@Param("offering") Long offering,@Param("customer") String customer,Pageable limit);
+}

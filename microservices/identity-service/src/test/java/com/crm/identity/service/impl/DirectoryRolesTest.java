@@ -18,7 +18,7 @@ import static org.mockito.Mockito.*;
 
 class DirectoryRolesTest {
     final UserRepository users = mock(UserRepository.class);
-    final IdentityServiceImpl service = new IdentityServiceImpl(users, mock(RoleRepository.class), mock(PasswordEncoder.class));
+    final IdentityServiceImpl service = new IdentityServiceImpl(users, mock(RoleRepository.class), mock(PasswordEncoder.class), mock(com.crm.identity.repository.RefreshTokenRepository.class), mock(jakarta.persistence.EntityManager.class));
 
     User account(RoleType... types) {
         User user = new User();

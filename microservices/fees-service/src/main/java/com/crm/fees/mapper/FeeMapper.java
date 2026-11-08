@@ -21,7 +21,8 @@ public class FeeMapper {
         response.setServiceName(fee.getServiceName());
         response.setDescription(fee.getDescription());
         response.setHourlyRate(fee.getHourlyRate());
-        response.setWorkedHours(fee.getWorkedHours() != null ? BigDecimal.valueOf(fee.getWorkedHours()) : null);
+        response.setWorkedHours(fee.getExactHours()!=null?fee.getExactHours():fee.getWorkedHours()!=null?BigDecimal.valueOf(fee.getWorkedHours()):null);
+        response.setCurrency(fee.getCurrency());response.setOfferingId(fee.getOfferingId());response.setSourceTimeId(fee.getSourceTimeId());
         response.setAmount(fee.getAmount());
         response.setInvoiceStatus(fee.getInvoiceStatus());
         response.setPaymentStatus(fee.getPaymentStatus());
@@ -43,6 +44,7 @@ public class FeeMapper {
         fee.setServiceName(request.getServiceName());
         fee.setDescription(request.getDescription());
         fee.setHourlyRate(request.getHourlyRate());
+        fee.setExactHours(request.getWorkedHours());fee.setCurrency(request.getCurrency());
         if (request.getWorkedHours() != null) {
             fee.setWorkedHours(request.getWorkedHours().doubleValue());
         }
@@ -62,6 +64,7 @@ public class FeeMapper {
         fee.setServiceName(request.getServiceName());
         fee.setDescription(request.getDescription());
         fee.setHourlyRate(request.getHourlyRate());
+        fee.setExactHours(request.getWorkedHours());fee.setCurrency(request.getCurrency());
         if (request.getWorkedHours() != null) {
             fee.setWorkedHours(request.getWorkedHours().doubleValue());
         }

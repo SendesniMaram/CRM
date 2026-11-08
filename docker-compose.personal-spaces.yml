@@ -1,0 +1,18 @@
+# Opt-in secure profile channel. Prepared only; never started during Lot 1C.
+# Supply reviewed external key material before using this overlay on an isolated stack.
+services:
+  employee-service:
+    environment:
+      SPRING_APPLICATION_JSON: >-
+        {"app":{"security":{"internal-tls":{"enabled":true,"port":8443,"key-store":"/run/crm-profile/employee.p12","password-file":"/run/crm-profile/password","key-alias":"employee"},"hr-service-auth":{"enabled":true,"trusted-keys":{"profile":"/run/crm-profile/hr-public.pem"}}}}}
+    volumes:
+      - ${CRM_PROFILE_MATERIAL_DIR:?External profile key directory required}/employee-tls.p12:/run/crm-profile/employee.p12:ro
+      - ${CRM_PROFILE_MATERIAL_DIR:?External profile key directory required}/employee-tls-password:/run/crm-profile/password:ro
+      - ${CRM_PROFILE_MATERIAL_DIR:?External profile key directory required}/hr-signing-public.pem:/run/crm-profile/hr-public.pem:ro
+  hr-service:
+    environment:
+      SPRING_APPLICATION_JSON: >-
+        {"app":{"security":{"employee-service-token":{"enabled":true,"private-key":"/run/crm-profile/hr-private.pem","key-id":"profile","lifetime":"30s"},"employee-profile-client":{"enabled":true,"base-url":"https://employee-service:8443","trusted-certificate":"/run/crm-profile/employee.pem"}}}}
+    volumes:
+      - ${CRM_PROFILE_MATERIAL_DIR:?External profile key directory required}/hr-signing-private.pem:/run/crm-profile/hr-private.pem:ro
+      - ${CRM_PROFILE_MATERIAL_DIR:?External profile key directory required}/employee-tls.pem:/run/crm-profile/employee.pem:ro

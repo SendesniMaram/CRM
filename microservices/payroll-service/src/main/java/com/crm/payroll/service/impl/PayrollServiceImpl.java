@@ -25,20 +25,26 @@ public class PayrollServiceImpl implements IPayrollService {
 
     private final PayrollRepository payrollRepository;
     private final PayrollMapper payrollMapper;
+    private final com.crm.payroll.repository.PayrollSettlementRepository settlements;
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
     public PayrollServiceImpl(PayrollRepository payrollRepository,
-                              PayrollMapper payrollMapper) {
+                              PayrollMapper payrollMapper, com.crm.payroll.repository.PayrollSettlementRepository settlements) {
         this.payrollRepository = payrollRepository;
         this.payrollMapper = payrollMapper;
+        this.settlements = settlements;
     }
 
     @Override
     public PayrollResponse createPayroll(PayrollRequest request) {
+        com.crm.payroll.service.FinancialValidation.request(request);
+        if(!"PENDING".equals(request.getStatus()))throw conflict();
         Payroll payroll = payrollMapper.toEntity(request);
 
         // Calculate net salary automatically: netSalary = baseSalary + bonuses - deductions - taxAmount
-        BigDecimal netSalary = calculateNetSalary(request.getBaseSalary(), request.getBonuses(), request.getDeductions(), request.getTaxAmount());
+        BigDecimal netSalary = com.crm.payroll.service.PayrollCalculation.net(request);
         payroll.setNetSalary(netSalary);
+        payroll.setOvertimeAmount(request.getOvertimeHours()==null?null:com.crm.payroll.service.PayrollCalculation.overtime(request));
 
         Payroll saved = payrollRepository.save(payroll);
         return payrollMapper.toResponse(saved);
@@ -79,14 +85,16 @@ public class PayrollServiceImpl implements IPayrollService {
 
     @Override
     public PayrollResponse updatePayroll(Long id, PayrollRequest request) {
-        Payroll existing = payrollRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payroll not found with id: " + id));
+        com.crm.payroll.service.FinancialValidation.request(request);
+        Payroll existing = locked(id);
+        editable(existing);
+        if(existing.getCorrectionOfId()!=null&&(!java.util.Objects.equals(existing.getEmployeeId(),request.getEmployeeId())||!java.util.Objects.equals(existing.getCurrency(),request.getCurrency())))throw conflict();
+        if(!"PENDING".equals(request.getStatus()))throw conflict();
 
+        BigDecimal netSalary = com.crm.payroll.service.PayrollCalculation.net(request);
         payrollMapper.updateEntityFromRequest(existing, request);
-
-        // Recalculate net salary on update
-        BigDecimal netSalary = calculateNetSalary(request.getBaseSalary(), request.getBonuses(), request.getDeductions(), request.getTaxAmount());
         existing.setNetSalary(netSalary);
+        existing.setOvertimeAmount(request.getOvertimeHours()==null?null:com.crm.payroll.service.PayrollCalculation.overtime(request));
 
         Payroll saved = payrollRepository.save(existing);
         return payrollMapper.toResponse(saved);
@@ -94,29 +102,37 @@ public class PayrollServiceImpl implements IPayrollService {
 
     @Override
     public void deletePayroll(Long id) {
-        Payroll payroll = payrollRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payroll not found with id: " + id));
+        Payroll payroll = locked(id);
+        editable(payroll);
+        if(payroll.getCorrectionOfId()!=null||payroll.getReplacementPayrollId()!=null)throw conflict();
         payrollRepository.delete(payroll);
     }
 
     @Override
     public PayrollResponse setPublished(Long id, boolean published) {
-        Payroll payroll = payrollRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Payroll not found with id: " + id));
+        Payroll payroll = locked(id);
+        if(payroll.isCancelled()||payroll.isPublished()&&!published)throw conflict();
         payroll.setPublished(published);
         return payrollMapper.toResponse(payrollRepository.save(payroll));
     }
 
-    /**
-     * Calculate net salary: netSalary = baseSalary + bonuses - deductions - taxAmount
-     */
-    private BigDecimal calculateNetSalary(BigDecimal baseSalary, BigDecimal bonuses, BigDecimal deductions, BigDecimal taxAmount) {
-        BigDecimal base = baseSalary != null ? baseSalary : BigDecimal.ZERO;
-        BigDecimal bonus = bonuses != null ? bonuses : BigDecimal.ZERO;
-        BigDecimal deduction = deductions != null ? deductions : BigDecimal.ZERO;
-        BigDecimal tax = taxAmount != null ? taxAmount : BigDecimal.ZERO;
-
-        return base.add(bonus).subtract(deduction).subtract(tax);
+    private Payroll locked(Long id){
+        Payroll row=payrollRepository.lockById(id).orElseThrow(()->new ResourceNotFoundException("Payroll unavailable"));
+        if(entityManager!=null)entityManager.refresh(row,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);return row;
+    }
+    private void editable(Payroll row){if(row.isPublished()||row.isCancelled()||!"PENDING".equals(row.getStatus())||settlements.existsByPayrollId(row.getId()))throw conflict();}
+    private org.springframework.web.server.ResponseStatusException conflict(){return new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Published, paid or historical payroll cannot be changed directly");}
+    public PayrollResponse correct(org.springframework.security.core.Authentication auth,Long id,String reason){
+        long actor=com.crm.payroll.service.PayrollAuthorization.admin(auth);
+        if(reason==null||reason.isBlank()||reason.length()>500)throw new IllegalArgumentException("Correction reason required");
+        Payroll original=locked(id);
+        var history=settlements.findByPayrollIdOrderByCreatedAtAscIdAsc(id);
+        if(!original.isPublished()||original.isCancelled()||com.crm.payroll.service.PayrollLedger.legacy(original,history)||com.crm.payroll.service.PayrollLedger.paid(history).signum()!=0)throw conflict();
+        PayrollRequest r=new PayrollRequest();r.setEmployeeId(original.getEmployeeId());r.setBaseSalary(original.getBaseSalary());r.setBonuses(original.getBonuses());r.setDeductions(original.getDeductions());r.setTaxAmount(original.getTaxAmount());r.setOvertimeHours(original.getOvertimeHours());r.setOvertimeHourlyRate(original.getOvertimeHourlyRate());r.setPayPeriod(original.getPayPeriod());r.setCurrency(original.getCurrency());r.setStatus("PENDING");
+        com.crm.payroll.service.PayrollCalculation.net(r);
+        Payroll replacement=payrollMapper.toEntity(r);replacement.setNetSalary(com.crm.payroll.service.PayrollCalculation.net(r));replacement.setOvertimeAmount(r.getOvertimeHours()==null?null:com.crm.payroll.service.PayrollCalculation.overtime(r));replacement.setCorrectionOfId(id);
+        replacement=payrollRepository.saveAndFlush(replacement);
+        original.setCancelled(true);original.setReplacementPayrollId(replacement.getId());original.setCorrectionReason(reason.trim());original.setCorrectedBy(actor);original.setCorrectedAt(java.time.LocalDateTime.now());
+        return payrollMapper.toResponse(replacement);
     }
 }
-

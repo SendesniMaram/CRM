@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotBlank;
 public class RefreshTokenRequest {
 
     @NotBlank(message = "refreshToken is required")
+    @jakarta.validation.constraints.Size(max = 500)
     private String refreshToken;
 
     public RefreshTokenRequest() {

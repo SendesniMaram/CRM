@@ -81,6 +81,18 @@ spring:
             - Path=/customer/api/customers/**
           filters:
             - StripPrefix=1
+        - id: customer-contact-work
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/contact-work/**
+          filters:
+            - StripPrefix=1
+        - id: customer-opportunities
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/opportunities/**
+          filters:
+            - StripPrefix=1
         - id: hr-employee-profile
           uri: lb://HR-SERVICE
           predicates:
@@ -118,6 +130,12 @@ spring:
             - Path=/hr/api/trainings/**
           filters:
             - StripPrefix=1
+        - id: hr-workflows
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/contracts/**,/hr/api/evaluations/**,/hr/api/job-offers/**,/hr/api/applications/**,/hr/api/employee-associations/**,/hr/api/employees/*/documents/**,/hr/api/employees/*/career-events/**,/hr/api/employees/*/leave-quotas/**,/hr/api/documents/**,/hr/api/career-events/**,/hr/api/leave-quotas/**
+          filters:
+            - StripPrefix=1
         - id: payroll-test
           uri: lb://PAYROLL-SERVICE
           predicates:
@@ -152,6 +170,12 @@ spring:
           uri: lb://INVOICE-SERVICE
           predicates:
             - Path=/invoice/api/invoices/**
+          filters:
+            - StripPrefix=1
+        - id: invoice-quotes
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/quotes/**
           filters:
             - StripPrefix=1
 

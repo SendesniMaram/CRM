@@ -28,6 +28,9 @@ public class FeeResponse {
     private BigDecimal workedHours;
 
     private BigDecimal amount;
+    private String currency;
+    private Long offeringId;
+    private Long sourceTimeId;
 
     private String invoiceStatus;
 

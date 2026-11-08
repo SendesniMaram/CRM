@@ -16,5 +16,6 @@ public class EmployeeDocument {
     @Column(name="byte_size",nullable=false) private long size;
     @JsonIgnore @Column(name="storage_key",nullable=false,length=80,unique=true) private String storageKey;
     @Column(name="created_at",nullable=false,updatable=false) private LocalDateTime createdAt;
+    @Column(name="employee_visible",nullable=false) private boolean employeeVisible;
     @PrePersist void create(){createdAt=LocalDateTime.now();}
 }

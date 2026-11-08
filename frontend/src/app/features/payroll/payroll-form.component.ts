@@ -16,6 +16,9 @@ import { FeeReferencePickerComponent } from '../fees/fee-reference-picker.compon
 import { PayrollRequest } from './payroll.models';
 import { PayrollService } from './payroll.service';
 
+import { payrollCalculation, previewNet } from './payroll-calculation';
+import { money } from '../../shared/financial-validators';
+
 const notBlank = (control: AbstractControl) => typeof control.value === 'string' && control.value.trim() ? null : { required: true };
 const finite = (control: AbstractControl) => control.value === null || Number.isFinite(control.value) ? null : { number: true };
 const positive = (control: AbstractControl) => control.value === null || control.value > 0 ? null : { positive: true };
@@ -57,31 +60,36 @@ export class PayrollFormComponent implements OnInit {
     { key: 'baseSalary', label: 'Salaire de base', required: true },
     { key: 'bonuses', label: 'Primes', required: false },
     { key: 'deductions', label: 'Retenues', required: false },
+    { key: 'overtimeHours', label: 'Heures supplémentaires (max. 999 999,99)', required: false },
+    { key: 'overtimeHourlyRate', label: 'Taux horaire applicable saisi', required: false },
     { key: 'taxAmount', label: 'Impôt', required: false }
   ] as const;
   protected readonly form = this.fb.group({
     employeeId: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)]),
-    baseSalary: this.fb.control<number | null>(null, [Validators.required, finite, positive]),
-    bonuses: this.fb.control<number | null>(null, finite),
-    deductions: this.fb.control<number | null>(null, finite),
-    taxAmount: this.fb.control<number | null>(null, finite),
-    payPeriod: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)]),
+    baseSalary: this.fb.control<number | null>(null, [Validators.required, money, positive]),
+    bonuses: this.fb.control<number | null>(null, money),
+    deductions: this.fb.control<number | null>(null, money),
+    taxAmount: this.fb.control<number | null>(null, money),
+    overtimeHours: this.fb.control<number|null>(null,[money,Validators.max(999999.99)]),
+    overtimeHourlyRate: this.fb.control<number|null>(null,money),
+    payPeriod: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50), Validators.pattern(/^[0-9]{4}-(0[1-9]|1[0-2])$/)]),
     paymentDate: this.fb.nonNullable.control('', payrollDate),
     currency: this.fb.nonNullable.control('', Validators.maxLength(10)),
-    status: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)])
-  });
+    status: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50), Validators.pattern(/^PENDING$/)])
+  }, { validators: payrollCalculation });
 
   ngOnInit() {
     this.route.paramMap.pipe(switchMap(params => {
       this.ready.set(false); this.error.set(''); this.form.reset(); this.lookup.set(false);
       this.id.set(null); this.loading.set(false);
       const raw = params.get('id');
-      if (raw === null) { this.ready.set(true); return EMPTY; }
+      if (raw === null) { this.form.controls.status.setValue('PENDING'); this.ready.set(true); return EMPTY; }
       const id = Number(raw);
       if (!Number.isSafeInteger(id) || id <= 0) { this.error.set('Fiche de paie introuvable.'); return EMPTY; }
       this.id.set(id); this.loading.set(true);
       return this.service.get(id).pipe(tap(row => {
-        this.form.patchValue({ employeeId: row.employeeId, baseSalary: row.baseSalary,
+        if(row.published||row.cancelled||row.status!=='PENDING'){this.error.set('Bulletin figé : utilisez un brouillon correctif depuis le détail.');return;}
+        this.form.patchValue({ overtimeHours:row.overtimeHours??null,overtimeHourlyRate:row.overtimeHourlyRate??null, employeeId: row.employeeId, baseSalary: row.baseSalary,
           bonuses: row.bonuses, deductions: row.deductions, taxAmount: row.taxAmount,
           payPeriod: row.payPeriod, paymentDate: row.paymentDate ?? '',
           currency: row.currency ?? '', status: row.status });
@@ -92,6 +100,7 @@ export class PayrollFormComponent implements OnInit {
       }), finalize(() => this.loading.set(false)));
     }), takeUntilDestroyed(this.destroy)).subscribe();
   }
+  protected previewNet(){return previewNet(this.form);}
   protected canManage() { return this.auth.hasAnyRole([CrmRole.ADMIN, CrmRole.SUPER_ADMIN]); }
   protected selectEmployee(value: string) {
     if (this.saving() || !this.canManage()) return;
@@ -100,10 +109,12 @@ export class PayrollFormComponent implements OnInit {
   protected submit() {
     if (!this.ready() || this.loading() || this.saving() || !this.canManage()) return;
     Object.values(this.form.controls).forEach(control => control.updateValueAndValidity());
+    this.form.updateValueAndValidity();
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     if (value.baseSalary === null) return;
     const request: PayrollRequest = { employeeId: value.employeeId.trim(), baseSalary: value.baseSalary,
+      ...(value.overtimeHours===null&&value.overtimeHourlyRate===null?{}:{overtimeHours:value.overtimeHours,overtimeHourlyRate:value.overtimeHourlyRate}),
       bonuses: value.bonuses, deductions: value.deductions, taxAmount: value.taxAmount,
       payPeriod: value.payPeriod.trim(), paymentDate: value.paymentDate || null,
       currency: value.currency.trim() || null, status: value.status.trim() };

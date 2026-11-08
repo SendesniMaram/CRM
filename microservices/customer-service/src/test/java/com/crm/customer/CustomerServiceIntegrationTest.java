@@ -474,12 +474,12 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Customer not found")))
+                .andExpect(jsonPath("$.message").value(is("Contact unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/customers/99999"));
     }
 
     @Test
-    void deleteCustomer_ShouldReturn204AndRemoveFromDatabase() throws Exception {
+    void deleteCustomer_ShouldReturn204AndArchiveWithoutRemovingFromDatabase() throws Exception {
         String createJson = mockMvc.perform(post("/api/customers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
@@ -493,8 +493,8 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
         mockMvc.perform(delete("/api/customers/{id}", created.getId()))
                 .andExpect(status().isNoContent());
 
-        // Verify deletion from H2
-        assertFalse(customerRepository.findById(created.getId()).isPresent());
+        // Verify archival without removing the contact (full suite not included in local unit selection).
+        assertTrue(customerRepository.findById(created.getId()).orElseThrow().isArchived());
     }
 
     @Test
@@ -503,7 +503,7 @@ class CustomerServiceIntegrationTest extends com.crm.customer.security.TestIdent
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Customer not found")))
+                .andExpect(jsonPath("$.message").value(is("Contact unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/customers/99999"));
     }
 }

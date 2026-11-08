@@ -14,6 +14,8 @@ public interface ILeaveService {
 
     List<LeaveResponse> getAllLeaves();
 
+    List<LeaveResponse> calendar(java.time.LocalDate from,java.time.LocalDate to,String employeeId);
+
     Page<LeaveResponse> getAllLeavesPaged(int page, int size, String sortBy, String direction, String keyword);
 
     LeaveResponse updateLeave(Long id, LeaveRequestDto request);

@@ -1,4 +1,5 @@
 import { PdfDownloadComponent } from '../../shared/pdf-download/pdf-download.component';
+import { PayrollSettlementsComponent } from './payroll-settlements.component';
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -13,7 +14,7 @@ import { PayrollResponse } from './payroll.models';
 import { PayrollService } from './payroll.service';
 @Component({
   selector: 'app-payroll-detail', standalone: true,
-  imports: [PdfDownloadComponent, DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [PayrollSettlementsComponent,PdfDownloadComponent, DatePipe, InvoiceAmountPipe, RouterLink, MatButtonModule, MatCardModule, MatIconModule, MatProgressSpinnerModule],
   templateUrl: './payroll-detail.component.html', styleUrl: './payroll.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -24,6 +25,7 @@ export class PayrollDetailComponent implements OnInit {
   protected readonly payroll = signal<PayrollResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal('');
+  protected refresh(){const id=this.payroll()?.id;if(id)this.service.get(id).pipe(takeUntilDestroyed(this.destroy)).subscribe({next:r=>{if(this.payroll()?.id===id)this.payroll.set(r);},error:()=>{if(this.payroll()?.id===id)this.error.set('Statut à actualiser.');}});}
   ngOnInit() {
     this.route.paramMap.pipe(switchMap(params => {
       this.payroll.set(null); this.error.set(''); this.loading.set(false);

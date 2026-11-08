@@ -34,6 +34,7 @@ public class CustomerController {
     private final ICustomerService customerService;
     private final CustomerCsvService csvService;
     @Autowired(required = false) private CustomerEmployeeDirectory employeeDirectory;
+    @Autowired(required=false) private com.crm.customer.service.CustomerXlsxService xlsx;
 
     public CustomerController(ICustomerService customerService, CustomerCsvService csvService) {
         this.customerService = customerService;
@@ -57,8 +58,10 @@ public class CustomerController {
             @RequestParam(required = false) String contactType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String segment,
-            @RequestParam(required = false) Long assignedEmployeeId) {
+            @RequestParam(required = false) Long assignedEmployeeId,
+            @RequestParam(required = false) String status) {
 
+        if(status!=null)return ResponseEntity.ok(customerService.search(page,size,sortBy,direction,keyword,contactType,category,segment,assignedEmployeeId,status));
         if (page == 0 && size == 10 && sortBy == null && direction.equals("asc") && keyword == null && contactType == null && category == null && segment == null && assignedEmployeeId == null) {
             List<CustomerResponse> customers = customerService.getAllCustomers();
             return ResponseEntity.ok(customers);
@@ -96,14 +99,21 @@ public class CustomerController {
         }
     }
 
+    @PostMapping(value="/import.xlsx",consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CustomerCsvService.ImportReport> importExcel(@org.springframework.web.bind.annotation.RequestPart("file") MultipartFile file,@org.springframework.web.bind.annotation.RequestHeader("Authorization") String bearer){
+        if(file.getSize()>5*1024*1024)throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE);
+        if(file.isEmpty()||file.getOriginalFilename()==null||!file.getOriginalFilename().toLowerCase(java.util.Locale.ROOT).endsWith(".xlsx"))throw new IllegalArgumentException("Select a non-empty XLSX file");
+        if(xlsx==null)throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE);
+        try{return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(xlsx.read(file.getBytes(),request->{validateEmployee(request,bearer);return customerService.createCustomer(request);}));}catch(java.io.IOException e){throw new IllegalArgumentException("Unreadable XLSX file");}
+    }
     @GetMapping(value = "/export", produces = "text/csv")
     public ResponseEntity<byte[]> exportCsv(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String contactType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String segment,
-            @RequestParam(required = false) Long assignedEmployeeId) {
-        byte[] content = csvService.exportCsv(keyword, contactType, category, segment, assignedEmployeeId);
+            @RequestParam(required = false) Long assignedEmployeeId,@RequestParam(required=false) String status) {
+        byte[] content = csvService.exportCsv(keyword, contactType, category, segment, assignedEmployeeId,status);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -118,8 +128,8 @@ public class CustomerController {
             @RequestParam(required = false) String contactType,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String segment,
-            @RequestParam(required = false) Long assignedEmployeeId) {
-        byte[] content = csvService.exportXlsx(keyword, contactType, category, segment, assignedEmployeeId);
+            @RequestParam(required = false) Long assignedEmployeeId,@RequestParam(required=false) String status) {
+        byte[] content = csvService.exportXlsx(keyword, contactType, category, segment, assignedEmployeeId,status);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -143,6 +153,9 @@ public class CustomerController {
         CustomerResponse response = customerService.updateCustomer(id, request);
         return ResponseEntity.ok(response);
     }
+
+    @org.springframework.web.bind.annotation.PatchMapping("/{id}/restore")
+    public ResponseEntity<CustomerResponse> restore(@PathVariable Long id){return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(customerService.restore(id));}
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {

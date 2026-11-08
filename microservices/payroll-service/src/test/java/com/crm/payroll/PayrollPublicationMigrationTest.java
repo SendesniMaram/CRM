@@ -14,7 +14,7 @@ class PayrollPublicationMigrationTest {
             connection.createStatement().execute("insert into payrolls values(1, 'PAID')");
         }
         Flyway flyway = Flyway.configure().dataSource(url, "sa", "")
-                .locations("classpath:db/migration").baselineOnMigrate(true).baselineVersion("1").load();
+                .locations(H2MigrationCopies.location()).baselineOnMigrate(true).baselineVersion("1").load();
         flyway.migrate(); flyway.migrate();
         try (var connection = DriverManager.getConnection(url, "sa", "");
              var rows = connection.createStatement().executeQuery("select status, published from payrolls where id=1")) {

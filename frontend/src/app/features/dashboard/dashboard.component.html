@@ -31,6 +31,7 @@
       }
     </section>
     @if (scope() === 'admin') {
+      <a mat-button routerLink="/hr-insights">Pilotage RH par période</a>
       <section class="columns" aria-label="Montants">
         <mat-card><mat-card-content><h2>Montant total des factures</h2>
           @if (loading()) { <p>Chargement…</p> }
@@ -43,7 +44,7 @@
         <mat-card><mat-card-content><h2>Honoraires enregistr&eacute;s</h2>
           @if (loading()) { <p>Chargement...</p> }
           @else if (visible()?.feeOverview?.value; as fees) {
-            <p>{{ fees.amount | number:'1.2-2' }} (devise non renseign&eacute;e)</p>
+            <p>Les montants sont consultables par devise dans le rapport Honoraires.</p><a mat-button routerLink="/fees/workbench">Rapport des honoraires</a>
             <p>{{ fees.workedHours | number:'1.0-2' }} heure(s), {{ fees.count }} ligne(s)</p>
             @for (item of fees.paymentStatuses; track item.label) { <p>{{ item.label }} : {{ item.count }}</p> }
           } @else { <p>Indisponible</p> }

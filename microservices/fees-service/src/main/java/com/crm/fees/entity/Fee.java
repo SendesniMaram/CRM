@@ -54,6 +54,11 @@ public class Fee {
     @Column(name = "worked_hours", nullable = false)
     private Double workedHours;
 
+    @Column(name="exact_hours",precision=8,scale=2) private BigDecimal exactHours;
+    @Column(length=3) private String currency;
+    @Column(name="offering_id") private Long offeringId;
+    @Column(name="source_time_id",unique=true) private Long sourceTimeId;
+
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
 

@@ -24,14 +24,19 @@ public class TrainingServiceImpl implements ITrainingService {
 
     private final TrainingRepository trainingRepository;
     private final TrainingMapper trainingMapper;
+    private final com.crm.hr.service.EmployeeReferenceValidator employees;
+    private static final jakarta.validation.Validator VALIDATOR=jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();
 
-    public TrainingServiceImpl(TrainingRepository trainingRepository, TrainingMapper trainingMapper) {
+    public TrainingServiceImpl(TrainingRepository trainingRepository, TrainingMapper trainingMapper, com.crm.hr.service.EmployeeReferenceValidator employees) {
         this.trainingRepository = trainingRepository;
         this.trainingMapper = trainingMapper;
+        this.employees=employees;
     }
 
     @Override
-    public TrainingResponse createTraining(TrainingRequest request) {
+    public TrainingResponse createTraining(TrainingRequest request, String authorization) {
+        validate(request);
+        if(request.getStartDate().isBefore(java.time.LocalDate.now()))throw new IllegalArgumentException("New training must start today or later");
         // Validate date range
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("End date must be after or equal to start date");
@@ -58,6 +63,7 @@ public class TrainingServiceImpl implements ITrainingService {
             throw new IllegalArgumentException("A certificate can only be recorded for a completed training");
         }
 
+        employees.requireExists(request.getEmployeeId(),authorization);
         Training training = trainingMapper.toEntity(request);
         training.setStatus(trainingStatus);
 
@@ -104,10 +110,12 @@ public class TrainingServiceImpl implements ITrainingService {
     }
 
     @Override
-    public TrainingResponse updateTraining(Long id, TrainingRequest request) {
+    public TrainingResponse updateTraining(Long id, TrainingRequest request, String authorization) {
+        validate(request);
         Training existing = trainingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Training not found with id: " + id));
 
+        if(request.getStartDate().isBefore(java.time.LocalDate.now())&&!request.getStartDate().equals(existing.getStartDate()))throw new IllegalArgumentException("Historical start date can only be retained");
         // Prevent modification of COMPLETED trainings
         if (existing.getStatus() == Training.TrainingStatus.COMPLETED) {
             throw new IllegalArgumentException("Cannot modify a completed training");
@@ -132,6 +140,8 @@ public class TrainingServiceImpl implements ITrainingService {
             throw new IllegalArgumentException("A certificate can only be recorded for a completed training");
         }
 
+        // An unchanged historical reference is retained; only a new assignment is resolved remotely.
+        if(!java.util.Objects.equals(existing.getEmployeeId(),request.getEmployeeId()))employees.requireExists(request.getEmployeeId(),authorization);
         trainingMapper.updateEntityFromRequest(existing, request);
         existing.setStatus(trainingStatus);
 
@@ -144,6 +154,8 @@ public class TrainingServiceImpl implements ITrainingService {
         Training saved = trainingRepository.save(existing);
         return trainingMapper.toResponse(saved);
     }
+
+    private void validate(TrainingRequest request){if(request==null||!VALIDATOR.validate(request).isEmpty()||!Double.isFinite(request.getCost()))throw new IllegalArgumentException("Invalid training request");}
 
     @Override
     public void deleteTraining(Long id) {

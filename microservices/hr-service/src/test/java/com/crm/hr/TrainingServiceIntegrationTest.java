@@ -32,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySupport {
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.crm.hr.service.EmployeeReferenceValidator employeeReferences;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -48,7 +51,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         trainingRepository.deleteAll();
 
         validRequest = new TrainingRequest();
-        validRequest.setEmployeeId("EMP001");
+        validRequest.setEmployeeId("101");
         validRequest.setTitle("Java Advanced Training");
         validRequest.setProvider("Oracle University");
         validRequest.setStartDate(LocalDate.now());
@@ -59,12 +62,12 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void createTraining_ShouldReturn201AndPersist() throws Exception {
-        String responseJson = mockMvc.perform(post("/api/trainings")
+        String responseJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.employeeId").value("EMP001"))
+                .andExpect(jsonPath("$.employeeId").value("101"))
                 .andExpect(jsonPath("$.title").value("Java Advanced Training"))
                 .andExpect(jsonPath("$.provider").value("Oracle University"))
                 .andExpect(jsonPath("$.startDate").isNotEmpty())
@@ -87,7 +90,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
     @Test
     void createTraining_WithInvalidDateRange_ShouldReturn400() throws Exception {
         TrainingRequest invalidRequest = new TrainingRequest();
-        invalidRequest.setEmployeeId("EMP001");
+        invalidRequest.setEmployeeId("101");
         invalidRequest.setTitle("Test");
         invalidRequest.setProvider("Provider");
         invalidRequest.setStartDate(LocalDate.now().plusDays(5));
@@ -95,7 +98,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         invalidRequest.setCost(500.0);
         invalidRequest.setStatus("PLANNED");
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -110,7 +113,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         TrainingRequest invalidRequest = new TrainingRequest();
         // Missing employeeId (NotBlank)
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
@@ -122,7 +125,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void getAllTrainings_ShouldReturnList() throws Exception {
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
@@ -136,7 +139,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         secondRequest.setCost(2000.0);
         secondRequest.setStatus("PLANNED");
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isCreated());
@@ -154,7 +157,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void getAllTrainings_WithPagination_ShouldReturnPage() throws Exception {
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
@@ -174,7 +177,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void getAllTrainings_WithKeywordSearch_ShouldReturnFilteredResults() throws Exception {
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
@@ -188,7 +191,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         secondRequest.setCost(800.0);
         secondRequest.setStatus("PLANNED");
 
-        mockMvc.perform(post("/api/trainings")
+        mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isCreated());
@@ -196,7 +199,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         mockMvc.perform(get("/api/trainings")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("keyword", "EMP001"))
+                        .param("keyword", "101"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(1));
@@ -204,7 +207,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void getTrainingById_ShouldReturnTraining() throws Exception {
-        String createJson = mockMvc.perform(post("/api/trainings")
+        String createJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -217,7 +220,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         mockMvc.perform(get("/api/trainings/{id}", created.getId()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
-                .andExpect(jsonPath("$.employeeId").value("EMP001"))
+                .andExpect(jsonPath("$.employeeId").value("101"))
                 .andExpect(jsonPath("$.title").value("Java Advanced Training"))
                 .andExpect(jsonPath("$.status").value("PLANNED"));
     }
@@ -234,7 +237,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void updateTraining_ShouldReturnUpdatedTraining() throws Exception {
-        String createJson = mockMvc.perform(post("/api/trainings")
+        String createJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -245,7 +248,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         TrainingResponse created = objectMapper.readValue(createJson, TrainingResponse.class);
 
         TrainingRequest updateRequest = new TrainingRequest();
-        updateRequest.setEmployeeId("EMP001");
+        updateRequest.setEmployeeId("101");
         updateRequest.setTitle("Java Masterclass");
         updateRequest.setProvider("Oracle University");
         updateRequest.setStartDate(LocalDate.now().plusDays(2));
@@ -253,7 +256,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         updateRequest.setCost(2500.0);
         updateRequest.setStatus("IN_PROGRESS");
 
-        mockMvc.perform(put("/api/trainings/{id}", created.getId())
+        mockMvc.perform(put("/api/trainings/{id}", created.getId()).header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -274,7 +277,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         updateRequest.setCost(500.0);
         updateRequest.setStatus("PLANNED");
 
-        mockMvc.perform(put("/api/trainings/{id}", 99999L)
+        mockMvc.perform(put("/api/trainings/{id}", 99999L).header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound())
@@ -288,7 +291,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
     void updateTraining_WhenCompleted_ShouldReturn400() throws Exception {
         // Create a training with COMPLETED status via a direct approach
         // First create a PLANNED training
-        String createJson = mockMvc.perform(post("/api/trainings")
+        String createJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -300,7 +303,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
         // Update to COMPLETED with certificateObtained
         TrainingRequest completeRequest = new TrainingRequest();
-        completeRequest.setEmployeeId("EMP001");
+        completeRequest.setEmployeeId("101");
         completeRequest.setTitle("Java Advanced Training");
         completeRequest.setProvider("Oracle University");
         completeRequest.setStartDate(LocalDate.now());
@@ -309,7 +312,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         completeRequest.setStatus("COMPLETED");
         completeRequest.setCertificateObtained(true);
 
-        mockMvc.perform(put("/api/trainings/{id}", created.getId())
+        mockMvc.perform(put("/api/trainings/{id}", created.getId()).header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(completeRequest)))
                 .andExpect(status().isOk())
@@ -318,7 +321,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
         // Try to update it again - should fail
         TrainingRequest updateRequest = new TrainingRequest();
-        updateRequest.setEmployeeId("EMP001");
+        updateRequest.setEmployeeId("101");
         updateRequest.setTitle("Java Advanced Training Updated");
         updateRequest.setProvider("Oracle University");
         updateRequest.setStartDate(LocalDate.now());
@@ -326,7 +329,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         updateRequest.setCost(1500.0);
         updateRequest.setStatus("COMPLETED");
 
-        mockMvc.perform(put("/api/trainings/{id}", created.getId())
+        mockMvc.perform(put("/api/trainings/{id}", created.getId()).header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isBadRequest())
@@ -339,7 +342,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
     @Test
     void updateTraining_CertificateObtained_OnlyWhenCompleted() throws Exception {
         // Create a PLANNED training
-        String createJson = mockMvc.perform(post("/api/trainings")
+        String createJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
@@ -351,7 +354,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
         // Update to IN_PROGRESS - certificateObtained should be false
         TrainingRequest inProgressRequest = new TrainingRequest();
-        inProgressRequest.setEmployeeId("EMP001");
+        inProgressRequest.setEmployeeId("101");
         inProgressRequest.setTitle("Java Advanced Training");
         inProgressRequest.setProvider("Oracle University");
         inProgressRequest.setStartDate(LocalDate.now());
@@ -359,7 +362,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
         inProgressRequest.setCost(1500.0);
         inProgressRequest.setStatus("IN_PROGRESS");
 
-        mockMvc.perform(put("/api/trainings/{id}", created.getId())
+        mockMvc.perform(put("/api/trainings/{id}", created.getId()).header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inProgressRequest)))
                 .andExpect(status().isOk())
@@ -374,7 +377,7 @@ class TrainingServiceIntegrationTest extends com.crm.hr.security.TestIdentitySup
 
     @Test
     void deleteTraining_ShouldReturn204AndRemoveFromDatabase() throws Exception {
-        String createJson = mockMvc.perform(post("/api/trainings")
+        String createJson = mockMvc.perform(post("/api/trainings").header("Authorization","Bearer synthetic-training-test")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())

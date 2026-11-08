@@ -40,6 +40,7 @@ public class CustomerRequest {
     @Size(max = 100)
     private String segment;
 
+    @jakarta.validation.constraints.Positive
     private Long assignedEmployeeId;
 }
 

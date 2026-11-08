@@ -20,6 +20,8 @@ public class PayrollMapper {
         response.setBonuses(payroll.getBonuses());
         response.setDeductions(payroll.getDeductions());
         response.setTaxAmount(payroll.getTaxAmount());
+        response.setOvertimeHours(payroll.getOvertimeHours());response.setOvertimeHourlyRate(payroll.getOvertimeHourlyRate());response.setOvertimeAmount(payroll.getOvertimeAmount());
+        response.setCancelled(payroll.isCancelled());response.setReplacementPayrollId(payroll.getReplacementPayrollId());response.setCorrectionOfId(payroll.getCorrectionOfId());
         response.setNetSalary(payroll.getNetSalary());
         response.setPayPeriod(payroll.getPayPeriod());
         response.setPaymentDate(payroll.getPaymentDate());
@@ -43,6 +45,7 @@ public class PayrollMapper {
         payroll.setBonuses(request.getBonuses());
         payroll.setDeductions(request.getDeductions());
         payroll.setTaxAmount(request.getTaxAmount());
+        payroll.setOvertimeHours(request.getOvertimeHours());payroll.setOvertimeHourlyRate(request.getOvertimeHourlyRate());
         payroll.setPayPeriod(request.getPayPeriod());
         payroll.setPaymentDate(request.getPaymentDate());
         payroll.setCurrency(request.getCurrency());
@@ -61,6 +64,7 @@ public class PayrollMapper {
         payroll.setBonuses(request.getBonuses());
         payroll.setDeductions(request.getDeductions());
         payroll.setTaxAmount(request.getTaxAmount());
+        payroll.setOvertimeHours(request.getOvertimeHours());payroll.setOvertimeHourlyRate(request.getOvertimeHourlyRate());
         payroll.setPayPeriod(request.getPayPeriod());
         payroll.setPaymentDate(request.getPaymentDate());
         payroll.setCurrency(request.getCurrency());

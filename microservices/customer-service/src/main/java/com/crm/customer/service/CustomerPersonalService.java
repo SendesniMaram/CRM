@@ -48,8 +48,9 @@ public class CustomerPersonalService {
    var old=associations.findById(uid);
    if(old.isPresent()) {if(!old.get().getCustomerId().equals(cid)) throw status(409); return map(old.get());}
    if(associations.existsByCustomerId(cid)) throw status(409);
-   return map(associations.saveAndFlush(new CustomerAssociation(uid,cid)));
-  });}catch(DataIntegrityViolationException e){throw status(409);}
+   associations.insertNew(uid,cid);
+   return new Association(user,customer);
+  });}catch(DataIntegrityViolationException | org.springframework.dao.ConcurrencyFailureException e){throw status(409);}
  }
  public Profile own(Authentication a) {
   role(a,"ROLE_CLIENT"); long uid=AuthenticatedUserPrincipal.require(a).userId();

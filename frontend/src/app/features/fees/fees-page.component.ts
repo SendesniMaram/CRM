@@ -20,6 +20,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { FeePageParams, FeeResponse, FeeSort } from './fee.models';
+import { feeEditable } from './fee-finance';
 import { FeeService } from './fee.service';
 
 function feePaginator(): MatPaginatorIntl {
@@ -70,6 +71,7 @@ export class FeesPageComponent implements OnInit {
     }), takeUntilDestroyed(this.destroy)).subscribe();
     this.load();
   }
+  protected editable=feeEditable;
   protected canManage() { return this.auth.hasAnyRole([CrmRole.ADMIN, CrmRole.SUPER_ADMIN]); }
   protected load() {
     this.revision++;
@@ -85,7 +87,7 @@ export class FeesPageComponent implements OnInit {
     this.direction.set(event.direction === 'desc' ? 'desc' : 'asc'); this.page.set(0); this.load();
   }
   protected remove(fee: FeeResponse) {
-    if (!this.canManage() || this.busy() || this.loading()) return;
+    if (!this.canManage() || this.busy() || this.loading() || !feeEditable(fee)) return;
     const revision = this.revision;
     const keyword = this.search.value.trim();
     const last = this.rows().length === 1 && this.rows()[0].id === fee.id;

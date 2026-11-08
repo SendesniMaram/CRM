@@ -18,8 +18,20 @@ public class EmployeeDocumentService {
   try {Files.createDirectories(root);Files.write(target,file.getBytes(),StandardOpenOption.CREATE_NEW,StandardOpenOption.WRITE);EmployeeDocument d=new EmployeeDocument();d.setEmployeeId(employeeId);d.setName(name);d.setType(type);d.setMediaType(media);d.setSize(file.getSize());d.setStorageKey(key);return repository.save(d);}
   catch(IOException|RuntimeException ex){try{Files.deleteIfExists(target);}catch(IOException ignored){}throw ex instanceof IllegalArgumentException ia?ia:new IllegalStateException("Document storage unavailable");}
  }
- @Transactional(readOnly=true) public byte[] download(long id){EmployeeDocument d=get(id);try{return Files.readAllBytes(path(d));}catch(IOException ex){throw new IllegalStateException("Document storage unavailable");}}
+ @Transactional(readOnly=true) public byte[] download(long id){
+  EmployeeDocument d=get(id);
+  try{
+   Path file=path(d);
+   if(!Files.isRegularFile(file,LinkOption.NOFOLLOW_LINKS)||!file.toRealPath().startsWith(root.toRealPath()))throw new IOException();
+   try(var input=Files.newInputStream(file,LinkOption.NOFOLLOW_LINKS)){
+    byte[] content=input.readNBytes((int)MAX+1);
+    if(content.length==0||content.length>MAX)throw new IOException();
+    return content;
+   }
+  }catch(IOException ex){throw new IllegalStateException("Document storage unavailable");}
+ }
  @Transactional(readOnly=true) public EmployeeDocument metadata(long id){return get(id);}
+ public void visibility(long id,boolean visible){HrAuthorization.requireAdmin();get(id).setEmployeeVisible(visible);}
  public void delete(long id){EmployeeDocument d=get(id);repository.delete(d);try{Files.deleteIfExists(path(d));}catch(IOException ex){throw new IllegalStateException("Document storage unavailable");}}
  private EmployeeDocument get(long id){return repository.findById(id).orElseThrow(()->new ResourceNotFoundException("Document not found"));}
  private Path path(EmployeeDocument d){Path p=root.resolve(d.getStorageKey()).normalize();if(!p.startsWith(root)||d.getStorageKey().contains("/")||d.getStorageKey().contains("\\"))throw new IllegalStateException("Invalid storage reference");return p;}

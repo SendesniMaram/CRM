@@ -34,7 +34,7 @@ describe('authInterceptor with real AuthService', () => {
     spyOnProperty(router, 'url', 'get').and.returnValue('/employees?view=list');
   }
   beforeEach(() => setup());
-  afterEach(() => { http.verify(); TestBed.resetTestingModule(); sessionStorage.clear(); });
+  afterEach(() => { http.match(base + '/logout').forEach(r => r.flush(null, { status: 204, statusText: 'No Content' })); http.verify(); TestBed.resetTestingModule(); sessionStorage.clear(); });
   const get = (url = api) => client.get(url).subscribe({ error: () => {} });
 
   it('adds the bearer token and preserves other headers', () => {

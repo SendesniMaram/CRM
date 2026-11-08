@@ -38,6 +38,7 @@ class AccessTokenValidationIntegrationTest {
     @Autowired UserRepository users;
     @Autowired RoleRepository roles;
     @Autowired RefreshTokenRepository refreshTokens;
+    @Autowired com.crm.identity.service.IAuthenticationService authentication;
 
     // No enclosing test transaction: status updates commit before the next HTTP request.
     @BeforeEach void clean() { refreshTokens.deleteAll(); users.deleteAll(); }
@@ -50,7 +51,11 @@ class AccessTokenValidationIntegrationTest {
     }
 
     String token(User user, List<String> signedRoles) {
-        return Jwts.builder().subject(user.getUsername()).claim("uid", user.getId().toString())
+        String sid = java.util.UUID.randomUUID().toString();
+        var session = new com.crm.identity.entity.RefreshToken(); session.setUser(user); session.setSessionId(sid);
+        session.setToken(java.util.UUID.randomUUID().toString()); session.setExpiryDate(java.time.LocalDateTime.now().plusDays(1));
+        refreshTokens.saveAndFlush(session);
+        return Jwts.builder().subject(user.getUsername()).claim("uid", user.getId().toString()).claim("sid", sid)
                 .claim("enabled", true).claim("roles", signedRoles)
                 .expiration(new Date(System.currentTimeMillis() + 60000))
                 .signWith(Keys.hmacShaKeyFor(KEY.getBytes(StandardCharsets.UTF_8))).compact();
@@ -69,19 +74,21 @@ class AccessTokenValidationIntegrationTest {
                 .andExpect(status().isNoContent()).andExpect(content().string(""))
                 .andExpect(header().string("Cache-Control", "no-store"));
         assertThat(users.findById(user.getId()).orElseThrow().getUpdatedAt()).isEqualTo(before);
-        assertThat(refreshTokens.count()).isZero();
+        assertThat(refreshTokens.count()).isEqualTo(1); // Validation did not create another session.
     }
 
     @ParameterizedTest @ValueSource(booleans = {true, false})
-    void statusChangeIsCheckedOnEveryRequestAndReactivationIsAccepted(boolean disable) throws Exception {
+    void statusChangeAndRevocationAreCheckedOnEveryRequestWithoutRestoringOldSessions(boolean disable) throws Exception {
         User user = user(RoleType.EMPLOYEE);
         String token = token(user, List.of("EMPLOYEE"));
         check(token, 204);
         if (disable) user.setEnabled(false); else user.setAccountNonLocked(false);
         users.saveAndFlush(user);
         check(token, 401);
+        var refresh = new com.crm.identity.dto.RefreshTokenRequest(); refresh.setRefreshToken(refreshTokens.findAll().get(0).getToken());
+        assertThatThrownBy(() -> authentication.refreshToken(refresh)).isInstanceOf(com.crm.identity.exception.InvalidCredentialsException.class);
         user.setEnabled(true); user.setAccountNonLocked(true); users.saveAndFlush(user);
-        check(token, 204);
+        check(token, 401);
     }
 
     @Test void removedRoleInvalidatesThePreviouslyIssuedToken() throws Exception {
@@ -96,6 +103,7 @@ class AccessTokenValidationIntegrationTest {
     @Test void deletedUserCannotBeReplacedByAReusedUsername() throws Exception {
         User original = user(RoleType.CLIENT);
         String token = token(original, List.of("CLIENT"));
+        refreshTokens.deleteAll();
         users.deleteById(original.getId());
         User replacement = user(RoleType.CLIENT);
         assertThat(replacement.getId()).isNotEqualTo(original.getId());

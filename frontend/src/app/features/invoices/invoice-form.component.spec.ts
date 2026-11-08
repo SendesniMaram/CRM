@@ -13,7 +13,7 @@ describe('InvoiceFormComponent', () => {
   const client: CustomerResponse = { id: 2, name: 'Client test', email: null, phone: null, company: null, address: null, createdAt: null, updatedAt: null };
   const page: CustomerPage = { content: [client], totalElements: 1, totalPages: 1, number: 0, size: 25 };
   const row: InvoiceResponse = { id: 4, invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: null,
-    dueDate: null, subtotal: 100, tax: null, currency: null, status: 'À traiter', notes: null,
+    dueDate: null, subtotal: 100, tax: null, currency: null, status: 'PENDING', notes: null,
     totalAmount: 100, createdAt: null, updatedAt: null };
   let fixture: ComponentFixture<InvoiceFormComponent>;
   let service: jasmine.SpyObj<InvoiceService>;
@@ -37,7 +37,7 @@ describe('InvoiceFormComponent', () => {
     return fixture.componentInstance;
   }
   function fill(component: InvoiceFormComponent) {
-    component['form'].patchValue({ invoiceNumber: ' FACT-TEST ', customerId: 2, subtotal: 100, status: ' À traiter ' });
+    component['form'].patchValue({ invoiceNumber: ' FACT-TEST ', customerId: 2, subtotal: 100, status: 'PENDING' });
     component['selectCustomer'](2);
   }
   it('generates invoice number server-side while requiring an existing client, positive subtotal and status', () => {
@@ -50,10 +50,14 @@ describe('InvoiceFormComponent', () => {
     c['form'].controls.subtotal.setValue(0); expect(c['form'].controls.subtotal.invalid).toBeTrue();
     c['form'].controls.subtotal.setValue(Infinity); expect(c['form'].controls.subtotal.invalid).toBeTrue();
   });
-  it('respects DTO lengths and optional dates/tax without inventing status or currency enums', () => {
+  it('enforces monetary precision, status values and date ordering', () => {
     const c = start(); fill(c);
-    c['form'].patchValue({ status: 'Statut libre', currency: 'LIBRE', tax: -2, issueDate: '', dueDate: '' });
+    c['form'].patchValue({ status: 'PENDING', currency: 'LIBRE', tax: null, issueDate: '', dueDate: '' });
     expect(c['form'].valid).toBeTrue();
+    for (const tax of [-2, 0.001, 10000000000]) { c['form'].controls.tax.setValue(tax); expect(c['form'].controls.tax.invalid).toBeTrue(); }
+    c['form'].patchValue({ tax: 0, issueDate: '2026-11-02', dueDate: '2026-11-01' });
+    expect(c['form'].hasError('dateRange')).toBeTrue();
+    c['form'].controls.status.setValue('unknown'); expect(c['form'].controls.status.invalid).toBeTrue();
     for (const [field, max] of [['invoiceNumber', 50], ['status', 50], ['currency', 10], ['notes', 500]] as const) {
       c['form'].controls[field].setValue('x'.repeat(max + 1)); expect(c['form'].controls[field].hasError('maxlength')).toBeTrue();
     }
@@ -62,7 +66,7 @@ describe('InvoiceFormComponent', () => {
   it('converts a selected numeric client to a string and never sends totalAmount', () => {
     const c = start(); fill(c); c['submit']();
     expect(service.create).toHaveBeenCalledOnceWith({ customerId: '2',
-      issueDate: null, dueDate: null, subtotal: 100, tax: null, currency: null, status: 'À traiter', notes: null });
+      issueDate: null, dueDate: null, subtotal: 100, tax: null, currency: null, status: 'PENDING', notes: null });
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith(['/invoices']);
   });
   it('rejects unknown, fractional and unsafe selected IDs', () => {
@@ -133,6 +137,16 @@ describe('InvoiceFormComponent', () => {
     service.get.and.returnValue(throwError(() => ({ status: 404 })));
     params.next(convertToParamMap({ id: '4' })); c['submit'](); expect(service.update).not.toHaveBeenCalled();
     expect(c['error']()).toContain('Facture introuvable');
+  });
+  it('blocks direct editing of a paid invoice before showing a writable form', () => {
+    service.get.and.returnValue(of({ ...row, status: 'PAID' }));
+    const c = start('4'); expect(c['ready']()).toBeFalse(); expect(c['error']()).toContain('protégé');
+    c['submit'](); expect(service.update).not.toHaveBeenCalled();
+  });
+  it('explains a paid-invoice conflict without rendering backend diagnostics', () => {
+    service.update.and.returnValue(throwError(() => ({ status: 409, error: { message: 'PRIVATE SQL' } })));
+    const c = start('4'); c['submit'](); fixture.detectChanges();
+    expect(c['error']()).toContain('facture avec paiement'); expect(fixture.nativeElement.textContent).not.toContain('PRIVATE');
   });
   it('shows a recoverable save error', () => {
     service.create.and.returnValue(throwError(() => ({ status: 503 })));

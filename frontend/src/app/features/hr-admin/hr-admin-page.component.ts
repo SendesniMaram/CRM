@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy,Component,DestroyRef,effect,inject,signal,untracked } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { HrEmployeePickerComponent } from './hr-employee-picker.component';
 import { DatePipe } from '@angular/common';
 import { FormControl,FormGroup,ReactiveFormsModule,Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -20,7 +21,7 @@ import { HrAdminService } from './hr-admin.service';
 
 @Component({
   selector:'app-hr-admin-page',standalone:true,
-  imports:[DatePipe,ReactiveFormsModule,MatButtonModule,MatCardModule,MatCheckboxModule,MatFormFieldModule,MatInputModule,MatSelectModule,MatTableModule,MatPaginatorModule],
+  imports:[HrEmployeePickerComponent,DatePipe,ReactiveFormsModule,MatButtonModule,MatCardModule,MatCheckboxModule,MatFormFieldModule,MatInputModule,MatSelectModule,MatTableModule,MatPaginatorModule],
   templateUrl:'./hr-admin-page.component.html',styleUrl:'./hr-admin-page.component.scss',
   changeDetection:ChangeDetectionStrategy.OnPush
 })
@@ -125,7 +126,7 @@ export class HrAdminPageComponent {
     if(this.module==='trainings'){
       const start=String(request['startDate']),end=String(request['endDate']);
       const now=new Date();const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
-      if(start<today||end<start){this.formError.set('Les dates doivent être actuelles ou futures, avec une fin après le début.');return;}
+      if((!this.selected()&&start<today)||(!!this.selected()&&start<today&&start!==this.selected()?.['startDate'])||end<start){this.formError.set('Les dates doivent être actuelles ou futures, avec une fin après le début.');return;}
       if(!Number.isFinite(request['cost'] as number)){this.formError.set('Le coût doit être un nombre valide.');return;}
       if(!this.selected()&&request['status']==='COMPLETED'){this.formError.set('Créez la formation avant de la marquer terminée.');return;}
       if(request['certificateObtained']===true&&request['status']!=='COMPLETED'){this.formError.set('Un certificat ne peut être enregistré que pour une formation terminée.');return;}

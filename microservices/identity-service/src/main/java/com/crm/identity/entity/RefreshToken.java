@@ -26,6 +26,12 @@ public class RefreshToken {
     @Column(name = "token", nullable = false, unique = true, length = 500)
     private String token;
 
+    @Column(name = "session_id", length = 36)
+    private String sessionId;
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
 

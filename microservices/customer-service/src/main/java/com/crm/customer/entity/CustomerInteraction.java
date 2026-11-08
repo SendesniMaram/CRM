@@ -2,6 +2,7 @@ package com.crm.customer.entity;
 import jakarta.persistence.*; import java.time.LocalDateTime; import lombok.Data;
 @Entity @Table(name="customer_interactions") @Data
 public class CustomerInteraction {
+ @Column(name="employee_visible",nullable=false) private boolean employeeVisible;
  @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id;
  @Column(name="customer_id",nullable=false) private Long customerId;
  @Column(name="employee_id") private Long employeeId;

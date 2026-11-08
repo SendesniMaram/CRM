@@ -12,9 +12,10 @@ public class EmployeeReferenceValidator {
     private final LeaveDirectoryClient directory;
     public EmployeeReferenceValidator(LeaveDirectoryClient directory) { this.directory = directory; }
     public void requireExists(String employeeId, String authorization) {
+        if(authorization==null||!authorization.startsWith("Bearer ")||authorization.substring(7).isBlank())throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Authenticated directory access required");
         long expected=EmployeeAssociationService.parseId(employeeId);
         JsonNode employee=directory.read("employee-service", "/api/employees/"+employeeId, authorization);
-        if(employee==null||!employee.isObject()||!employee.path("id").canConvertToLong()||employee.path("id").longValue()!=expected)
+        if(employee==null||!employee.isObject()||!employee.path("id").isIntegralNumber()||!employee.path("id").canConvertToLong()||employee.path("id").longValue()!=expected)
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,"Invalid employee reference response");
     }
 }

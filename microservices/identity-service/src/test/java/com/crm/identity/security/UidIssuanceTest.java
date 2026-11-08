@@ -17,7 +17,7 @@ class UidIssuanceTest {
 
     @ParameterizedTest @ValueSource(longs = {101, Long.MAX_VALUE})
     void uidIsAStringRepresentingTheExactStableId(long id) {
-        String token = jwt.generateToken(id, "user", "user@example.test", true, List.of("CLIENT"));
+        String token = jwt.generateSessionToken(id, "user", "user@example.test", true, List.of("CLIENT"), "11111111-1111-4111-8111-111111111111");
         assertThat(jwt.parseAccessToken(token).userId()).isEqualTo(id);
     }
 }

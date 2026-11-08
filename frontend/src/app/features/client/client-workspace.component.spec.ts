@@ -1,3 +1,4 @@
+import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection,signal } from '@angular/core';
 import { Subject,of,throwError } from 'rxjs';
@@ -9,11 +10,12 @@ describe('ClientWorkspaceComponent',()=>{
  const user=signal('A');let generation=0;let allowed=true;
  let service:jasmine.SpyObj<ClientService>;
  beforeEach(()=>{generation=0;allowed=true;user.set('A');
-  service=jasmine.createSpyObj('ClientService',['profile','invoices','detail','pdf']);
+  service=jasmine.createSpyObj('ClientService',['profile','invoices','detail','pdf','payments']);
+  service.payments.and.returnValue(of([]));
   service.profile.and.returnValue(of({customerId:'101',name:'Customer A',email:null,phone:null,company:'Company A'}));
   service.invoices.and.returnValue(of({content:[{id:'12',invoiceNumber:'INV-A',issueDate:null,dueDate:null,totalAmount:'123.40',currency:'EUR',status:'PENDING'}],totalElements:1,totalPages:1,number:0}));
   service.detail.and.returnValue(of({id:'12',invoiceNumber:'INV-A',issueDate:null,dueDate:null,totalAmount:'123.40',currency:'EUR',status:'PENDING'}));
-  TestBed.configureTestingModule({imports:[ClientWorkspaceComponent],providers:[provideZonelessChangeDetection(),
+  TestBed.configureTestingModule({imports:[ClientWorkspaceComponent],providers:[provideZonelessChangeDetection(),provideRouter([]),
    {provide:ClientService,useValue:service},{provide:AuthService,useValue:{
     getCurrentUser:()=>({username:user()}),get sessionGeneration(){return generation;},hasAnyRole:(r:CrmRole[])=>{user();return allowed&&r.includes(CrmRole.CLIENT);}
    }}]});
@@ -73,4 +75,8 @@ describe('ClientWorkspaceComponent',()=>{
    expect(f.componentInstance['loading']()).toBeFalse();expect(f.nativeElement.textContent).toContain('Erreur de communication');
   }finally{jasmine.clock().uninstall();}
  });
+ it('shows payments for the selected personal invoice and links existing statistics',()=>{service.payments.and.returnValue(of([{id:'9',amount:'12.30',paidAt:'2026-11-01',method:'BANK'}]));const f=create();f.componentInstance['open']('12');f.detectChanges();expect(service.payments).toHaveBeenCalledWith('12');expect(f.nativeElement.textContent).toContain('12.30');expect(f.nativeElement.querySelector('a[href="/dashboard"]')).toBeTruthy();});
+ it('shows empty payments separately from an invoice without an association',()=>{const f=create();f.componentInstance['open']('12');f.detectChanges();expect(f.nativeElement.textContent).toContain('Aucun paiement enregistré');});
+ it('keeps the invoice visible when payment loading fails',()=>{service.payments.and.returnValue(throwError(()=>({status:503})));const f=create();f.componentInstance['open']('12');f.detectChanges();expect(f.componentInstance['detail']()?.id).toBe('12');expect(f.componentInstance['paymentError']()).toContain('indisponible');expect(f.componentInstance['busy']()).toBeFalse();});
+ it('clears pending payment history after logout',()=>{const pending=new Subject<any>();service.payments.and.returnValue(pending);const f=create();f.componentInstance['open']('12');expect(pending.observed).toBeTrue();generation++;allowed=false;user.set('B');f.detectChanges();expect(pending.observed).toBeFalse();expect(f.componentInstance['payments']()).toBeNull();expect(f.componentInstance['detail']()).toBeNull();});
 });

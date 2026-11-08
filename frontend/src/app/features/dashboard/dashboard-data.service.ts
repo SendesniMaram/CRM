@@ -26,7 +26,7 @@ export interface InvoiceOverview {
   quoteStatuses?: Distribution[] | null; quoteAmounts?: { currency: string; value: string }[] | null;
   reason: string;
 }
-export interface FeeOverview { count: number; amount: number; workedHours: number; invoiceStatuses: Distribution[]; paymentStatuses: Distribution[]; currencyDefined: false }
+export interface FeeOverview { count: number; amount: number|null; workedHours: number; invoiceStatuses: Distribution[]; paymentStatuses: Distribution[]; currencyDefined: false }
 export interface ClientInvoiceOverview { invoiceCount: number; paidInvoiceCount: number; unpaidInvoiceCount: number; byCurrency: MoneyMetric[] }
 export interface DashboardData {
   scope: DashboardScope; employees: Reading<number>; departments: Reading<number>; trainings: Reading<number>;
@@ -67,7 +67,8 @@ export class DashboardDataService {
   }
   private read<T>(request: Observable<T>): Observable<Reading<T>> {
     return request.pipe(timeout(10000), map(value => ({ value, error: '' })),
-      catchError(() => of({ value: null, error: 'Service indisponible. Réessayez.' })));
+      catchError(error => of({ value: null, error: error instanceof Error && /personal .*statistics/.test(error.message)
+        ? 'Réponse de statistiques invalide. Contactez un administrateur.' : 'Service indisponible. Réessayez.' })));
   }
   private count(page: { totalElements: number }): number {
     if (!Number.isSafeInteger(page.totalElements) || page.totalElements < 0) throw new Error('Invalid count');
@@ -98,7 +99,7 @@ export class DashboardDataService {
     const fees = this.read(this.http.get<Omit<FeeOverview, 'invoiceStatuses' | 'paymentStatuses'> & {
       invoiceStatuses: Record<string, number>; paymentStatuses: Record<string, number>
     }>('http://localhost:8080/fees/api/fees/statistics').pipe(map(value => {
-      if (!value || !Number.isSafeInteger(value.count) || value.count < 0 || !Number.isFinite(value.amount)
+      if (!value || !Number.isSafeInteger(value.count) || value.count < 0 || (value.amount!==null&&!Number.isFinite(value.amount))
         || !Number.isFinite(value.workedHours) || value.workedHours < 0
         || !value.invoiceStatuses || typeof value.invoiceStatuses !== 'object'
         || !value.paymentStatuses || typeof value.paymentStatuses !== 'object') throw new Error('Invalid fee statistics');
@@ -134,11 +135,26 @@ function validatePageCount(value: unknown): number {
   if (!page || !Number.isSafeInteger(page.totalElements) || Number(page.totalElements) < 0) throw new Error('Invalid page');
   return Number(page.totalElements);
 }
-function validateClientInvoices(value: unknown): ClientInvoiceOverview {
-  const stats = value as ClientInvoiceOverview | null;
-  if (!stats || !Number.isSafeInteger(stats.invoiceCount) || !Number.isSafeInteger(stats.paidInvoiceCount)
-      || !Number.isSafeInteger(stats.unpaidInvoiceCount) || !Array.isArray(stats.byCurrency)) throw new Error('Invalid personal statistics');
-  return stats;
+export function validateClientInvoices(value: unknown): ClientInvoiceOverview {
+  const stats = value as { invoiceCount: number; paidInvoiceCount: number; unpaidInvoiceCount: number;
+    byCurrency: Record<string, Omit<MoneyMetric, "currency">> } | null;
+  const count = (n: unknown): n is number => Number.isSafeInteger(n) && Number(n) >= 0;
+  const money = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0;
+  if (!stats || !count(stats.invoiceCount) || !count(stats.paidInvoiceCount) || !count(stats.unpaidInvoiceCount)
+      || stats.paidInvoiceCount + stats.unpaidInvoiceCount !== stats.invoiceCount
+      || !stats.byCurrency || typeof stats.byCurrency !== "object" || Array.isArray(stats.byCurrency))
+    throw new Error("Invalid personal statistics");
+  const byCurrency = Object.entries(stats.byCurrency).sort(([a], [b]) => a.localeCompare(b)).map(([currency, row]) => {
+    if (!currency.trim() || !row || !count(row.invoiceCount) || !money(row.total) || !money(row.paid)
+        || !money(row.outstanding) || row.paid > row.total
+        || Math.abs(row.total - row.paid - row.outstanding) > 0.005)
+      throw new Error("Invalid personal currency statistics");
+    return { currency, invoiceCount: row.invoiceCount, total: row.total, paid: row.paid, outstanding: row.outstanding };
+  });
+  if (byCurrency.reduce((sum, row) => sum + row.invoiceCount, 0) !== stats.invoiceCount)
+    throw new Error("Incomplete personal statistics");
+  return { invoiceCount: stats.invoiceCount, paidInvoiceCount: stats.paidInvoiceCount,
+    unpaidInvoiceCount: stats.unpaidInvoiceCount, byCurrency };
 }
 function formatMoney(value: number): string { return (value / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function countDistribution(values: Record<string, number>): Distribution[] {

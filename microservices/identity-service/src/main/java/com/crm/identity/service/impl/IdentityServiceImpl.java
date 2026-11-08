@@ -32,12 +32,17 @@ public class IdentityServiceImpl implements IIdentityService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.crm.identity.repository.RefreshTokenRepository sessions;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public IdentityServiceImpl(UserRepository userRepository, RoleRepository roleRepository,
-                               PasswordEncoder passwordEncoder) {
+                               PasswordEncoder passwordEncoder, com.crm.identity.repository.RefreshTokenRepository sessions,
+                               jakarta.persistence.EntityManager entityManager) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.sessions = sessions;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -80,6 +85,7 @@ public class IdentityServiceImpl implements IIdentityService {
     @Override
     @Transactional
     public UserResponse createAdminUser(AdminUserCreateRequest request, User actor) {
+        actor = lockAdministration(actor);
         requireAdminRole(actor, request.roleType());
         ensureUnique(request.username(), request.email(), null);
         User user = new User();
@@ -94,7 +100,8 @@ public class IdentityServiceImpl implements IIdentityService {
     @Override
     @Transactional
     public UserResponse updateUser(Long id, AdminUserUpdateRequest request, User actor) {
-        User user = getUser(id);
+        actor = lockAdministration(actor);
+        User user = lockUser(id);
         requireCanManageTarget(actor, user);
         ensureUnique(user.getUsername(), request.email(), id);
         user.setFirstName(request.firstName().trim()); user.setLastName(request.lastName().trim());
@@ -105,7 +112,8 @@ public class IdentityServiceImpl implements IIdentityService {
     @Override
     @Transactional
     public UserResponse updateUserRoles(Long id, AdminUserRolesRequest request, User actor) {
-        User user = getUser(id);
+        actor = lockAdministration(actor);
+        User user = lockUser(id);
         if (request.roles() == null || request.roles().isEmpty()) throw new IllegalArgumentException("At least one role is required");
         boolean superActor = actor.getRole().stream().anyMatch(role -> role.getRoleType() == RoleType.SUPER_ADMIN);
         if (!superActor && request.roles().stream().anyMatch(role -> role != RoleType.EMPLOYEE && role != RoleType.CLIENT)) {
@@ -114,9 +122,11 @@ public class IdentityServiceImpl implements IIdentityService {
         boolean targetSuper = user.getRole().stream().anyMatch(role -> role.getRoleType() == RoleType.SUPER_ADMIN);
         requireCanManageTarget(actor, user);
         if (targetSuper && !request.roles().contains(RoleType.SUPER_ADMIN)
-                && userRepository.countByRole_RoleType(RoleType.SUPER_ADMIN) <= 1) {
+                && user.isEnabled() && user.isAccountNonLocked() && userRepository.countUsableSuperAdmins() <= 1) {
             throw new IllegalStateException("The last SUPER_ADMIN cannot be removed");
         }
+        var previousRoles = user.getRole().stream().map(Role::getRoleType).collect(java.util.stream.Collectors.toSet());
+        if (!previousRoles.equals(new java.util.HashSet<>(request.roles()))) sessions.revokeAllByUser(user);
         user.getRole().clear();
         request.roles().stream().sorted().map(this::findRole).forEach(user.getRole()::add);
         return toUserResponse(userRepository.saveAndFlush(user));
@@ -125,14 +135,33 @@ public class IdentityServiceImpl implements IIdentityService {
     @Override
     @Transactional
     public UserResponse updateUserStatus(Long id, boolean enabled, User actor) {
-        User user = getUser(id);
+        actor = lockAdministration(actor);
+        User user = lockUser(id);
         boolean targetSuper = user.getRole().stream().anyMatch(role -> role.getRoleType() == RoleType.SUPER_ADMIN);
         requireCanManageTarget(actor, user);
         if (!enabled && user.getId().equals(actor.getId())) throw new IllegalArgumentException("You cannot deactivate your own account");
-        if (!enabled && targetSuper && userRepository.countByRole_RoleType(RoleType.SUPER_ADMIN) <= 1)
+        if (!enabled && targetSuper && user.isEnabled() && user.isAccountNonLocked() && userRepository.countUsableSuperAdmins() <= 1)
             throw new IllegalStateException("The last SUPER_ADMIN cannot be deactivated");
+        if (!enabled || user.isEnabled() != enabled) sessions.revokeAllByUser(user);
         user.setEnabled(enabled);
         return toUserResponse(userRepository.saveAndFlush(user));
+    }
+
+    // Fixed lock order: shared SUPER_ADMIN role -> acting User -> target User -> refresh rows.
+    // Refresh after waiting: a JPA first-level cache/OSIV may otherwise retain a stale account.
+    private User lockAdministration(User actor) {
+        roleRepository.lockByRoleType(RoleType.SUPER_ADMIN).orElseThrow(() -> new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Administration unavailable"));
+        if (actor == null || actor.getId() == null) throw new org.springframework.security.access.AccessDeniedException("Administration required");
+        User current = lockUser(actor.getId());
+        if (!current.isEnabled() || !current.isAccountNonLocked() || current.getRole().stream().noneMatch(r -> r.getRoleType() == RoleType.ADMIN || r.getRoleType() == RoleType.SUPER_ADMIN))
+            throw new org.springframework.security.access.AccessDeniedException("Administration required");
+        return current;
+    }
+
+    private User lockUser(Long id) {
+        User user = userRepository.lockById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        entityManager.refresh(user, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        return user;
     }
 
     private void requireAdminRole(User actor, RoleType requested) {

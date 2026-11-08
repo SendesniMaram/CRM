@@ -15,6 +15,8 @@ public interface IAuthenticationService {
 
     void register(RegisterRequest request);
 
+    void logout(RefreshTokenRequest request);
+
     RefreshTokenResponse refreshToken(RefreshTokenRequest request);
 }
 

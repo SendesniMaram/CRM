@@ -135,14 +135,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
         Throwable cause = ex.getCause();
-        logger.error(
-            "Unhandled exception for endpoint {}: type={}, message={}, causeType={}, causeMessage={}",
-            getPath(request),
-            ex.getClass().getName(),
-            ex.getMessage(),
-            cause != null ? cause.getClass().getName() : "none",
-            cause != null ? cause.getMessage() : "none"
-        );
+        logger.error("Unhandled exception: type={}, causeType={}",
+                ex.getClass().getName(), cause != null ? cause.getClass().getName() : "none");
         ApiError body = new ApiError(
                 500,
                 "Internal Server Error",

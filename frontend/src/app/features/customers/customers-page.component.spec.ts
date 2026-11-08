@@ -26,7 +26,7 @@ describe('CustomersPageComponent', () => {
     category: FormControl<string>; segment: FormControl<string>; contactType: FormControl<string>;
     paginate(event: PageEvent): void; sort(event: Sort): void; remove(row: CustomerResponse): void };
   beforeEach(async () => {
-    service = jasmine.createSpyObj('CustomerService', ['list', 'delete']);
+    service = jasmine.createSpyObj('CustomerService', ['list', 'delete','restore','importExcel']);
     service.list.and.returnValue(of(result)); service.delete.and.returnValue(of(undefined));
     auth = jasmine.createSpyObj('AuthService', ['hasAnyRole']); auth.hasAnyRole.and.returnValue(true);
     confirmation = new Subject<boolean>();
@@ -92,17 +92,17 @@ describe('CustomersPageComponent', () => {
     expect(service.delete).not.toHaveBeenCalled(); confirmation.next(false); confirmation.complete();
     expect(service.delete).not.toHaveBeenCalled();
   });
-  it('deletes only after confirmation and returns to the previous page when needed', () => {
+  it('archives only after confirmation and returns to the previous page when needed', () => {
     fixture.detectChanges(); view.page.set(1); view.remove(row);
     confirmation.next(true); confirmation.complete();
     expect(service.delete).toHaveBeenCalledOnceWith(1);
     expect(service.list.calls.mostRecent().args[0].page).toBe(0);
-    expect(snack.open).toHaveBeenCalledWith('Client supprimé.', 'Fermer', { duration: 5000 });
+    expect(snack.open).toHaveBeenCalledWith('Contact archivé.', 'Fermer', { duration: 5000 });
   });
   it('explains a backend refusal without exposing raw database text', () => {
     service.delete.and.returnValue(throwError(() => ({ status: 409, error: { message: 'private SQL' } })));
     fixture.detectChanges(); view.remove(row); confirmation.next(true); confirmation.complete();
-    expect(snack.open.calls.mostRecent().args[0]).toContain('Suppression refusée');
+    expect(snack.open.calls.mostRecent().args[0]).toContain('Archivage refusé');
     expect(snack.open.calls.mostRecent().args[0]).not.toContain('SQL');
   });
   it('does not allow deletion without administrative permission', () => {
@@ -110,4 +110,8 @@ describe('CustomersPageComponent', () => {
     expect(dialog.open).not.toHaveBeenCalled(); expect(service.delete).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('a[href="/customers/new"]')).toBeNull();
   });
+  it('sends combined archive and assignment filters to the paged service',()=>{fixture.detectChanges();const c=fixture.componentInstance;c['assignedEmployeeId'].setValue('101');c['status'].setValue('ARCHIVED');c['category'].setValue('Tech');c['search'].setValue('Acme');c['find']();expect(service.list.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({assignedEmployeeId:'101',status:'ARCHIVED',category:'Tech',keyword:'Acme',page:0}));});
+  it('requires XLSX selection confirmation and shows per-row report',()=>{fixture.detectChanges();const c=fixture.componentInstance,file=new File(['synthetic'],'contacts.xlsx');const event={target:{files:[file],value:'selected'}} as unknown as Event;c['selectExcel'](event);expect(service.importExcel).not.toHaveBeenCalled();const report={totalRows:2,acceptedRows:1,rejectedRows:1,issues:[{row:3,message:'Duplicate'}]};service.importExcel.and.returnValue(of(report));c['importExcel']();fixture.detectChanges();expect(service.importExcel).toHaveBeenCalledWith(file);expect(c['importReport']()).toEqual(report);expect(fixture.nativeElement.textContent).toContain('Duplicate');});
+  it('rejects invalid XLSX files before upload and explains a server refusal',()=>{const c=fixture.componentInstance;c['selectExcel']({target:{files:[new File(['x'],'macro.xlsm')],value:'x'}} as unknown as Event);expect(c['pendingExcel']()).toBeNull();expect(service.importExcel).not.toHaveBeenCalled();c['pendingExcel'].set(new File(['x'],'contacts.xlsx'));service.importExcel.and.returnValue(throwError(()=>({status:400})));c['importExcel']();expect(c['importError']()).toContain('sans formules');});
+  it('renders archives read-only and exposes restoration',()=>{service.list.and.returnValue(of({...result,content:[{...row,archived:true}]}));service.restore.and.returnValue(of({...row,archived:false}));fixture.detectChanges();expect(fixture.nativeElement.textContent).toContain('Archivé');expect(fixture.nativeElement.querySelector('a[href="/customers/1/edit"]')).toBeNull();fixture.componentInstance['restore']({...row,archived:true});expect(service.restore).toHaveBeenCalledWith(1);});
 });

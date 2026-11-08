@@ -1,13 +1,13 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { of, throwError, Subject } from 'rxjs';
 import { PayrollDetailComponent } from './payroll-detail.component';
 import { PayrollService } from './payroll.service';
 describe('PayrollDetailComponent', () => {
   async function create(id: string, fails = false) {
     const service = jasmine.createSpyObj<PayrollService>('PayrollService', ['get']);
-    service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' }, netSalary: 123.45, published: false, createdAt: null, updatedAt: null }));
+    service.get.and.returnValue(fails ? throwError(() => ({ status: 404 })) : of({ id: 4, ...{ employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'PENDING' }, netSalary: 123.45, published: false, createdAt: null, updatedAt: null }));
     await TestBed.configureTestingModule({ imports: [PayrollDetailComponent], providers: [provideRouter([]),
       provideZonelessChangeDetection(), { provide: PayrollService, useValue: service },
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ id })) } }] }).compileComponents();
@@ -18,7 +18,7 @@ describe('PayrollDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('123,45');
     expect(fixture.nativeElement.textContent).not.toContain('1 850,00');
     expect(fixture.nativeElement.textContent).toContain('31/10/2026');
-    expect(fixture.nativeElement.textContent).toContain('À payer');
+    expect(fixture.nativeElement.textContent).toContain('PENDING');
     expect(fixture.nativeElement.querySelector('a[href="/payroll/4/edit"]')).toBeTruthy();
   });
   it('does not request an invalid ID', async () => {
@@ -30,4 +30,6 @@ describe('PayrollDetailComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Fiche de paie introuvable');
     expect(fixture.nativeElement.querySelector('a[href="/payroll"]')).toBeTruthy();
   });
+  it('does not restore a previous payroll after a late settlement refresh',async()=>{const {fixture,service}=await create('4');const c=fixture.componentInstance,old=c['payroll']()!,pending=new Subject<typeof old>();service.get.and.returnValue(pending);c['refresh']();c['payroll'].set({...old,id:8});pending.next(old);expect(c['payroll']()?.id).toBe(8);pending.complete();});
+  it('hides direct editing for published or cancelled payrolls',async()=>{const {fixture}=await create('4');const c=fixture.componentInstance,old=c['payroll']()!;c['payroll'].set({...old,published:true});fixture.detectChanges();expect(fixture.nativeElement.querySelector('a[href="/payroll/4/edit"]')).toBeNull();});
 });

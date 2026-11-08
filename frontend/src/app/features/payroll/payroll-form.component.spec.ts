@@ -17,7 +17,7 @@ import { PayrollService } from './payroll.service';
 
 describe('PayrollFormComponent', () => {
   const request: PayrollRequest = { employeeId: 'EMP-legacy', baseSalary: 2000, bonuses: null,
-    deductions: null, taxAmount: null, payPeriod: '2026-10', paymentDate: null, currency: null, status: 'À payer' };
+    deductions: null, taxAmount: null, payPeriod: '2026-10', paymentDate: null, currency: null, status: 'PENDING' };
   const row: PayrollResponse = { id: 4, ...request, netSalary: 123.45, published: false, createdAt: null, updatedAt: null };
   let fixture: ComponentFixture<PayrollFormComponent>;
   let service: jasmine.SpyObj<PayrollService>;
@@ -46,7 +46,7 @@ describe('PayrollFormComponent', () => {
     return fixture.componentInstance;
   }
   function fill(c: PayrollFormComponent) {
-    c['form'].patchValue({ employeeId: ' EMP-legacy ', baseSalary: 2000, payPeriod: ' 2026-10 ', status: ' À payer ' });
+    c['form'].patchValue({ employeeId: ' EMP-legacy ', baseSalary: 2000, payPeriod: '2026-10', status: 'PENDING' });
   }
   it('requires nonblank employee, period and status and a positive finite base salary', () => {
     const c = start(); c['submit'](); expect(service.create).not.toHaveBeenCalled(); fill(c);
@@ -58,29 +58,36 @@ describe('PayrollFormComponent', () => {
       c['form'].controls.baseSalary.setValue(value); expect(c['form'].controls.baseSalary.invalid).toBeTrue();
     }
   });
-  it('allows nullable optional amounts and signed finite adjustments as the API does', () => {
+  it('accepts optional zero amounts and rejects negative, overprecise or overflowing adjustments', () => {
     const c = start(); fill(c);
     for (const key of ['bonuses', 'deductions', 'taxAmount'] as const) {
-      for (const value of [null, 0, -2.5, 100]) {
+      for (const value of [null, 0, 2.5, 100]) {
         c['form'].controls[key].setValue(value); expect(c['form'].controls[key].valid).toBeTrue();
       }
-      for (const value of [Infinity, NaN]) {
+      for (const value of [Infinity, NaN, -2.5, 0.001, 10000000000]) {
         c['form'].controls[key].setValue(value); expect(c['form'].controls[key].invalid).toBeTrue();
       }
     }
   });
-  it('enforces DTO lengths and real calendar dates without a period, currency or status enum', () => {
+  it('enforces periods, known statuses, DTO lengths and real calendar dates', () => {
     const c = start(); fill(c);
-    c['form'].patchValue({ payPeriod: 'Période libre', currency: 'LIBRE', status: 'Statut libre', paymentDate: '2028-02-29' });
+    c['form'].patchValue({ payPeriod: '2026-10', currency: 'LIBRE', status: 'PENDING', paymentDate: '2028-02-29' });
     expect(c['form'].valid).toBeTrue();
     for (const value of ['2027-02-29', '2026-04-31', '14/10/2026', 'invalid']) {
       c['form'].controls.paymentDate.setValue(value); expect(c['form'].controls.paymentDate.invalid).toBeTrue();
     }
     c['form'].controls.paymentDate.setValue(''); expect(c['form'].controls.paymentDate.valid).toBeTrue();
     for (const [key, max] of [['employeeId', 50], ['payPeriod', 50], ['currency', 10], ['status', 50]] as const) {
-      c['form'].controls[key].setValue('x'.repeat(max)); expect(c['form'].controls[key].valid).toBeTrue();
+      c['form'].controls[key].setValue('x'.repeat(max)); expect(c['form'].controls[key].hasError('maxlength')).toBeFalse();
       c['form'].controls[key].setValue('x'.repeat(max + 1)); expect(c['form'].controls[key].hasError('maxlength')).toBeTrue();
     }
+  });
+  it('rejects invalid period, status and negative calculated net before calling the API', () => {
+    const c = start(); fill(c);
+    for (const payPeriod of ['2026-00', '2026-13', '2026', 'free']) { c['form'].controls.payPeriod.setValue(payPeriod); c['submit'](); }
+    fill(c); c['form'].controls.status.setValue('unknown'); c['submit']();
+    fill(c); c['form'].controls.deductions.setValue(2001); c['submit']();
+    expect(c['form'].hasError('net')).toBeTrue(); expect(service.create).not.toHaveBeenCalled();
   });
   it('creates the exact trimmed DTO without netSalary, id or timestamps', () => {
     const c = start(); fill(c); c['form'].controls.currency.setValue(' '); c['submit']();
@@ -169,4 +176,7 @@ describe('PayrollFormComponent', () => {
       expect(TestBed.inject(Router).navigate).not.toHaveBeenCalled();
     });
   }
+  it('sends the explicit overtime pair and previews the computed net',()=>{const c=start();fill(c);c['form'].patchValue({overtimeHours:2.5,overtimeHourlyRate:12.34});expect(c['previewNet']()).toBe(2030.85);c['submit']();expect(service.create.calls.mostRecent().args[0]).toEqual(jasmine.objectContaining({overtimeHours:2.5,overtimeHourlyRate:12.34}));});
+  it('refuses direct editing of published payrolls',()=>{service.get.and.returnValue(of({...row,published:true}));const c=start('4');expect(c['ready']()).toBeFalse();c['submit']();expect(service.update).not.toHaveBeenCalled();});
+  it('refuses manual PAID status and incomplete overtime inputs',()=>{const c=start();fill(c);c['form'].controls.status.setValue('PAID');expect(c['form'].invalid).toBeTrue();c['form'].controls.status.setValue('PENDING');c['form'].controls.overtimeHours.setValue(2);expect(c['form'].hasError('overtime')).toBeTrue();c['submit']();expect(service.create).not.toHaveBeenCalled();});
 });

@@ -78,17 +78,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
-        String message = ex.getMessage() != null ? ex.getMessage() : "Data integrity violation";
-        if (message.contains("Unique index") || message.contains("unique") || message.contains("Duplicate")) {
-            message = "A record with the same unique value already exists";
-        }
-        ApiError body = new ApiError(
-                400,
-                "Bad Request",
-                message,
-                getPath(request)
-        );
-        return ResponseEntity.status(400).body(body);
+        // Drivers may include SQL and bound values: log types only, never messages/causes.
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class).warn(
+                "Persistence conflict: exceptionType={}, causeType={}",
+                ex.getClass().getSimpleName(), ex.getMostSpecificCause().getClass().getSimpleName());
+        return ResponseEntity.status(409).body(new ApiError(
+                409, "Conflict", "The operation conflicts with existing data", getPath(request)));
     }
 
     @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)

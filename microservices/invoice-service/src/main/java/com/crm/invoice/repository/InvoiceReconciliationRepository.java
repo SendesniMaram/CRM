@@ -1,0 +1,2 @@
+package com.crm.invoice.repository;import com.crm.invoice.entity.InvoiceReconciliation;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;import java.util.Optional;
+public interface InvoiceReconciliationRepository extends JpaRepository<InvoiceReconciliation,String>{@Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE) @Query("select j from InvoiceReconciliation j where j.id=:id") Optional<InvoiceReconciliation> lock(@Param("id") String id);}

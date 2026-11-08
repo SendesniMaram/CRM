@@ -14,7 +14,7 @@ import { InvoicesPageComponent } from './invoices-page.component';
 
 describe('InvoicesPageComponent', () => {
   const row: InvoiceResponse = { id: 1, invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: null, dueDate: null,
-    subtotal: 100, tax: 10, currency: 'TND', status: 'À traiter', notes: null,
+    subtotal: 100, tax: 10, currency: 'TND', status: 'PENDING', notes: null,
     totalAmount: 123.45, createdAt: null, updatedAt: null };
   const result: InvoicePage = { content: [row], totalElements: 31, totalPages: 4, number: 0, size: 10 };
   let fixture: ComponentFixture<InvoicesPageComponent>;
@@ -81,17 +81,17 @@ describe('InvoicesPageComponent', () => {
     expect(service.delete).not.toHaveBeenCalled(); confirmation.next(false); confirmation.complete();
     expect(service.delete).not.toHaveBeenCalled();
   });
-  it('deletes only after confirmation and returns to the previous page when needed', () => {
+  it('archives only after confirmation and returns to the previous page when needed', () => {
     fixture.detectChanges(); view.page.set(1); view.remove(row);
     confirmation.next(true); confirmation.complete();
     expect(service.delete).toHaveBeenCalledOnceWith(1);
     expect(service.list.calls.mostRecent().args[0].page).toBe(0);
-    expect(snack.open).toHaveBeenCalledWith('Facture supprimée.', 'Fermer', { duration: 5000 });
+    expect(snack.open).toHaveBeenCalledWith('Facture archivée.', 'Fermer', { duration: 5000 });
   });
   it('explains a backend refusal without exposing raw database text', () => {
     service.delete.and.returnValue(throwError(() => ({ status: 409, error: { message: 'private SQL' } })));
     fixture.detectChanges(); view.remove(row); confirmation.next(true); confirmation.complete();
-    expect(snack.open.calls.mostRecent().args[0]).toContain('Suppression refusée');
+    expect(snack.open.calls.mostRecent().args[0]).toContain('Archivage refusé');
     expect(snack.open.calls.mostRecent().args[0]).not.toContain('SQL');
   });
   it('does not allow deletion without administrative permission', () => {

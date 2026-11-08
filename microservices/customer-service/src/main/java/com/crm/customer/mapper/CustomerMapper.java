@@ -15,6 +15,7 @@ public class CustomerMapper {
 
         CustomerResponse response = new CustomerResponse();
         response.setId(customer.getId());
+        response.setArchived(customer.isArchived());
         response.setName(customer.getName());
         response.setEmail(customer.getEmail());
         response.setPhone(customer.getPhone());

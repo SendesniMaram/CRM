@@ -9,7 +9,7 @@
     @if (ready()) {
       <p class="muted">Le nom du client est obligatoire. Les autres informations sont facultatives.</p>
       <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
-        <div class="form-grid">
+        <div class="form-grid"><mat-form-field><mat-label>Employé affecté (identifiant facultatif)</mat-label><input matInput formControlName="assignedEmployeeId" maxlength="19"><mat-hint>La référence est vérifiée côté serveur.</mat-hint>@if(form.controls.assignedEmployeeId.invalid){<mat-error>Identifiant entier positif requis.</mat-error>}</mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Type de fiche</mat-label>
             <mat-select formControlName="contactType"><mat-option value="LEAD">Prospect</mat-option><mat-option value="CUSTOMER">Client</mat-option><mat-option value="SUPPLIER">Fournisseur</mat-option></mat-select>
           </mat-form-field>

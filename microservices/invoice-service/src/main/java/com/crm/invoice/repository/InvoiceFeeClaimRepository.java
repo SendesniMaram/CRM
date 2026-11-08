@@ -1,0 +1,2 @@
+package com.crm.invoice.repository;import com.crm.invoice.entity.InvoiceFeeClaim;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;import java.util.*;
+public interface InvoiceFeeClaimRepository extends JpaRepository<InvoiceFeeClaim,Long>{@Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE) @Query("select c from InvoiceFeeClaim c where c.feeId=:id") Optional<InvoiceFeeClaim> lock(@Param("id") Long id);List<InvoiceFeeClaim> findByFeeIdIn(Collection<Long> ids);}

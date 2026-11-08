@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal, effect, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -64,13 +64,19 @@ export class CustomersPageComponent implements OnInit {
   protected readonly contactType = new FormControl('', { nonNullable: true });
   protected readonly category = new FormControl('', { nonNullable: true });
   protected readonly segment = new FormControl('', { nonNullable: true });
+  protected readonly assignedEmployeeId=new FormControl('',{nonNullable:true});
+  protected readonly status=new FormControl('',{nonNullable:true});
+  protected readonly pendingExcel=signal<File|null>(null);
   protected readonly columns = ['name', 'company', 'email', 'phone', 'actions'];
 
+  private sessionContext='';
+  constructor(){effect(()=>{this.auth.getCurrentUser?.();const context=this.auth.sessionGeneration+'|'+this.canManage();if(!this.sessionContext){this.sessionContext=context;return;}if(this.sessionContext===context)return;this.sessionContext=context;untracked(()=>{this.revision++;this.rows.set([]);this.total.set(0);this.importReport.set(null);this.pendingExcel.set(null);this.error.set('');this.importError.set('');this.loading.set(false);this.busy.set(false);this.search.setValue('');this.assignedEmployeeId.setValue('');});});}
   ngOnInit() {
     this.requests.pipe(switchMap(query => {
+      const generation=this.auth.sessionGeneration;
       this.loading.set(true); this.error.set('');
       return this.service.list(query).pipe(
-        tap(result => { this.rows.set(result.content); this.total.set(result.totalElements); }),
+        tap(result => { if(generation!==this.auth.sessionGeneration||!this.canManage())return;this.rows.set(result.content); this.total.set(result.totalElements); }),
         catchError(() => { this.rows.set([]); this.total.set(0); this.error.set('Impossible de charger les clients. Réessayez.'); return EMPTY; }),
         finalize(() => this.loading.set(false)));
     }), takeUntilDestroyed(this.destroy)).subscribe();
@@ -88,9 +94,11 @@ export class CustomersPageComponent implements OnInit {
       this.importError.set('Sélectionnez un fichier CSV non vide de 5 Mio maximum.');
       return;
     }
+    const generation=this.auth.sessionGeneration;
     this.importing.set(true);
     this.service.importCsv(file).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.importing.set(false))).subscribe({
       next: report => {
+        if(generation!==this.auth.sessionGeneration||!this.canManage())return;
         this.importReport.set(report);
         this.snack.open(`${report.acceptedRows} contact(s) importé(s), ${report.rejectedRows} ligne(s) rejetée(s).`, 'Fermer', { duration: 6000 });
         if (report.acceptedRows > 0) this.load();
@@ -101,17 +109,24 @@ export class CustomersPageComponent implements OnInit {
           : 'Import impossible. Vérifiez votre connexion et réessayez.')
     });
   }
+  protected restore(row:CustomerResponse){if(this.busy()||!this.canManage())return;this.busy.set(true);this.service.restore(row.id).pipe(takeUntilDestroyed(this.destroy),finalize(()=>this.busy.set(false))).subscribe({next:()=>this.load(),error:()=>this.error.set('Restauration impossible.')});}
+  protected selectExcel(event:Event){const input=event.target as HTMLInputElement,file=input.files?.[0];input.value='';this.pendingExcel.set(null);this.importError.set('');if(!file)return;if(!file.name.toLowerCase().endsWith('.xlsx')||file.size===0||file.size>5*1024*1024){this.importError.set('Sélectionnez un XLSX non vide de 5 Mio maximum.');return;}this.pendingExcel.set(file);}
+  protected importExcel(){const generation=this.auth.sessionGeneration;const file=this.pendingExcel();if(!file||!this.canManage()||this.importing())return;this.importing.set(true);this.importReport.set(null);this.importError.set('');this.service.importExcel(file).pipe(takeUntilDestroyed(this.destroy),finalize(()=>this.importing.set(false))).subscribe({next:r=>{if(generation!==this.auth.sessionGeneration||!this.canManage())return;this.importReport.set(r);this.pendingExcel.set(null);if(r.acceptedRows)this.load();},error:e=>this.importError.set(e.status===400||e.status===413?'XLSX refusé : une feuille, 2000 lignes, colonnes connues, sans formules ni macros.':'Import indisponible. Des lignes peuvent déjà être importées ; vérifiez le rapport et les contacts avant une reprise.')});}
   protected exportCsv() {
     if (this.exporting()) return;
+    const generation=this.auth.sessionGeneration;
     const keyword = this.search.value.trim();
     this.exporting.set(true);
     this.service.exportCsv({
       ...(keyword ? { keyword } : {}),
       ...(this.contactType.value ? { contactType: this.contactType.value } : {}),
       ...(this.category.value.trim() ? { category: this.category.value.trim() } : {}),
-      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {})
+      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {}),
+      ...(this.assignedEmployeeId.value.trim()?{assignedEmployeeId:this.assignedEmployeeId.value.trim()}:{}),
+      ...(this.status.value?{status:this.status.value as 'ACTIVE'|'ARCHIVED'}:{})
     }).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.exporting.set(false))).subscribe({
       next: blob => {
+        if(generation!==this.auth.sessionGeneration||!this.canManage())return;
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -125,15 +140,19 @@ export class CustomersPageComponent implements OnInit {
   }
   protected exportExcel() {
     if (this.exporting()) return;
+    const generation=this.auth.sessionGeneration;
     const keyword = this.search.value.trim();
     this.exporting.set(true);
     this.service.exportExcel({
       ...(keyword ? { keyword } : {}),
       ...(this.contactType.value ? { contactType: this.contactType.value } : {}),
       ...(this.category.value.trim() ? { category: this.category.value.trim() } : {}),
-      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {})
+      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {}),
+      ...(this.assignedEmployeeId.value.trim()?{assignedEmployeeId:this.assignedEmployeeId.value.trim()}:{}),
+      ...(this.status.value?{status:this.status.value as 'ACTIVE'|'ARCHIVED'}:{})
     }).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.exporting.set(false))).subscribe({
       next: blob => {
+        if(generation!==this.auth.sessionGeneration||!this.canManage())return;
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -151,11 +170,14 @@ export class CustomersPageComponent implements OnInit {
       direction: this.direction(), ...(keyword ? { keyword } : {}),
       ...(this.contactType.value ? { contactType: this.contactType.value } : {}),
       ...(this.category.value.trim() ? { category: this.category.value.trim() } : {}),
-      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {}) });
+      ...(this.segment.value.trim() ? { segment: this.segment.value.trim() } : {}),
+      ...(this.assignedEmployeeId.value.trim()?{assignedEmployeeId:this.assignedEmployeeId.value.trim()}:{}),
+      ...(this.status.value?{status:this.status.value as 'ACTIVE'|'ARCHIVED'}:{}) });
   }
-  protected find() { this.page.set(0); this.load(); }
+  protected find() {if(this.assignedEmployeeId.value&&!/^[1-9][0-9]{0,18}$/.test(this.assignedEmployeeId.value)){this.error.set('Identifiant employé invalide.');return;} this.page.set(0); this.load(); }
   protected paginate(event: PageEvent) { this.page.set(event.pageIndex); this.size.set(event.pageSize); this.load(); }
   protected convert(row: CustomerResponse) {
+    if(row.archived)return;
     if (!this.canManage() || row.contactType !== 'LEAD' || this.busy()) return;
     this.busy.set(true);
     this.service.convertLead(row.id).pipe(takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
@@ -175,22 +197,22 @@ export class CustomersPageComponent implements OnInit {
     const last = this.rows().length === 1 && this.rows()[0].id === customer.id;
     this.busy.set(true);
     this.dialog.open(ConfirmDialogComponent, { width: '440px', maxWidth: '90vw',
-      data: { title: 'Supprimer le client', message: `Supprimer « ${customer.name} » ? Cette action est irréversible.`,
-        confirmLabel: 'Supprimer' }
+      data: { title: 'Archiver le contact', message: 'Archiver ce contact ? Son historique sera conservé.',
+        confirmLabel: 'Archiver' }
     }).afterClosed().pipe(switchMap(confirmed => confirmed === true && this.canManage()
       ? this.service.delete(customer.id) : EMPTY),
       takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
       next: () => {
-        this.snack.open('Client supprimé.', 'Fermer', { duration: 5000 });
+        this.snack.open('Contact archivé.', 'Fermer', { duration: 5000 });
         if (last && revision === this.revision && keyword === this.search.value.trim() && this.page() > 0)
           this.page.update(page => page - 1);
         this.load();
       },
       error: (e: { status?: number }) => {
         if (e.status === 401 || e.status === 403) return;
-        this.snack.open(e.status === 404 ? 'Ce client est introuvable ou a déjà été supprimé.'
-          : e.status === 400 || e.status === 409 ? 'Suppression refusée par le service. Le client peut être lié à d’autres données.'
-          : 'Impossible de supprimer ce client. Réessayez plus tard.', 'Fermer', { duration: 8000 });
+        this.snack.open(e.status === 404 ? 'Ce client est introuvable ou a déjà été archivé.'
+          : e.status === 400 || e.status === 409 ? 'Archivage refusé par le service. Le client peut être lié à d’autres données.'
+          : 'Impossible d’archiver ce contact. Réessayez plus tard.', 'Fermer', { duration: 8000 });
       }
     });
   }

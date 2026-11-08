@@ -177,6 +177,7 @@ public class QuoteController {
             line.setQuantity(quoteLine.getQuantity());
             line.setUnitPrice(quoteLine.getUnitPrice());
             line.setLineTotal(quoteLine.getLineTotal());
+            line.setInvoiceId(entity.getId());
             entity.getLines().add(line);
         }
         invoiceRepository.save(entity);

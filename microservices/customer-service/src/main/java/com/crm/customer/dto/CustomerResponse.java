@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class CustomerResponse {
 
     private Long id;
+    private boolean archived;
 
     private String name;
 

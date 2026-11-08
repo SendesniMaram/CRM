@@ -1,6 +1,7 @@
 package com.crm.invoice.repository;
 import com.crm.invoice.entity.InvoicePayment; import org.springframework.data.jpa.repository.JpaRepository; import org.springframework.data.jpa.repository.Query; import org.springframework.data.repository.query.Param; import java.math.BigDecimal; import java.util.List;
 public interface InvoicePaymentRepository extends JpaRepository<InvoicePayment,Long> {
+ boolean existsByInvoiceId(Long invoiceId);
  interface InvoicePaidSummary { Long getInvoiceId(); BigDecimal getAmount(); }
  @Query("select p.invoiceId as invoiceId, coalesce(sum(p.amount),0) as amount from InvoicePayment p group by p.invoiceId") List<InvoicePaidSummary> summarizePaidByInvoice();
  interface CurrencyPaidSummary { String getCurrency(); BigDecimal getAmount(); }

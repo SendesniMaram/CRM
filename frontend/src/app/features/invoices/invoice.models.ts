@@ -14,6 +14,9 @@ export interface InvoicePaymentSummary { payments: InvoicePayment[]; paidAmount:
 export interface InvoiceReminder { id: number; invoiceId: number; recordedAt: string; channel: string; notes: string | null; recordedBy: string | null; }
 export interface InvoiceResponse extends InvoiceRequest {
   id: number;
+  archived?:boolean;
+  issued?:boolean;
+  reconciliationId?:string|null;
   totalAmount: number;
   createdAt: string | null;
   updatedAt: string | null;

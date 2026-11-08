@@ -59,9 +59,9 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public List<CustomerResponse> getAllCustomers() {
-        return customerRepository.findAll().stream()
-                .map(customerMapper::toResponse)
-                .toList();
+        var page=customerRepository.findAll(PageRequest.of(0,101,Sort.by("id")));
+        if(page.getTotalElements()>100)throw new IllegalArgumentException("More than 100 contacts: use explicit pagination");
+        return page.getContent().stream().map(customerMapper::toResponse).toList();
     }
 
     @Override
@@ -71,21 +71,22 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public Page<CustomerResponse> getAllCustomersPaged(int page, int size, String sortBy, String direction, String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
-        String sortField = StringUtils.hasText(sortBy) ? sortBy : "id";
-        Sort.Direction sortDirection = "desc".equalsIgnoreCase(direction) ? Sort.Direction.DESC : Sort.Direction.ASC;
-        Sort sort = Sort.by(sortDirection, sortField);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Page<Customer> customerPage;
-
-        customerPage = customerRepository.findAll(CustomerSpecification.filters(keyword, contactType, category, segment, assignedEmployeeId), pageable);
-
-        return customerPage.map(customerMapper::toResponse);
+        return search(page,size,sortBy,direction,keyword,contactType,category,segment,assignedEmployeeId,null);
     }
+    @Override public Page<CustomerResponse> search(int page,int size,String sortBy,String direction,String keyword,String contactType,String category,String segment,Long assignedEmployeeId,String status){
+        if(page<0||size<1||size>100||keyword!=null&&keyword.length()>200||category!=null&&category.length()>100||segment!=null&&segment.length()>100||assignedEmployeeId!=null&&assignedEmployeeId<=0)throw new IllegalArgumentException("Invalid page or filters");
+        String field=StringUtils.hasText(sortBy)?sortBy:"id";
+        if(!java.util.Set.of("id","name","email","phone","company","contactType","category","segment","assignedEmployeeId","createdAt").contains(field)||!java.util.Set.of("asc","desc").contains(direction.toLowerCase(java.util.Locale.ROOT))||contactType!=null&&!java.util.Set.of("LEAD","CUSTOMER","SUPPLIER").contains(contactType))throw new IllegalArgumentException("Invalid sort or contact type");
+        var filters=CustomerSpecification.filters(keyword,contactType,category,segment,assignedEmployeeId).and(CustomerSpecification.state(status));
+        return customerRepository.findAll(filters,PageRequest.of(page,size,Sort.by(Sort.Direction.fromString(direction),field).and(Sort.by("id")))).map(customerMapper::toResponse);
+    }
+    @Override public CustomerResponse restore(Long id){var row=locked(id);row.setArchived(false);return customerMapper.toResponse(row);}
+    private Customer locked(Long id){return customerRepository.lockById(id).orElseThrow(()->new ResourceNotFoundException("Contact unavailable"));}
+    private void active(Customer row){if(row.isArchived())throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"Archived contact is read-only");}
 
     @Override
     public CustomerResponse convertLead(Long id) {
-        Customer existing = customerRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        Customer existing = locked(id);active(existing);
         if (!"LEAD".equals(existing.getContactType())) throw new IllegalArgumentException("Only leads can be converted");
         existing.setContactType("CUSTOMER");
         return customerMapper.toResponse(customerRepository.save(existing));
@@ -93,8 +94,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public CustomerResponse updateCustomer(Long id, CustomerRequest request) {
-        Customer existing = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
+        Customer existing = locked(id);active(existing);
 
         if (!existing.getName().equals(request.getName())
                 && customerRepository.existsByName(request.getName())) {
@@ -118,9 +118,7 @@ public class CustomerServiceImpl implements ICustomerService {
 
     @Override
     public void deleteCustomer(Long id) {
-        Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
-        customerRepository.delete(customer);
+        Customer customer=locked(id);
+        customer.setArchived(true);
     }
 }
-

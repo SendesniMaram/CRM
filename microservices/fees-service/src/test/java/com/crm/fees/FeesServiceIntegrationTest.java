@@ -32,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySupport {
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.crm.fees.service.FeeReferenceDirectory directory;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -60,16 +63,16 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     }
 
     @Test
-    void statisticsAggregateRecordedAmountsHoursAndStatuses() throws Exception {
+    void statisticsKeepHoursAndStatusesButNeverAggregateAmountsWithoutCurrency() throws Exception {
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(get("/api/fees/statistics"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.count").value(1))
-                .andExpect(jsonPath("$.amount").value(1500.00))
+                .andExpect(jsonPath("$.amount").value(nullValue()))
                 .andExpect(jsonPath("$.workedHours").value(10.0))
                 .andExpect(jsonPath("$.invoiceStatuses.PENDING").value(1))
                 .andExpect(jsonPath("$.paymentStatuses.UNPAID").value(1))
@@ -80,7 +83,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     void descriptionAccepts500CharactersAndRejects501() throws Exception {
         validRequest.setDescription("a".repeat(500));
         String responseJson = mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -90,7 +93,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
 
         validRequest.setDescription("a".repeat(501));
         mockMvc.perform(put("/api/fees/" + id)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isBadRequest());
     }
@@ -98,7 +101,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void createFee_ShouldReturn201AndPersist() throws Exception {
         String responseJson = mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -125,7 +128,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         FeeRequest invalidRequest = new FeeRequest();
 
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
@@ -137,7 +140,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void getAllFees_ShouldReturnList() throws Exception {
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
 
@@ -151,7 +154,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         secondRequest.setPaymentStatus("UNPAID");
 
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isCreated());
 
@@ -171,7 +174,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void getAllFees_WithPagination_ShouldReturnPage() throws Exception {
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
 
@@ -193,7 +196,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void getAllFees_WithKeywordSearch_ShouldReturnFilteredResults() throws Exception {
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated());
 
@@ -207,7 +210,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         secondRequest.setPaymentStatus("UNPAID");
 
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(secondRequest)))
                 .andExpect(status().isCreated());
 
@@ -225,7 +228,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void getFeeById_ShouldReturnFee() throws Exception {
         String createJson = mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andReturn()
@@ -256,7 +259,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
     @Test
     void updateFee_ShouldReturnUpdatedFee() throws Exception {
         String createJson = mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andReturn()
@@ -275,7 +278,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         updateRequest.setPaymentStatus("PAID");
 
         mockMvc.perform(put("/api/fees/{id}", created.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
@@ -296,19 +299,19 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         updateRequest.setPaymentStatus("UNPAID");
 
         mockMvc.perform(put("/api/fees/{id}", 99999L)
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Fee not found")))
+                .andExpect(jsonPath("$.message").value(is("Fee unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/fees/99999"));
     }
 
     @Test
     void deleteFee_ShouldReturn204AndRemoveFromDatabase() throws Exception {
         String createJson = mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated())
                 .andReturn()
@@ -329,7 +332,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Fee not found")))
+                .andExpect(jsonPath("$.message").value(is("Fee unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/fees/99999"));
     }
 
@@ -345,7 +348,7 @@ class FeesServiceIntegrationTest extends com.crm.fees.security.TestIdentitySuppo
         request.setPaymentStatus("UNPAID");
 
         mockMvc.perform(post("/api/fees")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Authorization","Bearer synthetic-fees-test").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.amount").value(800.00));

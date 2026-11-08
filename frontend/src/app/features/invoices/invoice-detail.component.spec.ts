@@ -26,6 +26,24 @@ describe('InvoiceDetailComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Statut libre');
     expect(fixture.nativeElement.querySelector('a[href="/invoices/4/edit"]')).toBeTruthy();
   });
+  it('rejects payment on protected or unknown states without a request', async () => {
+    const { fixture, service } = await create('4'); const c = fixture.componentInstance;
+    c['paymentForm'].patchValue({ amount: 10, paidAt: '2026-11-01' }); c['recordPayment']();
+    expect(service.recordPayment).not.toHaveBeenCalled();
+    c['invoice'].set({ ...c['invoice']()!, status: 'PAID' }); c['recordPayment']();
+    expect(service.recordPayment).not.toHaveBeenCalled();
+  });
+  it('validates precision and refreshes the server status after recording payment', async () => {
+    const { fixture, service } = await create('4'); const c = fixture.componentInstance;
+    const paid = { ...c['invoice']()!, status: 'PAID' };
+    c['invoice'].set({ ...paid, status: 'PENDING' });
+    c['paymentForm'].patchValue({ amount: 0.001, paidAt: '2026-11-01' }); c['recordPayment']();
+    expect(service.recordPayment).not.toHaveBeenCalled();
+    service.recordPayment.and.returnValue(of({ id: 1, invoiceId: 4, amount: 123.45, paidAt: '2026-11-01', method: null, reference: null, notes: null }));
+    service.get.and.returnValue(of(paid)); c['paymentForm'].controls.amount.setValue(123.45); c['recordPayment']();
+    expect(service.recordPayment).toHaveBeenCalledTimes(1); expect(c['invoice']()?.status).toBe('PAID');
+    expect(c['canPay']()).toBeFalse();
+  });
   it('does not request an invalid ID', async () => {
     const { fixture, service } = await create('invalid');
     expect(service.get).not.toHaveBeenCalled(); expect(fixture.nativeElement.textContent).toContain('Facture introuvable');

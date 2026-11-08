@@ -14,6 +14,9 @@ import lombok.NoArgsConstructor;
 public class InvoiceResponse {
 
     private Long id;
+    private boolean archived;
+    private boolean issued;
+    private String reconciliationId;
 
     private String invoiceNumber;
 

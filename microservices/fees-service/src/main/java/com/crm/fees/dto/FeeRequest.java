@@ -32,11 +32,16 @@ public class FeeRequest {
 
     @NotNull(message = "Hourly rate is required")
     @Positive(message = "Hourly rate must be positive")
+    @jakarta.validation.constraints.Digits(integer=10,fraction=2)
     private BigDecimal hourlyRate;
 
     @NotNull(message = "Worked hours is required")
     @Positive(message = "Worked hours must be positive")
+    @jakarta.validation.constraints.Digits(integer=6,fraction=2)
     private BigDecimal workedHours;
+
+    @jakarta.validation.constraints.Pattern(regexp="[A-Z]{3}")
+    private String currency;
 
     @Size(max = 50, message = "Invoice status must be at most 50 characters")
     private String invoiceStatus;

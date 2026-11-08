@@ -25,7 +25,7 @@ public class FeeStatisticsController {
         Map<String, Long> invoice = new TreeMap<>(), payment = new TreeMap<>();
         fees.countByInvoiceStatus().forEach(row -> invoice.put(label(row.getStatus()), row.getCount()));
         fees.countByPaymentStatus().forEach(row -> payment.put(label(row.getStatus()), row.getCount()));
-        return new Summary(totals.getCount(), totals.getAmount() == null ? BigDecimal.ZERO : totals.getAmount(),
+        return new Summary(totals.getCount(), null,
                 totals.getHours() == null ? 0d : totals.getHours(), invoice, payment, false);
     }
     private String label(String value) { return value == null || value.isBlank() ? "NON_RENSEIGNÉ" : value; }

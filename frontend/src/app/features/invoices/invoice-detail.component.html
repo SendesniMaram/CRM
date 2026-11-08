@@ -1,12 +1,12 @@
 <section class="customer-page narrow" aria-labelledby="invoice-detail-title">
   <a mat-button routerLink="/invoices"><mat-icon>arrow_back</mat-icon>Retour aux factures</a>
   <header class="page-header pdf-detail-header"><div><p class="eyebrow">Facturation</p><h1 id="invoice-detail-title">{{ invoice()?.invoiceNumber || 'Fiche facture' }}</h1><p class="subtitle">Montants et informations de la facture.</p></div>
-    @if (invoice(); as row) { <div class="pdf-detail-actions"><app-pdf-download kind="invoice" [id]="row.id" /> <a mat-flat-button [routerLink]="['/invoices', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
+    @if (invoice(); as row) { <div class="pdf-detail-actions"><a mat-button routerLink="/invoices/workbench" [queryParams]="{invoice:row.id}">Présentation et suivi</a><app-pdf-download kind="invoice" [id]="row.id" /> <a mat-flat-button [routerLink]="row.archived || row.issued || row.reconciliationId ? null : ['/invoices', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a></div> }</header>
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de la facture…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     @if (invoice(); as row) {
-      <dl class="details-grid">
+      @if(row.archived){<p>Facture archivée : historique et PDF conservés.</p>} @if(row.issued){<p>Facture émise : document et montants figés.</p>} @if(row.reconciliationId){<p>Honoraires rapprochés : sources et montants protégés.</p>}<dl class="details-grid">
         <div><dt>Référence client</dt><dd>{{ row.customerId }}</dd></div>
         <div><dt>Statut</dt><dd><span class="status-badge">{{ row.status }}</span></dd></div>
         <div><dt>Date d’émission</dt><dd>{{ row.issueDate ? (row.issueDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</dd></div>
@@ -36,7 +36,7 @@
         <mat-form-field appearance="outline"><mat-label>Date du paiement</mat-label><input matInput type="date" formControlName="paidAt" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Mode</mat-label><input matInput formControlName="method" maxlength="50" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Référence</mat-label><input matInput formControlName="reference" maxlength="100" /></mat-form-field>
-        <button mat-flat-button type="submit" [disabled]="paymentBusy() || !paymentSummary() || paymentSummary()!.outstandingAmount <= 0">Enregistrer le paiement</button>
+        <button mat-flat-button type="submit" [disabled]="paymentBusy() || !canPay() || paymentForm.invalid || !paymentSummary() || paymentSummary()!.outstandingAmount <= 0">Enregistrer le paiement</button>
       </form>
       <h2>Relances manuelles</h2>
       <mat-form-field appearance="outline" class="full-width"><mat-label>Note de relance (facultatif)</mat-label><textarea matInput [formControl]="reminderNotes" maxlength="500"></textarea></mat-form-field>

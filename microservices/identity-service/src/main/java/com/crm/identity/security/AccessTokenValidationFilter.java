@@ -32,7 +32,8 @@ public class AccessTokenValidationFilter extends OncePerRequestFilter {
         // Authenticate only the bearer presented on this request, even if a context exists.
         SecurityContextHolder.clearContext();
         String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization == null || !authorization.startsWith("Bearer ") || authorization.substring(7).isBlank()) {
+        if (authorization == null || !authorization.startsWith("Bearer ") || authorization.substring(7).isBlank()
+                || authorization.indexOf('\r') >= 0 || authorization.indexOf('\n') >= 0) {
             reject(request, response, 401);
             return;
         }

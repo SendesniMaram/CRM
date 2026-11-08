@@ -16,6 +16,12 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleState(org.springframework.web.server.ResponseStatusException ex,WebRequest request){int status=ex.getStatusCode().value();return ResponseEntity.status(status).body(new ApiError(status,org.springframework.http.HttpStatus.valueOf(status).getReasonPhrase(),"Fee operation unavailable or conflicts with its state",getPath(request)));}
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleDenied(Exception ex,WebRequest request){return ResponseEntity.status(403).body(new ApiError(403,"Forbidden","Administrative access required",getPath(request)));}
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,org.springframework.web.bind.MissingServletRequestParameterException.class,org.springframework.web.bind.MissingRequestHeaderException.class})
+    public ResponseEntity<ApiError> handleParameter(Exception ex,WebRequest request){return ResponseEntity.badRequest().body(new ApiError(400,"Bad Request","Invalid or missing parameter",getPath(request)));}
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
@@ -78,17 +84,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
-        String message = ex.getMessage() != null ? ex.getMessage() : "Data integrity violation";
-        if (message.contains("Unique index") || message.contains("unique") || message.contains("Duplicate")) {
-            message = "A record with the same unique value already exists";
-        }
-        ApiError body = new ApiError(
-                400,
-                "Bad Request",
-                message,
-                getPath(request)
-        );
-        return ResponseEntity.status(400).body(body);
+        // Drivers may include SQL and bound values: log types only, never messages/causes.
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class).warn(
+                "Persistence conflict: exceptionType={}, causeType={}",
+                ex.getClass().getSimpleName(), ex.getMostSpecificCause().getClass().getSimpleName());
+        return ResponseEntity.status(409).body(new ApiError(
+                409, "Conflict", "The operation conflicts with existing data", getPath(request)));
     }
 
     @ExceptionHandler(Exception.class)

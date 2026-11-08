@@ -50,6 +50,7 @@ export class CustomerFormComponent implements OnInit {
       const value = control.value.trim();
       return !value || /^(\+\d{1,3}[- ]?)?\d{6,14}$/.test(value) ? null : { pattern: true };
     }]],
+    assignedEmployeeId:['',Validators.pattern(/^[1-9][0-9]{0,18}$/)],
     address: ['', Validators.maxLength(500)]
     ,contactType: ['CUSTOMER' as 'LEAD' | 'CUSTOMER' | 'SUPPLIER']
     ,category: ['', Validators.maxLength(100)]
@@ -64,7 +65,9 @@ export class CustomerFormComponent implements OnInit {
       if (!Number.isSafeInteger(id) || id <= 0) { this.error.set('Client introuvable.'); return EMPTY; }
       this.id.set(id); this.loading.set(true);
       return this.service.get(id).pipe(tap(row => {
-        this.form.patchValue({ name: row.name, company: row.company ?? '', email: row.email ?? '',
+        if(row.archived){this.error.set('Contact archivé : restaurez la fiche avant modification.');return;}
+        if(row.assignedEmployeeId!=null&&!Number.isSafeInteger(row.assignedEmployeeId)){this.error.set('Identifiant employé non représentable dans cet écran.');return;}
+        this.form.patchValue({assignedEmployeeId:row.assignedEmployeeId==null?'':String(row.assignedEmployeeId), name: row.name, company: row.company ?? '', email: row.email ?? '',
           phone: row.phone ?? '', address: row.address ?? '', contactType: row.contactType ?? 'CUSTOMER', category: row.category ?? '', segment: row.segment ?? '' }); this.ready.set(true);
       }), catchError((e: { status?: number }) => {
         this.error.set(e.status === 404 ? 'Client introuvable.' : 'Impossible de charger ce client. Réessayez.');
@@ -78,7 +81,8 @@ export class CustomerFormComponent implements OnInit {
     Object.values(this.form.controls).forEach(control => control.updateValueAndValidity());
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
-    const request: CustomerRequest = { name: value.name.trim(), company: value.company.trim() || null,
+    if(value.assignedEmployeeId&&!Number.isSafeInteger(Number(value.assignedEmployeeId))){this.form.controls.assignedEmployeeId.setErrors({pattern:true});return;}
+    const request: CustomerRequest = { ...(value.assignedEmployeeId?{assignedEmployeeId:Number(value.assignedEmployeeId)}:{}),name: value.name.trim(), company: value.company.trim() || null,
       email: value.email.trim() || null, phone: value.phone.trim() || null, address: value.address.trim() || null,
       contactType: value.contactType, category: value.category.trim() || null, segment: value.segment.trim() || null };
     this.saving.set(true); this.error.set('');

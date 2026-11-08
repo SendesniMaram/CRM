@@ -1,3 +1,4 @@
+import { PayrollSettlementsComponent } from './payroll-settlements.component';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -11,7 +12,7 @@ import { payrollError } from './my-payroll-page.component';
 
 @Component({
   selector: 'app-my-payroll-detail', standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, MatButtonModule, MatCardModule],
+  imports: [PayrollSettlementsComponent,DatePipe, DecimalPipe, RouterLink, MatButtonModule, MatCardModule],
   templateUrl: './my-payroll-detail.component.html', styleUrl: './payroll.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

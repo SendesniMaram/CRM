@@ -1,0 +1,20 @@
+package com.crm.fees.controller;
+import com.crm.fees.service.*;import com.crm.fees.dto.FeeCycleContracts.*;import jakarta.validation.Valid;import org.springframework.web.bind.annotation.*;import org.springframework.http.*;import org.springframework.data.domain.Page;import java.time.LocalDate;
+@RestController @RequestMapping("/api/fees/cycle") public class FeeCycleController {
+ private final FeeCycleService service;private final FeeReportService reports;public FeeCycleController(FeeCycleService s,FeeReportService r){service=s;reports=r;}
+ @GetMapping("/offerings") public ResponseEntity<Page<OfferingView>> offerings(@RequestParam(defaultValue="") String keyword,@RequestParam(defaultValue="0") int page){return ok(service.offerings(keyword,page));}
+ @PostMapping("/offerings") public ResponseEntity<OfferingView> offering(@Valid @RequestBody OfferingInput input,@RequestHeader("Authorization") String bearer){return ok(service.createOffering(input,bearer));}
+ @PatchMapping("/offerings/{id}/active") public ResponseEntity<OfferingView> offeringActive(@PathVariable long id,@Valid @RequestBody Activation input){return ok(service.offeringActive(id,input.active()));}
+ @GetMapping("/offerings/{id}/tariffs") public ResponseEntity<Page<TariffView>> tariffs(@PathVariable long id,@RequestParam(required=false) Boolean active,@RequestParam(defaultValue="0") int page){return ok(service.tariffs(id,active,page));}
+ @PostMapping("/offerings/{id}/tariffs") public ResponseEntity<TariffView> tariff(@PathVariable long id,@Valid @RequestBody TariffInput input){return ok(service.createTariff(id,input));}
+ @PutMapping("/tariffs/{id}") public ResponseEntity<TariffView> updateTariff(@PathVariable long id,@Valid @RequestBody TariffInput input){return ok(service.updateTariff(id,input));}
+ @PatchMapping("/tariffs/{id}/active") public ResponseEntity<TariffView> tariffActive(@PathVariable long id,@Valid @RequestBody Activation input){return ok(service.tariffActive(id,input.active()));}
+ @GetMapping("/offerings/{id}/times") public ResponseEntity<Page<TimeView>> times(@PathVariable long id,@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(defaultValue="0") int page){return ok(service.times(id,from,to,page));}
+ @PostMapping("/offerings/{id}/times") public ResponseEntity<TimeView> time(@PathVariable long id,@Valid @RequestBody NewTime input,@RequestHeader("Authorization") String bearer){return ok(service.createTime(id,input,bearer));}
+ @PutMapping("/times/{id}") public ResponseEntity<TimeView> updateTime(@PathVariable long id,@Valid @RequestBody TimeInput input,@RequestHeader("Authorization") String bearer){return ok(service.updateTime(id,input,bearer));}
+ @PostMapping("/times/{id}/cancel") public ResponseEntity<TimeView> cancel(@PathVariable long id,@Valid @RequestBody Cancellation input){return ok(service.cancelTime(id,input.reason()));}
+ @PostMapping("/times/{id}/record-fee") public ResponseEntity<Posted> post(@PathVariable long id,@RequestHeader("Authorization") String bearer){return ok(new Posted(service.post(id,bearer).getId().toString()));}
+ @GetMapping("/report") public ResponseEntity<FeeReportService.Report> report(@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(required=false) Long offeringId,@RequestParam(required=false) String customerId){return ok(reports.read(from,to,offeringId,customerId));}
+ @GetMapping("/report.csv") public ResponseEntity<byte[]> csv(@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(required=false) Long offeringId,@RequestParam(required=false) String customerId){return ResponseEntity.ok().cacheControl(CacheControl.noStore()).contentType(new MediaType("text","csv",java.nio.charset.StandardCharsets.UTF_8)).header(HttpHeaders.CONTENT_DISPOSITION,"attachment; filename=fees-technical.csv").body(reports.csv(from,to,offeringId,customerId));}
+ private <T> ResponseEntity<T> ok(T body){return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);}
+}

@@ -13,6 +13,8 @@ import { EMPTY, catchError, finalize, switchMap, tap } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { FeeReferencePickerComponent } from './fee-reference-picker.component';
+import { money } from '../../shared/financial-validators';
+import { feeProduct,feeEditable } from './fee-finance';
 import { FeeRequest } from './fee.models';
 import { FeeService } from './fee.service';
 
@@ -56,14 +58,15 @@ export class FeeFormComponent implements OnInit {
   protected readonly form = this.fb.group({
     employeeId: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)]),
     customerId: this.fb.nonNullable.control('', Validators.maxLength(50)),
+    currency:this.fb.nonNullable.control('',Validators.pattern(/^[A-Z]{3}$/)),
     serviceName: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(255)]),
     description: this.fb.nonNullable.control('', Validators.maxLength(500)),
-    hourlyRate: this.fb.control<number | null>(null, [Validators.required, positiveFinite]),
-    workedHours: this.fb.control<number | null>(null, [Validators.required, positiveFinite]),
+    hourlyRate: this.fb.control<number | null>(null, [Validators.required, positiveFinite,money]),
+    workedHours: this.fb.control<number | null>(null, [Validators.required, positiveFinite,money,Validators.max(999999.99)]),
     invoiceStatus: this.fb.nonNullable.control('', Validators.maxLength(50)),
     paymentStatus: this.fb.nonNullable.control('', Validators.maxLength(50)),
     workDate: this.fb.nonNullable.control('', feeDate)
-  });
+  },{validators:feeProduct});
 
   ngOnInit() {
     this.route.paramMap.pipe(switchMap(params => {
@@ -75,7 +78,8 @@ export class FeeFormComponent implements OnInit {
       if (!Number.isSafeInteger(id) || id <= 0) { this.error.set('Honoraire introuvable.'); return EMPTY; }
       this.id.set(id); this.loading.set(true);
       return this.service.get(id).pipe(tap(row => {
-        this.form.patchValue({ employeeId: row.employeeId, customerId: row.customerId ?? '',
+        if(!feeEditable(row)){this.error.set('Honoraire figé : consultez son origine ou son statut.');return;}
+        this.form.patchValue({ currency:row.currency??'',employeeId: row.employeeId, customerId: row.customerId ?? '',
           serviceName: row.serviceName, description: row.description ?? '', hourlyRate: row.hourlyRate,
           workedHours: row.workedHours, invoiceStatus: row.invoiceStatus ?? '',
           paymentStatus: row.paymentStatus ?? '', workDate: row.workDate ?? '' });
@@ -98,7 +102,7 @@ export class FeeFormComponent implements OnInit {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     if (value.hourlyRate === null || value.workedHours === null) return;
-    const request: FeeRequest = { employeeId: value.employeeId.trim(), customerId: value.customerId.trim() || null,
+    const request: FeeRequest = { ...(value.currency?{currency:value.currency}:{}),employeeId: value.employeeId.trim(), customerId: value.customerId.trim() || null,
       serviceName: value.serviceName.trim(), description: value.description.trim() || null,
       hourlyRate: value.hourlyRate, workedHours: value.workedHours,
       invoiceStatus: value.invoiceStatus.trim() || null, paymentStatus: value.paymentStatus.trim() || null,

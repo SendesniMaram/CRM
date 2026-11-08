@@ -124,4 +124,6 @@ describe('HR administrative screens',()=>{
     service.list.and.returnValue(throwError(()=>({status:503})));f.componentInstance['load']();f.detectChanges();
     expect(f.nativeElement.querySelector('[role=alert]').textContent).toContain('indisponible');
   });
+  it('trainings: uses an employee selector and preserves a read-only reference',()=>{const f=create('trainings');f.componentInstance['open'](fixtures.trainings,true);f.detectChanges();expect(f.nativeElement.querySelector('app-hr-employee-picker')).not.toBeNull();expect((f.nativeElement.querySelector('input[readonly]') as HTMLInputElement).readOnly).toBeTrue();expect(f.componentInstance['form'].controls['employeeId'].value).toBe('101');});
+  it('trainings: allows completion with unchanged historical dates',()=>{const f=create('trainings'),historical={...fixtures.trainings,startDate:'2020-01-01',endDate:'2020-01-02'};service.read.and.returnValue(of(historical));f.componentInstance['open'](historical,true);f.componentInstance['form'].controls['status'].setValue('COMPLETED');f.componentInstance['save']();expect(service.save).toHaveBeenCalledWith('trainings','7',jasmine.objectContaining({startDate:'2020-01-01',status:'COMPLETED'}));});
 });

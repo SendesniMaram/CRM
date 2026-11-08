@@ -10,6 +10,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { money } from '../../shared/financial-validators';
+import { invoiceDate } from './invoice-form.component';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { EMPTY, catchError, finalize, forkJoin, switchMap, tap } from 'rxjs';
 import { InvoiceAmountPipe } from './invoice-amount.pipe';
@@ -37,7 +39,7 @@ export class InvoiceDetailComponent implements OnInit {
   protected readonly reminderBusy = signal(false);
   protected readonly historyLoading = signal(false);
   protected readonly reminderNotes = this.fb.nonNullable.control('');
-  protected readonly paymentForm = this.fb.nonNullable.group({ amount: [0, [Validators.required, Validators.min(0.01)]], paidAt: [new Date().toISOString().slice(0, 10), Validators.required], method: [''], reference: [''], notes: [''] });
+  protected readonly paymentForm = this.fb.nonNullable.group({ amount: [0, [Validators.required, Validators.min(0.01), money]], paidAt: [new Date().toISOString().slice(0, 10), [Validators.required, invoiceDate]], method: [''], reference: [''], notes: [''] });
   ngOnInit() {
     this.route.paramMap.pipe(switchMap(params => {
       this.invoice.set(null); this.error.set(''); this.loading.set(false);
@@ -57,18 +59,23 @@ export class InvoiceDetailComponent implements OnInit {
         error: () => this.paymentError.set('Historique des paiements et relances indisponible.')
       });
   }
+  protected canPay() { return !this.invoice()?.archived && ["PENDING", "UNPAID", "PARTIALLY_PAID"].includes(this.invoice()?.status ?? ""); }
   protected recordPayment() {
-    const invoice = this.invoice(); if (!invoice || this.paymentForm.invalid || this.paymentBusy()) { this.paymentForm.markAllAsTouched(); return; }
+    const invoice = this.invoice(); if (!invoice || !this.canPay() || this.paymentForm.invalid || this.paymentBusy()) { this.paymentForm.markAllAsTouched(); return; }
     const value = this.paymentForm.getRawValue();
     this.paymentBusy.set(true);
     this.service.recordPayment(invoice.id, { amount: value.amount, paidAt: value.paidAt, method: value.method.trim() || null, reference: value.reference.trim() || null, notes: value.notes.trim() || null }).pipe(
       takeUntilDestroyed(this.destroy), finalize(() => this.paymentBusy.set(false))).subscribe({
-        next: () => { this.paymentError.set(''); this.paymentForm.controls.amount.setValue(0); this.loadFinancialHistory(invoice.id); this.snack.open('Paiement enregistré.', 'Fermer', { duration: 4000 }); },
+        next: () => { this.paymentError.set(''); this.paymentForm.controls.amount.setValue(0); this.loadFinancialHistory(invoice.id);
+          this.service.get(invoice.id).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+            next: row => this.invoice.set(row), error: () => this.error.set('Rechargez la facture pour actualiser son statut.')
+          });
+          this.snack.open('Paiement enregistré.', 'Fermer', { duration: 4000 }); },
         error: (e: { status?: number }) => this.paymentError.set(e.status === 409 ? 'Paiement refusé : il dépasse le solde restant ou la facture est déjà réglée.' : e.status === 400 ? 'Paiement refusé : vérifiez le montant et les champs.' : 'Impossible d’enregistrer le paiement.')
       });
   }
   protected recordReminder() {
-    const invoice = this.invoice(); if (!invoice || this.reminderBusy()) return;
+    const invoice = this.invoice(); if (!invoice || invoice.archived || !this.canPay() || !invoice.dueDate || this.reminderBusy()) return;
     this.reminderBusy.set(true);
     this.service.recordReminder(invoice.id, { channel: 'MANUAL', notes: this.reminderNotes.value.trim() || null }).pipe(
       takeUntilDestroyed(this.destroy), finalize(() => this.reminderBusy.set(false))).subscribe({

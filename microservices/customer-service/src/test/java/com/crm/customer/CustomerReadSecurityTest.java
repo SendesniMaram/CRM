@@ -89,6 +89,7 @@ class CustomerReadSecurityTest extends com.crm.customer.security.TestIdentitySup
     @org.junit.jupiter.api.Test
     void commercialInteractionEndpointsRequireAdministrativeRole() throws Exception {
         when(customerRepository.existsById(1L)).thenReturn(true);
+        var contact=new com.crm.customer.entity.Customer();contact.setId(1L);when(customerRepository.lockById(1L)).thenReturn(java.util.Optional.of(contact));
         when(interactionRepository.findByCustomerIdOrderByOccurredAtDesc(1L)).thenReturn(List.of());
         when(interactionRepository.save(any(CustomerInteraction.class))).thenAnswer(invocation -> {
             CustomerInteraction row = invocation.getArgument(0);

@@ -78,6 +78,10 @@ public class Invoice {
     @jakarta.persistence.JoinColumn(name = "invoice_id")
     private List<InvoiceLine> lines = new ArrayList<>();
 
+    @Column(nullable=false) private boolean archived;
+    @Column(nullable=false) private boolean issued;
+    @Column(name="reconciliation_id",length=36) private String reconciliationId;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

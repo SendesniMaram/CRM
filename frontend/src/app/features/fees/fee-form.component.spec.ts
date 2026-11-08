@@ -56,6 +56,8 @@ describe('FeeFormComponent', () => {
       }
     }
   });
+  it('blocks precision, product overflow and a rounded zero before HTTP writes',()=>{const c=start();fill(c);for(const values of [{hourlyRate:12.345,workedHours:1},{hourlyRate:9999999999.99,workedHours:2},{hourlyRate:.01,workedHours:.01},{hourlyRate:1,workedHours:1000000}]){c['form'].patchValue(values);c['submit']();expect(c['form'].invalid).toBeTrue();}expect(service.create).not.toHaveBeenCalled();});
+  it('keeps generated or engaged fees read-only',()=>{for(const patch of [{sourceTimeId:9},{invoiceStatus:'INVOICED'},{paymentStatus:'PAID'}]){service.get.and.returnValue(of({...row,...patch}));const c=start('4');c['submit']();expect(c['ready']()).toBeFalse();}expect(service.update).not.toHaveBeenCalled();});
   it('enforces DTO lengths and real calendar dates without fixed status enums', () => {
     const c = start(); fill(c);
     c['form'].patchValue({ invoiceStatus: 'Statut libre', paymentStatus: 'Autre statut', workDate: '2028-02-29' });

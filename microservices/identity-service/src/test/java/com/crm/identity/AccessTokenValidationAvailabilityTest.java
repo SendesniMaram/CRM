@@ -26,10 +26,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AccessTokenValidationAvailabilityTest {
     @Autowired MockMvc mvc;
     @MockBean UserRepository users;
+    @MockBean com.crm.identity.repository.RefreshTokenRepository sessions;
 
     @Test void databaseUnavailableFailsClosedWithoutLeakingDiagnostics() throws Exception {
         String token = Jwts.builder().subject("synthetic-user").claim("uid", "101")
-                .claim("enabled", true).claim("roles", List.of("CLIENT"))
+                .claim("enabled", true).claim("roles", List.of("CLIENT")).claim("sid", "11111111-1111-4111-8111-111111111111")
                 .expiration(new Date(System.currentTimeMillis() + 60000))
                 .signWith(Keys.hmacShaKeyFor("synthetic-lot-a-outage-test-key-at-least-32-bytes"
                         .getBytes(StandardCharsets.UTF_8))).compact();

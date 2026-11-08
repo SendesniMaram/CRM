@@ -1,4 +1,5 @@
 export interface FeeRequest {
+  currency?:string|null;
   employeeId: string;
   customerId: string | null;
   serviceName: string;
@@ -13,6 +14,8 @@ export interface FeeRequest {
 export interface FeeResponse extends FeeRequest {
   id: number;
   amount: number;
+  sourceTimeId?:number|null;
+  offeringId?:number|null;
   createdAt: string | null;
   updatedAt: string | null;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface ITrainingService {
 
-    TrainingResponse createTraining(TrainingRequest request);
+    TrainingResponse createTraining(TrainingRequest request, String authorization);
 
     TrainingResponse getTrainingById(Long id);
 
@@ -16,7 +16,7 @@ public interface ITrainingService {
 
     Page<TrainingResponse> getAllTrainingsPaged(int page, int size, String sortBy, String direction, String keyword);
 
-    TrainingResponse updateTraining(Long id, TrainingRequest request);
+    TrainingResponse updateTraining(Long id, TrainingRequest request, String authorization);
 
     void deleteTraining(Long id);
 }

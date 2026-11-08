@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface IFeeService {
 
-    FeeResponse createFee(FeeRequest request);
+    FeeResponse createFee(FeeRequest request, String authorization);
 
     FeeResponse getFeeById(Long id);
 
@@ -16,7 +16,7 @@ public interface IFeeService {
 
     Page<FeeResponse> getAllFeesPaged(int page, int size, String sortBy, String direction, String keyword);
 
-    FeeResponse updateFee(Long id, FeeRequest request);
+    FeeResponse updateFee(Long id, FeeRequest request, String authorization);
 
     void deleteFee(Long id);
 }

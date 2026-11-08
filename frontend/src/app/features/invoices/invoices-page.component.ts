@@ -91,22 +91,22 @@ export class InvoicesPageComponent implements OnInit {
     const last = this.rows().length === 1 && this.rows()[0].id === invoice.id;
     this.busy.set(true);
     this.dialog.open(ConfirmDialogComponent, { width: '440px', maxWidth: '90vw',
-      data: { title: 'Supprimer la facture', message: `Supprimer « ${invoice.invoiceNumber} » ? Cette action est irréversible.`,
-        confirmLabel: 'Supprimer' }
+      data: { title: 'Archiver la facture', message: 'Archiver cette facture soldée ? Les documents et paiements seront conservés.',
+        confirmLabel: 'Archiver' }
     }).afterClosed().pipe(switchMap(confirmed => confirmed === true && this.canManage()
       ? this.service.delete(invoice.id) : EMPTY),
       takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))).subscribe({
       next: () => {
-        this.snack.open('Facture supprimée.', 'Fermer', { duration: 5000 });
+        this.snack.open('Facture archivée.', 'Fermer', { duration: 5000 });
         if (last && revision === this.revision && keyword === this.search.value.trim() && this.page() > 0)
           this.page.update(page => page - 1);
         this.load();
       },
       error: (e: { status?: number }) => {
         if (e.status === 401 || e.status === 403) return;
-        this.snack.open(e.status === 404 ? 'Cette facture est introuvable ou a déjà été supprimée.'
-          : e.status === 400 || e.status === 409 ? 'Suppression refusée par le service. La facture peut être liée à d’autres données.'
-          : 'Impossible de supprimer cette facture. Réessayez plus tard.', 'Fermer', { duration: 8000 });
+        this.snack.open(e.status === 404 ? 'Cette facture est introuvable ou a déjà été archivée.'
+          : e.status === 400 || e.status === 409 ? 'Archivage refusé par le service. La facture peut être liée à d’autres données.'
+          : 'Impossible d’archiver cette facture. Réessayez plus tard.', 'Fermer', { duration: 8000 });
       }
     });
   }

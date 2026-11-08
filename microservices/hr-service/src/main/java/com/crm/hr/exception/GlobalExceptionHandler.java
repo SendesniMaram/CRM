@@ -17,6 +17,13 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.bind.MissingRequestHeaderException.class})
+    public ResponseEntity<ApiError> handleInvalidParameter(Exception ex, WebRequest request) {
+        return ResponseEntity.badRequest().body(new ApiError(400, "Bad Request", "Invalid or missing request parameter", getPath(request)));
+    }
+
     @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadableBody(Exception ex, WebRequest request) {
         return ResponseEntity.badRequest().body(new ApiError(400, "Bad Request", "Invalid request body", getPath(request)));
@@ -117,17 +124,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex, WebRequest request) {
-        String message = ex.getMessage() != null ? ex.getMessage() : "Data integrity violation";
-        if (message.contains("Unique index") || message.contains("unique") || message.contains("Duplicate")) {
-            message = "A record with the same unique value already exists";
-        }
-        ApiError body = new ApiError(
-                400,
-                "Bad Request",
-                message,
-                getPath(request)
-        );
-        return ResponseEntity.status(400).body(body);
+        // Drivers may include SQL and bound values: log types only, never messages/causes.
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class).warn(
+                "Persistence conflict: exceptionType={}, causeType={}",
+                ex.getClass().getSimpleName(), ex.getMostSpecificCause().getClass().getSimpleName());
+        return ResponseEntity.status(409).body(new ApiError(
+                409, "Conflict", "The operation conflicts with existing data", getPath(request)));
     }
 
     @ExceptionHandler(Exception.class)

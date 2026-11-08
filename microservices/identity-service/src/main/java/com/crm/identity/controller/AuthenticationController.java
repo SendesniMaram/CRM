@@ -36,18 +36,8 @@ public class AuthenticationController {
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse loginResponse = authenticationService.login(request);
 
-        String token = jwtService.generateToken(
-                loginResponse.getAuthenticatedUserId(),
-                loginResponse.getUsername(),
-                loginResponse.getEmail(),
-                loginResponse.isEnabled(),
-                loginResponse.getRoles()
-        );
 
-        loginResponse.setToken(token);
-        loginResponse.setType("Bearer");
-
-        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(loginResponse);
     }
 
 
@@ -61,8 +51,13 @@ public class AuthenticationController {
     @PostMapping(path = "/refresh", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RefreshTokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         RefreshTokenResponse response = authenticationService.refreshToken(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore()).body(response);
     }
 
+    @PostMapping(path = "/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authenticationService.logout(request);
+        return ResponseEntity.noContent().cacheControl(org.springframework.http.CacheControl.noStore()).build();
+    }
 }
 

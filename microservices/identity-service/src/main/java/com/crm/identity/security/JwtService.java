@@ -57,7 +57,16 @@ public class JwtService {
         return buildToken(userId, username, email, enabled, roles);
     }
 
+    public String generateSessionToken(Long userId, String username, String email, boolean enabled, Collection<String> roles, String sessionId) {
+        if (userId == null || userId <= 0 || !canonicalSession(sessionId)) throw new IllegalArgumentException("Invalid session identity");
+        return buildToken(userId, username, email, enabled, roles, sessionId);
+    }
+
     private String buildToken(Long userId, String username, String email, boolean enabled, Collection<String> roles) {
+        return buildToken(userId, username, email, enabled, roles, null);
+    }
+
+    private String buildToken(Long userId, String username, String email, boolean enabled, Collection<String> roles, String sessionId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + ACCESS_TOKEN_DURATION_MS);
 
@@ -69,6 +78,7 @@ public class JwtService {
                 .issuedAt(now)
                 .expiration(expiry);
         if (userId != null) builder.claim(CLAIM_USER_ID, userId.toString());
+        if (sessionId != null) builder.claim("sid", sessionId);
         return builder.signWith(secretKey).compact();
     }
 
@@ -107,6 +117,7 @@ public class JwtService {
         }
     }
 
+    /** Local inspection helper only. Authentication MUST use AccessTokenValidationService. */
     public boolean isTokenValid(String token, String username) {
         try {
             Claims claims = Jwts.parser().verifyWith(secretKey).build()
@@ -131,6 +142,8 @@ public class JwtService {
                     || claims.getExpiration() == null || !claims.getExpiration().after(new Date())) {
                 throw new InvalidCredentialsException("Invalid access token");
             }
+            Object sid = claims.get("sid");
+            if (!(sid instanceof String sessionId) || !canonicalSession(sessionId)) throw new InvalidCredentialsException("Invalid access token");
             long userId = Long.parseLong(value);
             if (!(claims.get(CLAIM_ROLES) instanceof List<?> values) || values.isEmpty()) {
                 throw new InvalidCredentialsException("Invalid access token");
@@ -140,12 +153,17 @@ public class JwtService {
                 String normalized = name.startsWith("ROLE_") ? name.substring(5) : name;
                 return RoleType.valueOf(normalized).name();
             }).distinct().toList();
-            return new AccessTokenClaims(userId, claims.getSubject(), roles, claims.getExpiration().toInstant());
+            return new AccessTokenClaims(userId, claims.getSubject(), roles, claims.getExpiration().toInstant(), sessionId);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new InvalidCredentialsException("Invalid access token");
         }
     }
 
-    public record AccessTokenClaims(long userId, String username, List<String> roles, Instant expiresAt) {}
+    public static boolean canonicalSession(String value) {
+        if (value == null) return false;
+        try { return java.util.UUID.fromString(value).toString().equals(value); } catch (IllegalArgumentException ex) { return false; }
+    }
+
+    public record AccessTokenClaims(long userId, String username, List<String> roles, Instant expiresAt, String sessionId) {}
 }
 

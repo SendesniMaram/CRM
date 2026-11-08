@@ -13,7 +13,7 @@ import { PayrollService } from './payroll.service';
 import { PayrollsPageComponent } from './payrolls-page.component';
 
 describe('PayrollsPageComponent', () => {
-  const request = { employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'À payer' };
+  const request = { employeeId: '7', baseSalary: 2000, bonuses: 100, deductions: 50, taxAmount: 200, payPeriod: '2026-10', paymentDate: '2026-10-31', currency: 'TND', status: 'PENDING' };
   const row: PayrollResponse = { id: 1, ...request, netSalary: 123.45, published: false, createdAt: null, updatedAt: null };
   const result: PayrollPage = { content: [row], totalElements: 31, totalPages: 4, number: 0, size: 10 };
   let fixture: ComponentFixture<PayrollsPageComponent>;
@@ -25,7 +25,7 @@ describe('PayrollsPageComponent', () => {
   let view: { search: FormControl<string>; page: WritableSignal<number>; find(): void;
     paginate(event: PageEvent): void; sort(event: Sort): void; remove(row: PayrollResponse): void; togglePublication(row: PayrollResponse): void };
   beforeEach(async () => {
-    service = jasmine.createSpyObj('PayrollService', ['list', 'delete', 'setPublished']);
+    service = jasmine.createSpyObj('PayrollService', ['list', 'delete', 'setPublished', 'exportTechnical']);
     service.list.and.returnValue(of(result)); service.delete.and.returnValue(of(undefined)); service.setPublished.and.returnValue(of({ ...row, published: true }));
     auth = jasmine.createSpyObj('AuthService', ['hasAnyRole']); auth.hasAnyRole.and.returnValue(true);
     confirmation = new Subject<boolean>();
@@ -103,4 +103,7 @@ describe('PayrollsPageComponent', () => {
     expect(dialog.open).not.toHaveBeenCalled(); expect(service.delete).not.toHaveBeenCalled();
     expect(fixture.nativeElement.querySelector('a[href="/payroll/new"]')).toBeNull();
   });
+  it('prevents deletion and withdrawal of a published payroll',()=>{fixture.detectChanges();view.remove({...row,published:true});view.togglePublication({...row,published:true});expect(service.delete).not.toHaveBeenCalled();expect(service.setPublished).not.toHaveBeenCalled();expect(dialog.open).not.toHaveBeenCalled();});
+  it('requires a valid export period and reports service errors',()=>{fixture.detectChanges();const c=fixture.componentInstance;c['exportCsv']();expect(service.exportTechnical).not.toHaveBeenCalled();c['exportPeriod'].setValue('2026-11');service.exportTechnical.and.returnValue(throwError(()=>({status:503})));c['exportCsv']();expect(service.exportTechnical).toHaveBeenCalledWith('2026-11');expect(c['error']()).toContain('indisponible');});
+  it('does not download an export arriving after a session change',()=>{fixture.detectChanges();let generation=1;Object.defineProperty(auth,'sessionGeneration',{get:()=>generation});const c=fixture.componentInstance,pending=new Subject<Blob>();service.exportTechnical.and.returnValue(pending);c['exportPeriod'].setValue('2026-11');const create=spyOn(URL,'createObjectURL').and.returnValue('blob:test');c['exportCsv']();generation++;pending.next(new Blob(['private payroll']));expect(create).not.toHaveBeenCalled();pending.complete();});
 });

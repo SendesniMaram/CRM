@@ -4,10 +4,11 @@ import { map } from 'rxjs';
 import { canonicalId, parseDirectory } from '../users/association-identifiers';
 import { PDF_DOWNLOAD_REQUEST } from '../../core/http/pdf-download-context';
 export interface ClientProfile { customerId: string; name: string; email: string|null; phone: string|null; company: string|null }
-export interface ClientInvoice { id: string; invoiceNumber: string; issueDate: string|null; dueDate: string|null; totalAmount: string; currency: string|null; status: string }
+export interface ClientInvoice { id: string; invoiceNumber: string; issueDate: string|null; dueDate: string|null; totalAmount: string; currency: string|null; status: string; archived?:boolean }
+export interface ClientPayment { id:string; amount:string; paidAt:string; method:string|null }
 export interface ClientInvoicePage { content: ClientInvoice[]; totalElements: number; totalPages: number; number: number }
 export function validInvoice(r: ClientInvoice) {
- return !!r && canonicalId(r.id) && typeof r.invoiceNumber==='string' && typeof r.status==='string'
+ return !!r && canonicalId(r.id) && typeof r.invoiceNumber==='string' && typeof r.status==='string' && (r.archived===undefined || typeof r.archived==='boolean')
   && typeof r.totalAmount==='string' && /^-?\d+(\.\d+)?$/.test(r.totalAmount)
   && (r.currency===null || typeof r.currency==='string');
 }
@@ -28,6 +29,9 @@ export class ClientService {
  }));}
  detail(id:string){this.id(id);return this.http.get<ClientInvoice>(this.invoice+'/'+id).pipe(map(r=>{
   if(!validInvoice(r) || r.id!==id) throw new HttpErrorResponse({status:502});return r;
+ }));}
+ payments(id:string){this.id(id);return this.http.get<ClientPayment[]>(this.invoice+'/'+id+'/payments').pipe(map(rows=>{
+  if(!Array.isArray(rows)||rows.some(r=>!r||!canonicalId(r.id)||typeof r.amount!=='string'||!/^\d+(\.\d{1,2})?$/.test(r.amount)||typeof r.paidAt!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(r.paidAt)||(r.method!==null&&typeof r.method!=='string')))throw new HttpErrorResponse({status:502});return rows;
  }));}
  pdf(id:string){this.id(id);return this.http.get(this.invoice+'/'+id+'/pdf',{
   responseType:'blob',observe:'response',context:new HttpContext().set(PDF_DOWNLOAD_REQUEST,true)

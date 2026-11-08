@@ -161,7 +161,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         secondRequest.setSubtotal(new BigDecimal("500.00"));
         secondRequest.setTax(new BigDecimal("50.00"));
         secondRequest.setCurrency("USD");
-        secondRequest.setStatus("PAID");
+        secondRequest.setStatus("PENDING");
 
         mockMvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -289,7 +289,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         updateRequest.setSubtotal(new BigDecimal("2000.00"));
         updateRequest.setTax(new BigDecimal("400.00"));
         updateRequest.setCurrency("EUR");
-        updateRequest.setStatus("PAID");
+        updateRequest.setStatus("PENDING");
         updateRequest.setNotes("Updated invoice");
 
         mockMvc.perform(put("/api/invoices/{id}", created.getId())
@@ -302,7 +302,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
                 .andExpect(jsonPath("$.tax").value(400.00))
                 .andExpect(jsonPath("$.totalAmount").value(2400.00))
                 .andExpect(jsonPath("$.currency").value("EUR"))
-                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.notes").value("Updated invoice"));
 
         invoiceRepository.flush();
@@ -360,7 +360,7 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
     }
 
     @Test
-    void deleteInvoice_ShouldReturn204AndRemoveFromDatabase() throws Exception {
+    void deleteInvoice_ShouldRejectUnpaidWithoutRemovingData() throws Exception {
         String createJson = mockMvc.perform(post("/api/invoices")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
@@ -372,9 +372,9 @@ class InvoiceServiceIntegrationTest extends com.crm.invoice.security.TestIdentit
         InvoiceResponse created = objectMapper.readValue(createJson, InvoiceResponse.class);
 
         mockMvc.perform(delete("/api/invoices/{id}", created.getId()))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isConflict());
 
-        assertFalse(invoiceRepository.findById(created.getId()).isPresent());
+        assertTrue(invoiceRepository.findById(created.getId()).isPresent());
     }
 
     @Test

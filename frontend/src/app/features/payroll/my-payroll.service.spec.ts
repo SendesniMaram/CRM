@@ -45,4 +45,6 @@ describe('MyPayrollService', () => {
     service.list().subscribe({ next: () => fail('Unexpected success'), error: error => expect(error.status).toBe(502) });
     http.expectOne(request => request.url === url).flush({ content: [{ ...row, id: -1 }], number: 0, totalElements: 1, totalPages: 1 });
   });
+  it('reads only the personal settlement path without an employee selector',()=>{service.settlements('5').subscribe();const call=http.expectOne(url+'/5/settlements');expect(call.request.params.keys()).toEqual([]);call.flush({paidAmount:'0',remainingAmount:'1800',state:'UNPAID',entries:[],correctionReason:null,correctedBy:null,correctedAt:null});expect(()=>service.settlements('5/6')).toThrowError('Invalid payroll id');});
+  it('rejects invalid personal ledger data rather than inventing a balance',()=>{service.settlements('5').subscribe({next:()=>fail('invalid contract accepted'),error:e=>expect(e.status).toBe(502)});http.expectOne(url+'/5/settlements').flush({paidAmount:'NaN',remainingAmount:'0',state:'SETTLED',entries:[]});});
 });

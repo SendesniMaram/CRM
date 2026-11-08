@@ -47,6 +47,8 @@ class AuthenticationServiceImplTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    @Mock private jakarta.persistence.EntityManager entityManager;
+
     @InjectMocks
     private AuthenticationServiceImpl authenticationService;
 

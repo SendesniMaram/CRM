@@ -56,7 +56,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
         validRequest.setTaxAmount(new BigDecimal("800.00"));
         validRequest.setPayPeriod("2024-01");
         validRequest.setCurrency("EUR");
-        validRequest.setStatus("PAID");
+        validRequest.setStatus("PENDING");
     }
 
     @Test
@@ -74,7 +74,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(jsonPath("$.netSalary").value(4500.00))
                 .andExpect(jsonPath("$.payPeriod").value("2024-01"))
                 .andExpect(jsonPath("$.currency").value("EUR"))
-                .andExpect(jsonPath("$.status").value("PAID"))
+                .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.published").value(false))
                 .andExpect(jsonPath("$.createdAt").isNotEmpty())
                 .andExpect(jsonPath("$.updatedAt").isNotEmpty())
@@ -95,7 +95,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
     }
 
     @Test
-    void administratorCanPublishAndUnpublishWithoutChangingPayrollAmounts() throws Exception {
+    void administratorCanPublishButCannotUnpublishOrAlterPublishedPayroll() throws Exception {
         String created = mockMvc.perform(post("/api/payrolls").contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest)))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
@@ -107,7 +107,11 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
         assertTrue(payrollRepository.findById(payroll.getId()).orElseThrow().isPublished());
         mockMvc.perform(patch("/api/payrolls/{id}/publication", payroll.getId()).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"published\":false}"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.published").value(false));
+                .andExpect(status().isConflict());
+        assertTrue(payrollRepository.findById(payroll.getId()).orElseThrow().isPublished());
+        mockMvc.perform(delete("/api/payrolls/{id}", payroll.getId())).andExpect(status().isConflict());
+        mockMvc.perform(put("/api/payrolls/{id}", payroll.getId()).contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validRequest))).andExpect(status().isConflict());
     }
 
     @Test
@@ -236,7 +240,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(jsonPath("$.netSalary").value(4500.00))
                 .andExpect(jsonPath("$.payPeriod").value("2024-01"))
                 .andExpect(jsonPath("$.currency").value("EUR"))
-                .andExpect(jsonPath("$.status").value("PAID"));
+                .andExpect(jsonPath("$.status").value("PENDING"));
     }
 
     @Test
@@ -269,7 +273,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
         updateRequest.setTaxAmount(new BigDecimal("900.00"));
         updateRequest.setPayPeriod("2024-02");
         updateRequest.setCurrency("EUR");
-        updateRequest.setStatus("PAID");
+        updateRequest.setStatus("PENDING");
 
         mockMvc.perform(put("/api/payrolls/{id}", created.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -280,7 +284,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(jsonPath("$.baseSalary").value(5500.00))
                 .andExpect(jsonPath("$.netSalary").value(4950.00))
                 .andExpect(jsonPath("$.payPeriod").value("2024-02"))
-                .andExpect(jsonPath("$.status").value("PAID"));
+                .andExpect(jsonPath("$.status").value("PENDING"));
 
         payrollRepository.flush();
 
@@ -294,7 +298,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
         updateRequest.setEmployeeId("EMP999");
         updateRequest.setBaseSalary(new BigDecimal("5000.00"));
         updateRequest.setPayPeriod("2024-01");
-        updateRequest.setStatus("PAID");
+        updateRequest.setStatus("PENDING");
 
         mockMvc.perform(put("/api/payrolls/{id}", 99999L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -302,7 +306,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Payroll not found")))
+                .andExpect(jsonPath("$.message").value(is("Payroll unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/payrolls/99999"));
     }
 
@@ -331,7 +335,7 @@ class PayrollServiceIntegrationTest extends com.crm.payroll.security.TestIdentit
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value(containsString("Payroll not found")))
+                .andExpect(jsonPath("$.message").value(is("Payroll unavailable")))
                 .andExpect(jsonPath("$.path").value("/api/payrolls/99999"));
     }
 }

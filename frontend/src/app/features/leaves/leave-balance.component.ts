@@ -1,0 +1,15 @@
+import { ChangeDetectionStrategy,Component,DestroyRef,Injector,effect,inject,input,signal,untracked } from '@angular/core';import { FormsModule } from '@angular/forms';import { takeUntilDestroyed } from '@angular/core/rxjs-interop';import { AuthService } from '../../core/services/auth.service';import { CrmRole } from '../../core/models/role.model';import { HrInsightsService,LeaveBalance,validHrPeriod } from '../hr-admin/hr-insights.service';import { HrEmployeePickerComponent } from '../hr-admin/hr-employee-picker.component';import { hrError } from '../hr-admin/hr-admin.models';
+@Component({selector:'app-leave-balance',standalone:true,imports:[FormsModule,HrEmployeePickerComponent],templateUrl:'./leave-balance.component.html',changeDetection:ChangeDetectionStrategy.OnPush})
+export class LeaveBalanceComponent {
+ readonly personal=input(true);readonly refresh=input(0);private readonly injector=inject(Injector);private readonly auth=inject(AuthService);private readonly destroy=inject(DestroyRef);private revision=0;private context='';private refreshVersion=-1;private requested=false;
+ protected from=new Date().getFullYear()+'-01-01';protected to=new Date().getFullYear()+'-12-31';protected employee='';protected readonly result=signal<LeaveBalance|null>(null);protected readonly loading=signal(false);protected readonly error=signal('');
+ constructor(){effect(()=>{this.auth.getCurrentUser();const context=this.auth.sessionGeneration+':'+this.personal()+':'+this.allowed();const refresh=this.refresh();
+  untracked(()=>{if(context!==this.context){this.context=context;this.revision++;this.result.set(null);this.error.set('');this.loading.set(false);this.employee='';this.requested=false;}
+   else if(refresh!==this.refreshVersion&&this.requested)this.load();this.refreshVersion=refresh;});});}
+ private allowed(){return this.auth.hasAnyRole(this.personal()?[CrmRole.EMPLOYEE]:[CrmRole.ADMIN,CrmRole.SUPER_ADMIN]);}
+ protected selectEmployee(id:string){this.revision++;this.employee=id;this.requested=false;this.result.set(null);this.loading.set(false);this.error.set('');}
+ protected load(){if(!this.allowed())return;if(!validHrPeriod(this.from,this.to)||!this.personal()&&!/^[1-9][0-9]{0,18}$/.test(this.employee)){this.result.set(null);this.error.set('Choisissez la période de référence et un employé si nécessaire (366 jours maximum).');return;}
+  this.requested=true;const revision=++this.revision,generation=this.auth.sessionGeneration,personal=this.personal(),employee=this.employee;this.loading.set(true);this.result.set(null);this.error.set('');
+  this.injector.get(HrInsightsService).balance(this.from,this.to,personal?undefined:employee).pipe(takeUntilDestroyed(this.destroy)).subscribe({next:r=>{if(revision===this.revision&&generation===this.auth.sessionGeneration&&this.allowed()){this.result.set(r);this.loading.set(false);}},error:e=>{if(revision===this.revision&&generation===this.auth.sessionGeneration){this.loading.set(false);this.error.set(hrError(e));}}});
+ }
+}

@@ -42,6 +42,8 @@ export class LoginComponent {
     password: ['', Validators.required]
   });
 
+  protected sessionNotice(): string { return this.authService.sessionNotice?.() ?? ''; }
+
   protected submit(): void {
     if (this.loading()) return;
     if (this.loginForm.invalid) {

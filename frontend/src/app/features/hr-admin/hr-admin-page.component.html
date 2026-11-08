@@ -36,7 +36,7 @@
     <mat-card><mat-card-content><h2>Détail — référence {{row.id}}</h2>
       <dl>@for(field of definition.fields;track field.key){<dt>{{field.label}}</dt><dd>{{display(row[field.key])}}</dd>}</dl>
       @if(module==='trainings'){<p>Certificat obtenu : {{row['certificateObtained']===true?'Oui':'Non'}}</p>
-        <p>Le contrat existant permet de consulter cet état, sans opération d’attribution de certificat.</p>}
+        <p>Le certificat se renseigne lors du passage à COMPLETED ; une formation terminée reste figée.</p>}
       <button mat-button (click)="cancel()" [disabled]="busy()">Fermer</button>
     </mat-card-content></mat-card>
   }
@@ -45,23 +45,26 @@
       <p>La référence Employee désigne une fiche professionnelle ; elle est indépendante du compte utilisateur.</p>
       @if(formError()){<p role="alert">{{formError()}}</p>}
       <form [formGroup]="form" (ngSubmit)="save()">
+        @if(module==='trainings'){<app-hr-employee-picker [selected]="form.controls['employeeId'].value || ''" [disabled]="busy()" (employeeSelected)="form.controls['employeeId'].setValue($event)" />}
         <div class="fields">
           @for(field of definition.fields;track field.key){
+            @if(field.type==='checkbox'){
+              <mat-checkbox [formControlName]="field.key" [disabled]="module==='trainings' && form.controls['status']?.value!=='COMPLETED'">{{field.label}}</mat-checkbox>
+            }@else{
             <mat-form-field><mat-label>{{field.label}}</mat-label>
-              @if(field.type==='checkbox'){
-                <mat-checkbox [formControlName]="field.key" [disabled]="module==='trainings' && form.controls['status']?.value!=='COMPLETED'">{{field.label}}</mat-checkbox>
-              }@else if(field.type==='select'){
+              @if(field.type==='select'){
                 <mat-select [formControlName]="field.key" [required]="!!field.required">
                   @for(option of field.options;track option){
                     <mat-option [value]="option" [disabled]="module==='trainings' && !selected() && option==='COMPLETED'">{{option}}</mat-option>
                   }
                 </mat-select>
               }@else{
-                <input matInput [type]="field.type" [formControlName]="field.key" [required]="!!field.required"
+                <input matInput [type]="field.type" [readonly]="module==='trainings' && field.key==='employeeId'" [formControlName]="field.key" [required]="!!field.required"
                   [attr.maxlength]="field.maxLength??null" [attr.min]="field.type==='number'?0:null" [attr.step]="field.type==='number'?'0.01':field.type==='time'?'1':null">
               }
               @if(form.controls[field.key].invalid && form.controls[field.key].touched){<mat-error>Champ invalide ou obligatoire.</mat-error>}
             </mat-form-field>
+            }
           }
         </div>
         <button mat-flat-button type="submit" [disabled]="busy()">Enregistrer</button>

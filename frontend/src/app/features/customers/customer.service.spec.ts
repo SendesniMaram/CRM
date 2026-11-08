@@ -83,4 +83,7 @@ describe('CustomerService', () => {
     expect(call.request.params.get('contactType')).toBe('LEAD');
     call.flush(new Blob());
   });
+  it('combines assignment and archive state with search, type, category and segment',()=>{service.list({page:1,size:25,sortBy:'email',direction:'desc',keyword:'Acme',contactType:'LEAD',category:'Tech',segment:'SMB',assignedEmployeeId:'101',status:'ACTIVE'}).subscribe();const r=http.expectOne(r=>r.url===url);expect(r.request.params.get('assignedEmployeeId')).toBe('101');expect(r.request.params.get('status')).toBe('ACTIVE');expect(r.request.params.get('category')).toBe('Tech');r.flush({content:[]});});
+  it('uploads XLSX multipart and restores contacts without deleting history',()=>{const file=new File(['synthetic'],'contacts.xlsx');service.importExcel(file).subscribe();const r=http.expectOne(url+'/import.xlsx');expect(r.request.method).toBe('POST');expect(r.request.body.get('file')).toBe(file);r.flush({totalRows:1,acceptedRows:1,rejectedRows:0,issues:[]});service.restore(7).subscribe();const restore=http.expectOne(url+'/7/restore');expect(restore.request.method).toBe('PATCH');restore.flush({id:7,archived:false});});
+  it('exports the same assignment and status filters',()=>{service.exportExcel({assignedEmployeeId:'101',status:'ARCHIVED'}).subscribe();const r=http.expectOne(r=>r.url===url+'/export.xlsx');expect(r.request.params.get('assignedEmployeeId')).toBe('101');expect(r.request.params.get('status')).toBe('ARCHIVED');r.flush(new Blob());});
 });

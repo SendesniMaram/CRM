@@ -74,7 +74,7 @@ export class CustomerDetailComponent implements OnInit {
 
   protected submitInteraction() {
     const customer = this.customer();
-    if (this.savingInteraction() || !customer) return;
+    if (this.savingInteraction() || !customer || customer.archived) return;
     if (this.interactionForm.invalid) {
       this.interactionForm.markAllAsTouched();
       return;

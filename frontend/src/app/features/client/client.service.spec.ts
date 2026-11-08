@@ -38,4 +38,6 @@ describe('ClientService personal contracts',()=>{
  for(const status of [400,401,403,404,409,502,503,0]){
   it('handles HTTP '+status+' without exposing diagnostic content',()=>{expect(clientError({status})).not.toContain('undefined');expect(clientError({status}).length).toBeGreaterThan(5);});
  }
+ it('loads payments without an identity parameter and preserves decimal text',()=>{service.payments('12').subscribe(rows=>expect(rows[0].amount).toBe('0.10'));const r=http.expectOne('http://localhost:8080/invoice/api/invoices/me/12/payments');expect(r.request.params.keys()).toEqual([]);r.flush([{id:'9223372036854775807',amount:'0.10',paidAt:'2026-11-01',method:null}]);});
+ it('rejects malformed payment amounts instead of inventing zero',()=>{service.payments('12').subscribe({error:e=>expect(e.status).toBe(502)});http.expectOne('http://localhost:8080/invoice/api/invoices/me/12/payments').flush([{id:'1',amount:null,paidAt:'2026-11-01',method:null}]);});
 });

@@ -37,15 +37,18 @@ public final class PdfReport {
     private PDPageContentStream stream;
     private float y;
     private int page;
+    private byte[] logo;
 
     private PdfReport(PDDocument document, String title, String reference) {
         this.document = document; this.title = title; this.reference = reference;
     }
-    public static byte[] render(String title, String reference, List<Row> rows) {
+    public static byte[] render(String title,String reference,List<Row> rows){return renderWithLogo(title,reference,rows,null);}
+    public static byte[] renderWithLogo(String title, String reference, List<Row> rows,byte[] logo) {
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             doc.getDocumentInformation().setTitle("CRM Workspace - " + title);
             doc.getDocumentInformation().setProducer("CRM Workspace");
             PdfReport report = new PdfReport(doc, title, reference);
+            report.logo=logo;
             report.newPage();
             for (Row row : rows) report.row(row);
             report.finishPage();
@@ -90,6 +93,7 @@ public final class PdfReport {
         text("CRM WORKSPACE", 48, height - 30, 10, bold, TEAL);
         text(title, 48, height - 58, 20, bold, Color.WHITE);
         text(reference, 48, height - 80, 10, regular, Color.WHITE);
+        if(logo!=null){var image=org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject.createFromByteArray(document,logo,"company-logo");float scale=Math.min(64f/image.getWidth(),64f/image.getHeight());stream.drawImage(image,width-120,height-82,image.getWidth()*scale,image.getHeight()*scale);}
         y = height - 138;
         rectangle(48, y - 7, width - 96, 23, NAVY);
         text("Rubrique", 56, y, 10, bold, Color.WHITE);

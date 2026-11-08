@@ -50,7 +50,7 @@ describe('Fees routes with real guards and HTTP interceptor', () => {
     expect(TestBed.inject(Router).url).toBe('/access-denied');
   });
   for (const role of [CrmRole.ADMIN, CrmRole.SUPER_ADMIN]) {
-    for (const path of ['/fees', '/fees/new', '/fees/4', '/fees/4/edit']) {
+    for (const path of ['/fees', '/fees/workbench', '/fees/new', '/fees/4', '/fees/4/edit']) {
       it(`allows ${role} on ${path} and sends reads through Gateway`, async () => {
         session(role); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl(path);
         const http = TestBed.inject(HttpTestingController);
@@ -59,7 +59,7 @@ describe('Fees routes with real guards and HTTP interceptor', () => {
           expect(request.request.headers.has('Authorization')).toBeTrue();
           expect(request.request.params.get('sortBy')).toBe('serviceName');
           request.flush({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 10 });
-        } else if (path !== '/fees/new') {
+        } else if (path !== '/fees/new' && path !== '/fees/workbench') {
           const request = http.expectOne(url + '/4');
           expect(request.request.headers.has('Authorization')).toBeTrue();
           request.flush({ id: 4, ...{ employeeId: '1', customerId: '2', serviceName: 'Conseil test', description: null, hourlyRate: 50, workedHours: 2.5, invoiceStatus: 'À facturer', paymentStatus: null, workDate: '2026-10-14' }, amount: 123.45, createdAt: null, updatedAt: null });
@@ -71,7 +71,7 @@ describe('Fees routes with real guards and HTTP interceptor', () => {
     }
   }
   for (const role of [CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
-    for (const path of ['/fees', '/fees/new', '/fees/4', '/fees/4/edit']) {
+    for (const path of ['/fees', '/fees/workbench', '/fees/new', '/fees/4', '/fees/4/edit']) {
       it(`denies ${role} on ${path} before an API call`, async () => {
         session(role); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl(path);
         expect(TestBed.inject(Router).url).toBe('/access-denied');

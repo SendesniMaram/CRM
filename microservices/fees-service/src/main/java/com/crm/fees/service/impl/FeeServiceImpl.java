@@ -25,25 +25,19 @@ public class FeeServiceImpl implements IFeeService {
 
     private final FeeRepository feeRepository;
     private final FeeMapper feeMapper;
+    private final com.crm.fees.service.FeeReferenceDirectory directory;
+    @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager em;
 
     public FeeServiceImpl(FeeRepository feeRepository,
-                          FeeMapper feeMapper) {
+                          FeeMapper feeMapper, com.crm.fees.service.FeeReferenceDirectory directory) {
         this.feeRepository = feeRepository;
         this.feeMapper = feeMapper;
+        this.directory=directory;
     }
 
-    @Override
-    public FeeResponse createFee(FeeRequest request) {
-        Fee fee = feeMapper.toEntity(request);
-
-        // Calculate amount automatically: amount = hourlyRate * workedHours
-        BigDecimal amount = calculateAmount(request.getHourlyRate(), request.getWorkedHours());
-        fee.setAmount(amount);
-
-        Fee saved = feeRepository.save(fee);
-        return feeMapper.toResponse(saved);
+    @Override public FeeResponse createFee(FeeRequest request,String authorization){
+        com.crm.fees.service.FeeFinance.validate(request);if(request.getWorkDate()!=null)com.crm.fees.service.FeeCycleService.date(request.getWorkDate());BigDecimal amount=com.crm.fees.service.FeeFinance.amount(request.getHourlyRate(),request.getWorkedHours());directory.validate(request.getEmployeeId(),request.getCustomerId(),authorization);Fee fee=feeMapper.toEntity(request);fee.setAmount(amount);return feeMapper.toResponse(feeRepository.save(fee));
     }
-
     @Override
     public FeeResponse getFeeById(Long id) {
         Fee fee = feeRepository.findById(id)
@@ -77,34 +71,13 @@ public class FeeServiceImpl implements IFeeService {
         return feePage.map(feeMapper::toResponse);
     }
 
-    @Override
-    public FeeResponse updateFee(Long id, FeeRequest request) {
-        Fee existing = feeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Fee not found with id: " + id));
-
-        feeMapper.updateEntityFromRequest(existing, request);
-
-        // Recalculate amount on update
-        BigDecimal amount = calculateAmount(request.getHourlyRate(), request.getWorkedHours());
-        existing.setAmount(amount);
-
-        Fee saved = feeRepository.save(existing);
-        return feeMapper.toResponse(saved);
+    @Override public FeeResponse updateFee(Long id,FeeRequest request,String authorization){
+        com.crm.fees.service.FeeFinance.validate(request);if(request.getWorkDate()!=null)com.crm.fees.service.FeeCycleService.date(request.getWorkDate());BigDecimal amount=com.crm.fees.service.FeeFinance.amount(request.getHourlyRate(),request.getWorkedHours());Fee existing=locked(id);editable(existing);
+        if(!java.util.Objects.equals(existing.getEmployeeId(),request.getEmployeeId())||!java.util.Objects.equals(existing.getCustomerId(),request.getCustomerId()))directory.validate(request.getEmployeeId(),request.getCustomerId(),authorization);
+        feeMapper.updateEntityFromRequest(existing,request);existing.setAmount(amount);return feeMapper.toResponse(feeRepository.save(existing));
     }
-
-    @Override
-    public void deleteFee(Long id) {
-        Fee fee = feeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Fee not found with id: " + id));
-        feeRepository.delete(fee);
-    }
-
-    /**
-     * Calculate amount: amount = hourlyRate * workedHours
-     */
-    private BigDecimal calculateAmount(BigDecimal hourlyRate, BigDecimal workedHours) {
-        BigDecimal rate = hourlyRate != null ? hourlyRate : BigDecimal.ZERO;
-        BigDecimal hours = workedHours != null ? workedHours : BigDecimal.ZERO;
-        return rate.multiply(hours);
-    }
+    @Override public void deleteFee(Long id){Fee row=locked(id);editable(row);feeRepository.delete(row);}
+    private Fee locked(Long id){Fee row=feeRepository.lockById(id).orElseThrow(()->new ResourceNotFoundException("Fee unavailable"));if(em!=null)em.refresh(row,jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);return row;}
+    private void editable(Fee row){if(row.getSourceTimeId()!=null||!open(row.getInvoiceStatus())||!open(row.getPaymentStatus()))throw com.crm.fees.service.FeeFinance.conflict();}
+    private boolean open(String status){return status==null||status.isBlank()||java.util.Set.of("PENDING","UNPAID","UNBILLED","NOT_INVOICED","À FACTURER").contains(status.trim().toUpperCase(java.util.Locale.ROOT));}
 }

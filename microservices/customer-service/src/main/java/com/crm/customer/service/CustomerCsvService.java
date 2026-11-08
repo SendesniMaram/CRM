@@ -78,6 +78,10 @@ public class CustomerCsvService {
                 }
                 creator.apply(request);
                 accepted++;
+            } catch (org.springframework.web.server.ResponseStatusException ex) {
+                rejected.add(new ImportIssue(rowIndex+1,"Reference unavailable or operation refused (HTTP "+ex.getStatusCode().value()+")"));
+            } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+                rejected.add(new ImportIssue(rowIndex+1,"Duplicate or conflicting contact"));
             } catch (IllegalArgumentException ex) {
                 rejected.add(new ImportIssue(rowIndex + 1, ex.getMessage()));
             }
@@ -85,14 +89,15 @@ public class CustomerCsvService {
         return new ImportReport(rows.size() - 1, accepted, rejected.size(), rejected);
     }
 
-    public byte[] exportCsv(String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
+    public byte[] exportCsv(String keyword,String contactType,String category,String segment,Long assignedEmployeeId){return exportCsv(keyword,contactType,category,segment,assignedEmployeeId,null);}
+    public byte[] exportCsv(String keyword, String contactType, String category, String segment, Long assignedEmployeeId,String status) {
         StringBuilder csv = new StringBuilder("\uFEFF");
         append(csv, HEADERS);
         int pageNumber = 0;
         Page<CustomerResponse> page;
         do {
-            page = customers.getAllCustomersPaged(pageNumber++, 100, "id", "asc", keyword,
-                    contactType, category, segment, assignedEmployeeId);
+            page = status==null?customers.getAllCustomersPaged(pageNumber++,100,"id","asc",keyword,contactType,category,segment,assignedEmployeeId):customers.search(pageNumber++,100,"id","asc",keyword,contactType,category,segment,assignedEmployeeId,status);
+            if(page.getTotalElements()>MAX_ROWS)throw new IllegalArgumentException("Export exceeds 10000 contacts; refine the filters");
             for (CustomerResponse customer : page.getContent()) {
                 append(csv, List.of(
                         safe(customer.getName()), safe(customer.getEmail()), safe(customer.getPhone()),
@@ -104,7 +109,8 @@ public class CustomerCsvService {
         return csv.toString().getBytes(StandardCharsets.UTF_8);
     }
 
-    public byte[] exportXlsx(String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
+    public byte[] exportXlsx(String keyword,String contactType,String category,String segment,Long assignedEmployeeId){return exportXlsx(keyword,contactType,category,segment,assignedEmployeeId,null);}
+    public byte[] exportXlsx(String keyword, String contactType, String category, String segment, Long assignedEmployeeId,String status) {
         List<List<String>> rows = new ArrayList<>();
         rows.add(HEADERS);
         int pageNumber = 0;

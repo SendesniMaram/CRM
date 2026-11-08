@@ -156,6 +156,16 @@ public class LeaveServiceImpl implements ILeaveService {
         leaveRepository.delete(leaveRequest);
     }
 
+    @Override @Transactional(readOnly=true)
+    public List<LeaveResponse> calendar(java.time.LocalDate from,java.time.LocalDate to,String employeeId){
+        access.requireAdmin();com.crm.hr.service.HrPeriod.require(from,to);
+        String employee=employeeId==null||employeeId.isBlank()?null:employeeId.trim();
+        if(employee!=null&&employee.length()>50)throw new IllegalArgumentException("Invalid employee filter");
+        var rows=leaveRepository.calendar(from,to,employee,PageRequest.of(0,5001));
+        if(rows.size()>5000)throw new IllegalArgumentException("Calendar exceeds 5000 entries; filter by employee or period");
+        return rows.stream().map(leaveMapper::toResponse).toList();
+    }
+
     private void rejectOverlappingLeave(LeaveRequestDto request, Long excludedId) {
         boolean overlap = leaveRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(
                         request.getEndDate(), request.getStartDate()).stream()

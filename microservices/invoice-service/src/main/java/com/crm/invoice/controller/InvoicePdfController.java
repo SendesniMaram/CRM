@@ -9,10 +9,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/invoices")
 public class InvoicePdfController {
  private final IInvoiceService service;
+ @org.springframework.beans.factory.annotation.Autowired(required=false) private com.crm.invoice.service.InvoicePresentationService documents;
  public InvoicePdfController(IInvoiceService service) { this.service = service; }
  @GetMapping(value="/{id}/pdf", produces="application/pdf")
  public ResponseEntity<byte[]> download(@PathVariable Long id) {
   PdfReport.requireAdmin();
+  if(documents!=null){var frozen=documents.snapshot(id);if(frozen!=null)return attachment(frozen,"facture-"+id+".pdf");}
   var r = service.getInvoiceById(id);
   return attachment(render("Facture", "Référence interne : " + id, List.of(
    new Row("Numéro", value(r.getInvoiceNumber())),

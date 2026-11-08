@@ -20,7 +20,7 @@ class AccessTokenClaimsTest {
 
     static Map<String, Object> valid() {
         return new HashMap<>(Map.of("sub", "employee", "uid", "101", "enabled", true,
-                "roles", List.of("ROLE_EMPLOYEE", "EMPLOYEE"),
+                "roles", List.of("ROLE_EMPLOYEE", "EMPLOYEE"), "sid", "11111111-1111-4111-8111-111111111111",
                 "exp", new Date(System.currentTimeMillis() + 60000)));
     }
 
@@ -38,7 +38,7 @@ class AccessTokenClaimsTest {
 
     static Stream<Map<String, Object>> invalidClaims() {
         Stream.Builder<Map<String, Object>> cases = Stream.builder();
-        for (String field : List.of("uid", "sub", "enabled", "roles", "exp")) {
+        for (String field : List.of("uid", "sub", "enabled", "roles", "exp", "sid")) {
             var claims = valid(); claims.remove(field); cases.add(claims);
         }
         for (Object value : List.of("0", "-1", "01", " 1", "1.0", "9223372036854775808", 101L)) {

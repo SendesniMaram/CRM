@@ -1,3 +1,4 @@
+import { LeaveBalanceComponent } from './leave-balance.component';
 import { PdfDownloadComponent } from '../../shared/pdf-download/pdf-download.component';
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DatePipe } from '@angular/common';
@@ -19,7 +20,7 @@ import { LeaveService } from './leave.service';
 
 @Component({
   selector: 'app-leaves-page', standalone: true,
-  imports: [DatePipe, MatFormFieldModule, MatInputModule, MatPaginatorModule, PdfDownloadComponent, RouterLink, MatButtonModule, MatCardModule, MatTableModule],
+  imports: [LeaveBalanceComponent,DatePipe, MatFormFieldModule, MatInputModule, MatPaginatorModule, PdfDownloadComponent, RouterLink, MatButtonModule, MatCardModule, MatTableModule],
   templateUrl: './leaves-page.component.html', changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class LeavesPageComponent implements OnInit {
@@ -28,6 +29,7 @@ export class LeavesPageComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly leaves = signal<LeaveResponse[]>([]);
+  protected readonly balanceRefresh=signal(0);
   protected readonly query = signal('');
   protected readonly statusFilter = signal('');
   protected readonly pageIndex = signal(0);
@@ -65,7 +67,7 @@ export class LeavesPageComponent implements OnInit {
     const generation=this.auth.sessionGeneration;
     this.loading.set(true); this.error.set('');
     this.service.list().pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {if(this.current(generation))this.loading.set(false);})).subscribe({
-      next: rows => {if(this.current(generation)){this.leaves.set(rows);this.pageIndex.set(0);this.selected.set(null);}},
+      next: rows => {if(this.current(generation)){this.leaves.set(rows);this.balanceRefresh.update(v=>v+1);this.pageIndex.set(0);this.selected.set(null);}},
       error: (e: { status?: number }) => { if(!this.current(generation))return;this.leaves.set([]);this.selected.set(null); this.error.set(e.status === 401 ? 'Votre session a expiré. Reconnectez-vous.' : e.status === 403
         ? 'Accès refusé. Pour un compte employé, demandez à un administrateur de vérifier votre association Employee pour les congés.'
         : 'Impossible de charger les demandes. Réessayez.'); }

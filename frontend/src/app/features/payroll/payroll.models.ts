@@ -4,6 +4,8 @@ export interface PayrollRequest {
   bonuses: number | null;
   deductions: number | null;
   taxAmount: number | null;
+  overtimeHours?: number|null;
+  overtimeHourlyRate?: number|null;
   payPeriod: string;
   paymentDate: string | null;
   currency: string | null;
@@ -13,6 +15,10 @@ export interface PayrollRequest {
 export interface PayrollResponse extends PayrollRequest {
   id: number;
   netSalary: number;
+  overtimeAmount?: number|null;
+  cancelled?: boolean;
+  replacementPayrollId?: number|null;
+  correctionOfId?: number|null;
   published: boolean;
   createdAt: string | null;
   updatedAt: string | null;

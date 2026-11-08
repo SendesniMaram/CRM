@@ -31,8 +31,8 @@ public class FeeController {
     }
 
     @PostMapping
-    public ResponseEntity<FeeResponse> createFee(@Valid @RequestBody FeeRequest request) {
-        FeeResponse response = feeService.createFee(request);
+    public ResponseEntity<FeeResponse> createFee(@Valid @RequestBody FeeRequest request, @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authorization) {
+        FeeResponse response = feeService.createFee(request, authorization);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -62,8 +62,8 @@ public class FeeController {
     @PutMapping("/{id}")
     public ResponseEntity<FeeResponse> updateFee(
             @PathVariable Long id,
-            @Valid @RequestBody FeeRequest request) {
-        FeeResponse response = feeService.updateFee(id, request);
+            @Valid @RequestBody FeeRequest request, @org.springframework.web.bind.annotation.RequestHeader("Authorization") String authorization) {
+        FeeResponse response = feeService.updateFee(id, request, authorization);
         return ResponseEntity.ok(response);
     }
 

@@ -33,12 +33,15 @@
           </mat-select>@if (form.controls.customerId.invalid) { <mat-error>Sélectionnez un client existant.</mat-error> }</mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Date d’émission</mat-label><input matInput type="date" formControlName="issueDate" />@if (form.controls.issueDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Date d’échéance</mat-label><input matInput type="date" formControlName="dueDate" />@if (form.controls.dueDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Sous-total</mat-label><input matInput type="number" step="any" formControlName="subtotal" required />@if (form.controls.subtotal.invalid) { <mat-error>Saisissez un montant strictement positif.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Sous-total</mat-label><input matInput type="number" step="0.01" formControlName="subtotal" required />@if (form.controls.subtotal.invalid) { <mat-error>Saisissez un montant strictement positif.</mat-error> }</mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Taxe (montant)</mat-label><input matInput type="number" step="any" formControlName="tax" />@if (form.controls.tax.invalid) { <mat-error>Saisissez un montant valide.</mat-error> }</mat-form-field>
           <mat-form-field appearance="outline"><mat-label>Devise</mat-label><input matInput formControlName="currency" maxlength="10" />@if (form.controls.currency.invalid) { <mat-error>Devise refusée ou supérieure à 10 caractères.</mat-error> }</mat-form-field>
-          <mat-form-field appearance="outline"><mat-label>Statut</mat-label><input matInput formControlName="status" required maxlength="50" />@if (form.controls.status.invalid) { <mat-error>Statut obligatoire, limité à 50 caractères.</mat-error> }</mat-form-field>
+          <mat-form-field appearance="outline"><mat-label>Statut</mat-label><mat-select formControlName="status" required><mat-option value="DRAFT">Brouillon</mat-option><mat-option value="PENDING">En attente</mat-option><mat-option value="UNPAID">Non réglée</mat-option></mat-select>@if (form.controls.status.invalid) { <mat-error>Choisissez un état non réglé. Les états de paiement sont calculés automatiquement.</mat-error> }</mat-form-field>
           <mat-form-field appearance="outline" class="full-width"><mat-label>Notes</mat-label><textarea matInput formControlName="notes" rows="3" maxlength="500"></textarea>@if (form.controls.notes.invalid) { <mat-error>Notes refusées ou supérieures à 500 caractères.</mat-error> }</mat-form-field>
         </div>
+        @if (form.hasError("dateRange")) { <p class="error" role="alert">L’échéance doit suivre la date d’émission.</p> }
+        @if (form.hasError("total")) { <p class="error" role="alert">Le total dépasse la capacité autorisée (10 chiffres et 2 décimales).</p> }
+        <p class="muted">Les montants doivent être positifs ou nuls, avec deux décimales maximum. Une facture ayant reçu un paiement est protégée contre les modifications.</p>
         <div class="form-actions"><a mat-button routerLink="/invoices" [disabled]="saving()">Annuler</a><button mat-flat-button type="submit" [disabled]="saving() || loading() || customerLoading() || !!customerError() || form.controls.customerId.invalid">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
       </form>
     }

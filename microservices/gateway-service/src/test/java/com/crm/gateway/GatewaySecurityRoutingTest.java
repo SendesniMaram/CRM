@@ -153,6 +153,28 @@ class GatewaySecurityRoutingTest {
         assertThat(downstreamPath.get()).isEqualTo("/api/employee-profile/me");
         assertThat(bearer.get()).isEqualTo("Bearer original-user"); assertThat(hits).hasValue(1);
     }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "/customer/api/opportunities,/api/opportunities",
+            "/invoice/api/quotes,/api/quotes",
+            "/hr/api/contracts,/api/contracts",
+            "/hr/api/evaluations/mine,/api/evaluations/mine",
+            "/hr/api/job-offers,/api/job-offers",
+            "/hr/api/applications,/api/applications",
+            "/hr/api/employee-associations/users/2,/api/employee-associations/users/2",
+            "/hr/api/employees/17/documents,/api/employees/17/documents",
+            "/hr/api/documents/9/content,/api/documents/9/content",
+            "/hr/api/career-events,/api/career-events",
+            "/hr/api/leave-quotas,/api/leave-quotas"
+    })
+    void newlyDeclaredFeatureAliasesStripOnlyTheServicePrefix(String incoming, String expected) {
+        client.get().uri(incoming).header("Authorization", "Bearer original-user")
+                .exchange().expectStatus().isOk();
+        assertThat(downstreamPath.get()).isEqualTo(expected);
+        assertThat(bearer.get()).isEqualTo("Bearer original-user");
+        assertThat(hits).hasValue(1);
+    }
     @ParameterizedTest @ValueSource(strings = {"/employee/api/internal/employees/103/profile-summary",
             "/employee-service/api/internal/employees/103/profile-summary", "/employee-service/api%2Finternal/employees/103/profile-summary",
             "/employee-service/api%252Finternal/employees/103/profile-summary"})
@@ -166,9 +188,9 @@ class GatewaySecurityRoutingTest {
         @Bean ReactiveDiscoveryClient syntheticDiscoveryClient() {
             return new ReactiveDiscoveryClient() {
                 public String description() { return "Isolated synthetic directory"; }
-                public Flux<String> getServices() { return Flux.just("IDENTITY-SERVICE", "HR-SERVICE", "EMPLOYEE-SERVICE"); }
+                public Flux<String> getServices() { return Flux.just("IDENTITY-SERVICE", "HR-SERVICE", "EMPLOYEE-SERVICE", "CUSTOMER-SERVICE", "INVOICE-SERVICE"); }
                 public Flux<ServiceInstance> getInstances(String serviceId) {
-                    return java.util.Set.of("identity-service", "hr-service", "employee-service").contains(serviceId.toLowerCase(java.util.Locale.ROOT))
+                    return java.util.Set.of("identity-service", "hr-service", "employee-service", "customer-service", "invoice-service").contains(serviceId.toLowerCase(java.util.Locale.ROOT))
                             ? Flux.just(new DefaultServiceInstance("synthetic", serviceId.toUpperCase(java.util.Locale.ROOT), "127.0.0.1", BACKEND.getAddress().getPort(), false))
                             : Flux.empty();
                 }

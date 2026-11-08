@@ -17,6 +17,14 @@ import jakarta.validation.ConstraintViolationException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleIntegrity(org.springframework.dao.DataIntegrityViolationException ex, WebRequest request) {
+        org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class).warn("Persistence conflict: exceptionType={}, causeType={}",
+                ex.getClass().getSimpleName(), ex.getMostSpecificCause().getClass().getSimpleName());
+        return ResponseEntity.status(409).body(new ApiError(409, "Conflict", "The operation conflicts with existing data", getPath(request)));
+    }
+
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
         ApiError body = new ApiError(

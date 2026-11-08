@@ -40,7 +40,7 @@ describe('Invoices routes with real guards and interceptor', () => {
           const req = http.expectOne(invoices + '/4');
           expect(req.request.headers.has('Authorization')).toBeTrue();
           req.flush({ id: 4, invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: null, dueDate: null,
-            subtotal: 100, tax: null, totalAmount: 100, currency: null, status: 'À traiter', notes: null, createdAt: null, updatedAt: null });
+            subtotal: 100, tax: null, totalAmount: 100, currency: null, status: 'PENDING', notes: null, createdAt: null, updatedAt: null });
           if (form) {
             const client = http.expectOne(customers + '/2');
             expect(client.request.headers.has('Authorization')).toBeTrue();
@@ -65,6 +65,13 @@ describe('Invoices routes with real guards and interceptor', () => {
         TestBed.inject(HttpTestingController).expectNone(r => r.url.startsWith(invoices) || r.url.startsWith(customers));
       });
     }
+  }
+  for (const role of [CrmRole.ADMIN, CrmRole.SUPER_ADMIN, CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
+    it('protects the workbench for '+role, async () => {
+      session(role); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl('/invoices/workbench');
+      expect(TestBed.inject(Router).url).toBe([CrmRole.ADMIN,CrmRole.SUPER_ADMIN].includes(role)?'/invoices/workbench':'/access-denied');
+      TestBed.inject(HttpTestingController).expectNone(r=>r.url.startsWith(invoices));
+    });
   }
   it('redirects an anonymous invoice route to login', async () => {
     const harness = await RouterTestingHarness.create(); await harness.navigateByUrl('/invoices');

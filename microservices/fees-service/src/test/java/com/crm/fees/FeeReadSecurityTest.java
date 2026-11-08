@@ -85,8 +85,8 @@ class FeeReadSecurityTest extends com.crm.fees.security.TestIdentitySupport {
     void administrativeWritesRequireAnAdministrator(String method, String role) throws Exception {
         var response = new FeeResponse();
         response.setId(1L);
-        lenient().when(service0.createFee(any())).thenReturn(response);
-        lenient().when(service0.updateFee(eq(1L), any())).thenReturn(response);
+        lenient().when(service0.createFee(any(),anyString())).thenReturn(response);
+        lenient().when(service0.updateFee(eq(1L), any(),anyString())).thenReturn(response);
         var request = org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request(
                 org.springframework.http.HttpMethod.valueOf(method),
                 "/api/fees" + (method.equals("POST") ? "" : "/1"))
@@ -101,8 +101,8 @@ class FeeReadSecurityTest extends com.crm.fees.security.TestIdentitySupport {
                 : method.equals("POST") ? 201 : method.equals("DELETE") ? 204 : 200;
         mvc.perform(request).andExpect(status().is(expected));
         if (!admin) verifyNoInteractions(service0);
-        else if (method.equals("POST")) verify(service0).createFee(any());
-        else if (method.equals("PUT")) verify(service0).updateFee(eq(1L), any());
+        else if (method.equals("POST")) verify(service0).createFee(any(),anyString());
+        else if (method.equals("PUT")) verify(service0).updateFee(eq(1L), any(),anyString());
         else verify(service0).deleteFee(1L);
     }
 

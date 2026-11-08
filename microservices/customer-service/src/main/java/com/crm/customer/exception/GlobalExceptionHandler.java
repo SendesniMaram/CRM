@@ -16,6 +16,12 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiError> upload(Exception e,WebRequest request){return ResponseEntity.status(413).body(new ApiError(413,"Payload Too Large","Upload exceeds configured limit",getPath(request)));}
+
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,org.springframework.web.bind.MissingServletRequestParameterException.class,org.springframework.web.bind.MissingRequestHeaderException.class})
+    public ResponseEntity<ApiError> parameter(Exception e,WebRequest request){return ResponseEntity.badRequest().body(new ApiError(400,"Bad Request","Invalid or missing parameter",getPath(request)));}
+
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<ApiError> handleIntegrity(org.springframework.dao.DataIntegrityViolationException ex, WebRequest request) {
         return ResponseEntity.status(409).cacheControl(org.springframework.http.CacheControl.noStore())

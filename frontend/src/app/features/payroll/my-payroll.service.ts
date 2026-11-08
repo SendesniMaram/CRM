@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { PDF_DOWNLOAD_REQUEST } from '../../core/http/pdf-download-context';
 import { PayrollPage } from './payroll.models';
+import { SettlementSummary,validateSettlements } from './payroll-settlements.models';
 import { PayrollResponse } from './payroll.models';
 
 @Injectable({ providedIn: 'root' })
@@ -31,6 +32,7 @@ export class MyPayrollService {
     }));
   }
 
+  settlements(id:string){this.requireId(id);return this.http.get<SettlementSummary>(this.url+'/'+id+'/settlements').pipe(map(validateSettlements));}
   pdf(id: string) {
     this.requireId(id);
     return this.http.get(`${this.url}/${id}/pdf`, {

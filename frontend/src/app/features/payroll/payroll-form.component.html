@@ -7,7 +7,7 @@
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     @if (ready()) {
       <p class="muted">L’employé, le salaire de base, la période et le statut sont obligatoires.</p>
-      <p class="muted">Le salaire net sera disponible après enregistrement. La période, la devise et le statut sont libres.</p>
+      <p class="muted">Le salaire net sera disponible après enregistrement. Période : AAAA-MM. Statut de saisie : PENDING. PAID provient des règlements. Montants non négatifs, avec deux décimales maximum.</p>
       <button mat-stroked-button type="button" (click)="lookup.set(!lookup())" [disabled]="saving()">Choisir un employé</button>
       @if (lookup()) { <app-fee-reference-picker kind="employee" [disabled]="saving()" (referenceSelected)="selectEmployee($event)" /> }
       <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="saving()">
@@ -20,12 +20,16 @@
               @if (form.controls[field.key].invalid) { <mat-error>Vérifiez ce champ ({{ field.max }} caractères maximum).</mat-error> }</mat-form-field>
           }
           @for (field of amountFields; track field.key) {
-            <mat-form-field appearance="outline"><mat-label>{{ field.label }}</mat-label><input matInput type="number" step="any" [formControlName]="field.key" [required]="field.required" />
+            <mat-form-field appearance="outline"><mat-label>{{ field.label }}</mat-label><input matInput type="number" step="0.01" [formControlName]="field.key" [required]="field.required" />
               @if (form.controls[field.key].invalid) { <mat-error>{{ field.required ? 'Saisissez un salaire strictement positif.' : 'Saisissez un montant valide.' }}</mat-error> }</mat-form-field>
           }
           <mat-form-field appearance="outline"><mat-label>Date de paiement</mat-label><input matInput type="date" formControlName="paymentDate" />
             @if (form.controls.paymentDate.invalid) { <mat-error>Date invalide ou refusée.</mat-error> }</mat-form-field>
         </div>
+        @if (form.hasError("net")) { <p class="error" role="alert">Le salaire net doit être positif ou nul et ne pas dépasser 9 999 999 999,99.</p> }
+        <p>Heures supplémentaires × taux horaire applicable saisi : aucun taux légal ni majoration automatique. Arrondi technique au centime, demi supérieur.</p>
+        <p role="status">Net prévisionnel : {{previewNet() === null ? "Vérifiez les champs" : previewNet()}}</p>
+        @if(form.hasError("overtime")){<p role="alert">Renseignez ensemble les heures et leur taux applicable, positif pour des heures non nulles.</p>}
         <div class="form-actions"><a mat-button routerLink="/payroll" [disabled]="saving()">Annuler</a>
           <button mat-flat-button type="submit" [disabled]="saving() || loading() || !canManage()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
       </form>

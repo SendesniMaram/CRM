@@ -48,6 +48,7 @@ class UidIssuanceIntegrationTest {
     @Autowired RefreshTokenRepository tokens;
     @Autowired PasswordEncoder encoder;
     @Autowired JwtService jwt;
+    @Autowired com.crm.identity.service.IIdentityService identity;
 
     @BeforeEach void clean() { tokens.deleteAll(); users.deleteAll(); }
 
@@ -139,22 +140,27 @@ class UidIssuanceIntegrationTest {
         assertThat(tokens.findByToken(login.get("refreshToken").asText()).orElseThrow().isRevoked()).isTrue();
     }
 
-    @Test void existingRefreshSessionCanUpgradeALegacyAccessTokenWithoutUid() throws Exception {
+    @Test void legacySessionsCannotBeUpgradedWithoutANewLogin() throws Exception {
         User user = user("legacy-account", RoleType.CLIENT);
         RefreshToken legacy = new RefreshToken(); legacy.setToken("synthetic-legacy-refresh");
         legacy.setUser(user); legacy.setExpiryDate(LocalDateTime.now().plusDays(1)); tokens.saveAndFlush(legacy);
         String old = jwt.generateToken(user.getUsername(), user.getEmail(), true, List.of("CLIENT"));
         mvc.perform(get("/api/internal/access-token/validate").header("Authorization", "Bearer " + old))
                 .andExpect(status().isUnauthorized());
-        assertToken(refresh(legacy.getToken()).get("accessToken").asText(), user, List.of("CLIENT"));
+        mvc.perform(post("/api/auth/refresh").contentType("application/json")
+                .content(json.writeValueAsString(Map.of("refreshToken", legacy.getToken())))).andExpect(status().isUnauthorized());
+        assertThat(tokens.count()).isEqualTo(1);
     }
 
-    @Test void refreshKeepsStableIdAndUsesCurrentRoles() throws Exception {
+    @Test void sensitiveRoleChangeRequiresNewLoginAndThenKeepsStableId() throws Exception {
         User user = user("roles-account", RoleType.ADMIN);
         JsonNode login = login(user, false);
-        user.getRole().clear(); user.getRole().add(roles.findByRoleType(RoleType.EMPLOYEE).orElseThrow());
-        user.getRole().add(roles.findByRoleType(RoleType.CLIENT).orElseThrow()); users.saveAndFlush(user);
-        JsonNode result = refresh(login.get("refreshToken").asText());
-        assertToken(result.get("accessToken").asText(), user, List.of("EMPLOYEE", "CLIENT"));
+        User manager = user("role-manager", RoleType.SUPER_ADMIN);
+        identity.updateUserRoles(user.getId(), new com.crm.identity.dto.AdminUserRolesRequest(java.util.Set.of(RoleType.EMPLOYEE, RoleType.CLIENT)), manager);
+        mvc.perform(post("/api/auth/refresh").contentType("application/json")
+                .content(json.writeValueAsString(Map.of("refreshToken", login.get("refreshToken").asText())))).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/internal/access-token/validate").header("Authorization", "Bearer " + login.get("token").asText())).andExpect(status().isUnauthorized());
+        JsonNode fresh = login(user, false);
+        assertToken(fresh.get("token").asText(), user, List.of("EMPLOYEE", "CLIENT"));
     }
 }

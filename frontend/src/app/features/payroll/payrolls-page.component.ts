@@ -57,6 +57,8 @@ export class PayrollsPageComponent implements OnInit {
   protected readonly size = signal(10);
   protected readonly sortBy = signal<PayrollSort>('payPeriod');
   protected readonly direction = signal<'asc' | 'desc'>('asc');
+  protected readonly exportPeriod=new FormControl('',{nonNullable:true});
+  protected readonly exporting=signal(false);
   protected readonly search = new FormControl('', { nonNullable: true });
   protected readonly columns = ['payPeriod', 'employeeId', 'paymentDate', 'netSalary', 'currency', 'status', 'published', 'actions'];
 
@@ -77,6 +79,11 @@ export class PayrollsPageComponent implements OnInit {
     this.requests.next({ page: this.page(), size: this.size(), sortBy: this.sortBy(),
       direction: this.direction(), ...(keyword ? { keyword } : {}) });
   }
+  protected exportCsv(){
+    const period=this.exportPeriod.value;if(!this.canManage()||this.exporting())return;
+    if(!/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(period)){this.error.set('Choisissez une période AAAA-MM pour le CSV technique.');return;}
+    const generation=this.auth.sessionGeneration;this.exporting.set(true);this.service.exportTechnical(period).pipe(takeUntilDestroyed(this.destroy),finalize(()=>this.exporting.set(false))).subscribe({next:blob=>{if(generation!==this.auth.sessionGeneration||!this.canManage())return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='paie-technique-'+period+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);},error:()=>this.error.set('Export technique indisponible. Aucun format comptable réglementaire n’est garanti.')});
+  }
   protected find() { this.page.set(0); this.load(); }
   protected paginate(event: PageEvent) { this.page.set(event.pageIndex); this.size.set(event.pageSize); this.load(); }
   protected sort(event: Sort) {
@@ -85,7 +92,7 @@ export class PayrollsPageComponent implements OnInit {
     this.direction.set(event.direction === 'desc' ? 'desc' : 'asc'); this.page.set(0); this.load();
   }
   protected remove(payroll: PayrollResponse) {
-    if (!this.canManage() || this.busy() || this.loading()) return;
+    if (!this.canManage() || this.busy() || this.loading() || payroll.published || payroll.cancelled || payroll.status!=='PENDING') return;
     const revision = this.revision;
     const keyword = this.search.value.trim();
     const last = this.rows().length === 1 && this.rows()[0].id === payroll.id;
@@ -112,7 +119,7 @@ export class PayrollsPageComponent implements OnInit {
   }
 
   protected togglePublication(payroll: PayrollResponse) {
-    if (!this.canManage() || this.busy() || this.loading()) return;
+    if (!this.canManage() || this.busy() || this.loading() || payroll.published || payroll.cancelled) return;
     this.busy.set(true); this.error.set('');
     this.service.setPublished(payroll.id, !payroll.published).pipe(
       takeUntilDestroyed(this.destroy), finalize(() => this.busy.set(false))

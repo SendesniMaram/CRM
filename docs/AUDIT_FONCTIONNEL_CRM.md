@@ -198,3 +198,110 @@ Les constats de cette mise a jour remplacent les descriptions anterieures des ta
 - **Validation le 31/10/2026 :** Customer 110 tests, Invoice 103 tests, Fees 69 tests, Angular CI 1 030 tests, tous sans echec. Build de production Angular reussi. Bundle initial 885,58 kB, depassement du budget avertissement de 385,58 kB; avertissements SCSS existants Payroll (+168 octets) et Invoice (+1,33 kB) ainsi que deux avertissements de projection de contenu dans Customers. Tests backend sur H2; aucune migration Sprint 5 ni base MySQL reelle n a ete utilisee.
 
 Limites et controles avant livraison : aucun parcours E2E navigateur -> Gateway -> services -> MySQL; les agregats RH restent des compteurs de dossiers, sans indicateurs d absentisme ou calcul de solde; les honoraires/opportunites n ont pas de devise declaree; les indicateurs client supposent que les paiements manuels sont saisis dans les API. En environnement de test isole, connecter les quatre roles via le Gateway, verifier les scopes client/employe, recharger les vues et comparer les sommes aux listes source, puis executer les migrations existantes sur un MySQL jetable et tester sauvegarde/restauration.
+
+## Mise a jour Sprint 6 - validation integree et stabilisation
+
+Le commit Sprint 5 `96d24a1` (`feat(dashboard): finalize role-based dashboards and statistics`) a ete cree sur `publication-clean` apres verification du diff et des tests. Il n'a pas ete pousse. La validation backend Sprint 6 a execute les onze suites Maven ci-dessous le 31/10/2026; les rapports Surefire indiquent zero echec, erreur ou test ignore :
+
+| Module | Tests | Echecs / erreurs / ignores |
+|---|---:|---:|
+| Identity Service | 118 | 0 / 0 / 0 |
+| Employee Service | 169 | 0 / 0 / 0 |
+| Department Service | 44 | 0 / 0 / 0 |
+| Customer Service | 110 | 0 / 0 / 0 |
+| HR Service | 387 | 0 / 0 / 0 |
+| Payroll Service | 67 | 0 / 0 / 0 |
+| Fees Service | 69 | 0 / 0 / 0 |
+| Invoice Service | 103 | 0 / 0 / 0 |
+| Gateway Service | 98 | 0 / 0 / 0 |
+| Discovery Service | 1 | 0 / 0 / 0 |
+| Common Security | 112 | 0 / 0 / 0 |
+| **Total** | **1 278** | **0 / 0 / 0** |
+
+La suite Angular (1 030 tests) et le build de production, avec les avertissements de budget et de projection deja signales pour Sprint 5, ont ete executes avant le commit Sprint 5. Aucun fichier applicatif n'a change depuis ce commit; les controles Git post-commit ne signalent pas de diff suivi. Les migrations Customer, Invoice, HR et Payroll sont couvertes par les tests Flyway/H2 de leurs suites; cela ne constitue pas une validation MySQL.
+
+La validation Compose et systeme reste bloquee par l'environnement : le daemon Docker n'est pas joignable (`docker_engine` absent); `docker compose config --quiet` ne peut pas lire le `.env` protege par les permissions du poste; aucun navigateur E2E local n'est disponible. Aucun conteneur ni volume n'a ete cree, demarre, arrete ou modifie. Un constat statique supplementaire confirme que MySQL Compose ne cree que `crm_db`, alors que les services demandent `identity_db`, `employee_db`, `department_db`, `customer_db`, `hr_db`, `payroll_db`, `fees_db` et `invoice_db`. `ddl-auto=validate` et les migrations partielles ne fournissent pas les schemas historiques complets. Le demarrage sur volume vierge et la migration MySQL d'upgrade restent donc non valides et constituent un prerequis de livraison.
+
+Les parcours navigateur/Gateway des quatre roles, la decouverte Eureka avec tous les services, la persistance MySQL, la separation des donnees en execution et les scenarios de rechargement ne sont pas declares passes. A rejouer dans un environnement isole apres correction/provisionnement reproductible des schemas : connexion par role; controles 401/403; tableaux de bord compares aux API sources; parcours personnels employe/client; import/export, opportunites, devis, paiements/relances et documents RH; migrations sur MySQL jetable vierge et copie d'upgrade; sauvegarde/restauration conjointe de la base et du volume documentaire. Le statut de livraison finale reste **NON VALIDE**.
+
+## Mise à jour Sprint 6B — reconstruction isolée et validation MySQL
+
+Cette mise à jour consigne les opérations réellement effectuées le 31/10/2026. La pile `crm-validation` a été créée avec un fichier Compose d’overlay et des ports hôtes 13307, 18761 et 18080–18089. La configuration a été validée avant démarrage; les ports étaient libres et les volumes/réseau résolus sous le préfixe `crm-validation_`. Aucun `down`, changement de configuration ou accès en écriture n’a visé le projet Compose `crm`. Le DDL historique a été lu sans lignes de données pour préparer les schémas V1; aucune donnée métier ni document HR historique n’a été copié.
+
+| Contrôle | Résultat | Preuve / limite |
+|---|---|---|
+| Isolation Compose, ports, images et volumes dédiés | PASS (pré-démarrage) | Projet `crm-validation`; ports 13307/18761/18080–18089 libres; nouveaux volumes `crm-validation_mysql-data` et `crm-validation_hr-documents`, réseau `crm-validation_crm-network`; vérification des 11 conteneurs `crm` avant le démarrage. |
+| Build Maven des 10 services | PASS | `common-security install`, puis `package -DskipTests` des dix microservices; JAR produits pour les Dockerfiles existants. |
+| Images Docker dédiées | PASS, construction initiale | Dix images `crm-validation/<service>:sprint6b` construites; Invoice reconstruit une seconde fois après ajout de sa migration corrective. Les dernières suppressions des clauses `DROP` et compteurs AUTO_INCREMENT dans les scripts V1 sont postérieures à ces builds; les images ne reflètent donc pas entièrement l’état final du dépôt. Rebuild encore requis. |
+| MySQL 8 et création des huit bases | PARTIELLE | Volume MySQL neuf créé et conteneur observé `healthy`; script init dédié crée les huit schémas. Aucun relevé SQL final n’a pu être obtenu après la perte de réponse du moteur Docker. |
+| Migrations historiques sur base vierge | PARTIELLE | Flyway a créé son historique et exécuté les migrations au démarrage. Les sept services hors Invoice apparaissaient `Up` lors du premier contrôle; la validation MySQL finale n’a pas été collectée. La première tentative Invoice a échoué sur `invoice_number_sequence.id` (`TINYINT` SQL contre `Integer` JPA); migration additionnelle `V20261031_01__widen_invoice_sequence_id.sql` ajoutée sans modifier les migrations existantes. Le service a été recréé avec son image corrigée, mais son démarrage réussi n’a pas pu être confirmé. |
+| `ddl-auto=validate` des huit schémas | BLOCKED | Aucun journal exploitable des huit validations simultanées. L’erreur Invoice initiale est confirmée; la preuve de correction en MySQL reste à recueillir. |
+| Migration H2 des fonctions CRM/HR/Invoice/Payroll existantes | PASS | `SalesMigrationTest`, `HrMigrationTest`, `QuoteMigrationTest`, `PayrollPublicationMigrationTest` : 1 test chacun, zéro échec/erreur. Identity V1 : `AccessTokenValidationIntegrationTest`, 11 tests, zéro échec/erreur. Ces résultats H2 ne remplacent pas MySQL. |
+| Suite complète Identity après activation de Flyway | FAIL (puis ciblée PASS) | La première suite complète a donné 118 tests, 58 erreurs parce que le V1 contenait des `DROP TABLE` intercalés; ce défaut a été corrigé et le test ciblé de migration (11 tests) passe. La suite complète n’a pas été relancée après correction. |
+| Upgrade isolé avec copie des données historiques | NOT RUN | Seul le DDL sans données a été extrait en lecture seule. Aucun dump de données réelles n’a été fait; un scénario de conservation d’enregistrements et d’upgrade sur copie n’a donc pas été prouvé. |
+| Eureka, Gateway, routes et parcours par rôle | BLOCKED | Les conteneurs isolés ont été créés/démarrés, mais le moteur Docker a cessé de répondre aux commandes d’inspection peu après le premier démarrage; plusieurs ports HTTP de la pile n’ont pas répondu. Aucun parcours métier E2E n’est déclaré réussi. |
+| Documents HR fictifs, téléchargement et persistance après redémarrage | NOT RUN | Volume privé créé, mais tests documentaires non atteints; aucun fichier HR de l’environnement existant n’a été lu. |
+| Environnement existant et fichiers non suivis | PASS au dernier contrôle disponible | Avant démarrage, 11 conteneurs `crm` présents; toutes les commandes Compose de mutation utilisaient `--project-name crm-validation`. Aucun nettoyage Docker global. Les fichiers non suivis initiaux (`b.png`, PDF CDC, plan) ont été préservés. L’état après perte de réponse Docker n’a pas pu être relu. |
+
+Fichiers ajoutés ou modifiés pour ce sprint : `docker-compose.validation.yml`, `docker/validation/mysql-init/01-databases.sql`, les migrations V1 de huit services, l’ajout Flyway dans Identity/Employee/Department/Fees, et la migration corrective Invoice `V20261031_01`. Les images doivent être reconstruites après le nettoyage final des V1; le moteur Docker doit ensuite être rétabli avant de reprendre les contrôles MySQL, Gateway, les parcours fonctionnels et les documents. Le statut global Sprint 6B reste **NON VALIDÉ**.
+
+## Mise à jour Sprint 6C — nouvel essai MySQL isolé
+
+Le 31/10/2026, après accord explicite, un second volume neuf `crm-validation_mysql-data-sprint6c` a été créé. Seul le conteneur MySQL du projet Compose `crm-validation` a été arrêté et recréé pour l’utiliser. Le volume précédent `crm-validation_mysql-data` a été conservé intact; aucune commande n’a visé le projet Compose `crm`. La configuration Compose de validation a été vérifiée avant l’opération.
+
+| Contrôle | Résultat | Preuve / limite |
+|---|---|---|
+| Volume MySQL propre et isolation | PASS | `crm-validation_mysql-data-sprint6c` attaché à `/var/lib/mysql`; le volume `crm-validation_mysql-data` est signalé comme laissé intact. Le projet principal `crm` n’a fait l’objet d’aucune mutation. |
+| MySQL et huit schémas | PASS (initialisation) | Healthcheck MySQL `healthy`; `SHOW DATABASES` a confirmé `identity_db`, `employee_db`, `department_db`, `customer_db`, `hr_db`, `payroll_db`, `fees_db`, `invoice_db`, ainsi que les schémas système et `crm_db`. |
+| Démarrage des applications sur ce volume | LANCÉ, NON VALIDÉ | Identity et les sept services métier ont été recréés avec les images de l’état courant puis démarrés par Compose. Le daemon Docker a cessé de répondre immédiatement après; les conteneurs ne pouvaient plus être inspectés. Aucun état `Up/healthy` ou code de sortie ultérieur n’est donc attesté. |
+| Flyway et `ddl-auto=validate` | NON VALIDÉS | Aucun journal postérieur exploitable ni interrogation SQL de l’historique Flyway n’a pu être recueilli. La présence des huit schémas ne prouve pas l’application réussie des migrations ni la validation JPA. Aucune réparation Flyway n’a été lancée sur l’ancien volume. |
+| HTTP, Gateway et Eureka | NON VALIDÉS | Les contrôles HTTP directs vers les ports des huit services ont échoué à répondre après la perte de disponibilité du daemon. Aucun parcours Gateway ou par rôle n’a été déclaré réussi. |
+| Fonctions documentaires HR | NON VALIDÉES | Aucun dépôt/téléchargement/redémarrage de fichier fictif n’a été exécuté. Le volume documentaire existant reste hors de ces essais. |
+
+Le démarrage initial des sept services sur l’ancien volume avait échoué sur une différence de checksum Flyway V1 : les scripts présents dans le dépôt ont été nettoyés après la création de l’historique de cet ancien volume. Pour éviter toute réparation rétroactive, les migrations actuelles ont été essayées sur le volume neuf. Les builds Maven, tests unitaires/intégration H2 et build Angular rapportés dans le travail Sprint 6C sont des validations distinctes; ils ne remplacent pas les preuves MySQL et E2E encore manquantes. Le statut global de livraison reste **NON VALIDÉ** jusqu’à ce que Docker soit de nouveau inspectable et que les journaux Flyway, la validation des huit schémas, les routes, les scénarios par rôle et la persistance documentaire soient vérifiés.
+
+### Reprise de validation — tentative du 31/10/2026
+
+À la reprise, `docker version` n’a pas retourné de version serveur avant le délai d’attente. La commande d’inspection read-only a été interrompue; aucune autre commande Docker n’a été lancée ensuite. Le dernier montage effectivement observé dans cette session était `crm-validation_mysql-data-sprint6c` sur `/var/lib/mysql`; la liste SQL avait confirmé les huit schémas applicatifs. Ces constats datent d’avant la perte de réponse et ne prouvent pas l’état actuel du daemon.
+
+Après la recréation Compose, la commande `up` avait retourné `Started` pour Identity et les sept services métier. Cette réponse Compose n’est pas une preuve de disponibilité applicative. Les demandes HTTP de santé directes vers les ports 18082–18088 ont échoué à répondre; aucun résultat postérieur n’a été obtenu pour 18089 ou Gateway 18080. Les lignes ci-dessous indiquent donc le dernier état observé, pas un état Docker actuel :
+
+| Conteneur | Dernier état Docker observé | Flyway / JPA | HTTP santé après bascule MySQL |
+|---|---|---|---|
+| `crm-validation-mysql-1` | `Started`; healthcheck `healthy` avant le lancement des applications | Huit schémas créés; historiques non interrogés après bascule | MySQL interne sain avant lancement; état actuel inconnu |
+| `crm-validation-discovery-service-1` | Était `Up/healthy` avant la bascule; non inspecté après | Sans objet | Non testé après bascule |
+| `crm-validation-gateway-service-1` | Était `Up/healthy` avant la bascule; non inspecté après | Sans objet | Non testé après bascule |
+| `crm-validation-identity-service-1` | Compose `Started` après recréation; état final inconnu | Non confirmé sur le volume neuf | 18082 : échec de réponse |
+| `crm-validation-employee-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18083 : échec de réponse |
+| `crm-validation-department-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18084 : échec de réponse |
+| `crm-validation-customer-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18085 : échec de réponse |
+| `crm-validation-hr-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18086 : échec de réponse |
+| `crm-validation-payroll-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18087 : échec de réponse |
+| `crm-validation-fees-service-1` | Compose `Started`; état final inconnu | Non confirmé | 18088 : échec de réponse |
+| `crm-validation-invoice-service-1` | Compose `Started`; état final inconnu | Non confirmé; séquence Invoice à vérifier en MySQL | 18089 : aucun résultat collecté |
+
+Logs, `flyway_schema_history`, erreurs `ddl-auto=validate`, registre Eureka, routes Gateway et parcours ADMIN/SUPER_ADMIN/EMPLOYEE/CLIENT n’ont pas pu être contrôlés après la perte du daemon. Les suites Maven (Identity 119, Employee 169, Department 44, Customer 110, HR 387, Payroll 67, Fees 69, Invoice 103, Gateway 110) et la suite Angular (1 030), décrites dans les validations précédentes de cette session, passent sur leurs configurations de test; elles ne valident pas les conteneurs MySQL. Le build Angular production passe avec avertissements de budget. Aucun nouveau test n’a été relancé pendant cette reprise afin de ne pas répéter les validations déjà effectuées.
+
+Conclusion de cette reprise : le CRM est **toujours bloqué pour validation intégrée** et **non prêt à être déclaré prêt pour démonstration**. La couverture fonctionnelle locale existe et les tests automatisés passent, mais les services, migrations MySQL, la découverte et les parcours des quatre rôles ne sont pas vérifiables tant que Docker Engine reste inaccessible. Aucun volume n’a été supprimé, aucune base réinitialisée, aucune migration corrective lancée et aucun commit/push effectué.
+
+### Nouvelle tentative après correction locale — 31/10/2026
+
+Après la correction signalée par l’utilisateur, Docker Engine a répondu une première fois (`29.7.2`). L’inspection read-only a confirmé que `crm-validation-mysql-1` utilise toujours `crm-validation_mysql-data-sprint6c` sur `/var/lib/mysql`; les volumes `crm_mysql-data` et `crm-validation_mysql-data` n’ont pas été ciblés. Les onze conteneurs étaient arrêtés avec code 255. La configuration isolée était valide, puis `docker compose up -d` a démarré les onze conteneurs existants; le healthcheck MySQL est devenu `healthy`. Aucun volume n’a été supprimé ou recréé.
+
+Un relevé read-only peu après le démarrage indiquait les onze conteneurs `Up` (MySQL `healthy`). Ce statut ne valide pas les applications. La tentative de lecture des tables d’historique Flyway n’a pas rendu de résultat et Docker Engine a cessé de répondre à nouveau. Les contrôles HTTP locaux ont ensuite tous échoué sans réponse : Gateway 18080, Identity 18082, services métier 18083–18089 et Discovery 18761. Les logs et les huit historiques Flyway n’ont donc pas pu être collectés; aucune conclusion MySQL sur V1 ou `ddl-auto=validate` n’est possible.
+
+| Conteneur | État Docker au dernier relevé | État applicatif | Flyway / JPA | HTTP de santé |
+|---|---|---|---|---|
+| MySQL | `Up`, healthcheck `healthy` | Moteur prêt lors du relevé | Historique non lu | Pas de endpoint HTTP testé |
+| Discovery | `Up` | Inconnu | — | 18761 : aucune réponse |
+| Gateway | `Up` | Inconnu | — | 18080 : aucune réponse |
+| Identity | `Up` | Inconnu | Non vérifié | 18082 : aucune réponse |
+| Employee | `Up` | Inconnu | Non vérifié | 18083 : aucune réponse |
+| Department | `Up` | Inconnu | Non vérifié | 18084 : aucune réponse |
+| Customer | `Up` | Inconnu | Non vérifié | 18085 : aucune réponse |
+| HR | `Up` | Inconnu | Non vérifié | 18086 : aucune réponse |
+| Payroll | `Up` | Inconnu | Non vérifié | 18087 : aucune réponse |
+| Fees | `Up` | Inconnu | Non vérifié | 18088 : aucune réponse |
+| Invoice | `Up` | Inconnu | Non vérifié; initialiseur de séquence non confirmé | 18089 : aucune réponse |
+
+Aucun parcours par rôle ni route Gateway métier n’a été tenté, puisque les endpoints de santé ne répondaient pas et aucun compte de démonstration n’est activé. Les suites automatisées déjà exécutées dans cette session ne sont pas relancées; elles ne prouvent pas le démarrage MySQL. Suivant la consigne, toutes les commandes Docker ont cessé après la seconde perte de réponse. Le projet principal `crm` et les trois volumes existants restent à préserver. Conclusion mise à jour : CRM **partiellement fonctionnel au niveau du code et des tests**, mais **toujours bloqué pour une démonstration intégrée**; disponibilité du MySQL et application des migrations sur le nouveau volume restent inconnues après le dernier incident.

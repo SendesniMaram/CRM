@@ -38,17 +38,19 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     public AuthenticationServiceImpl(UserRepository userRepository,
                                      RoleRepository roleRepository,
                                      PasswordEncoder passwordEncoder,
                                      RefreshTokenRepository refreshTokenRepository,
-                                     JwtService jwtService) {
+                                     JwtService jwtService, jakarta.persistence.EntityManager entityManager) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenRepository = refreshTokenRepository;
         this.jwtService = jwtService;
+        this.entityManager = entityManager;
     }
 
 
@@ -74,6 +76,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             throw new InvalidCredentialsException("invalid credentials");
         }
 
+        user = userRepository.lockById(user.getId()).orElseThrow(() -> new InvalidCredentialsException("invalid credentials"));
+
+        entityManager.refresh(user, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+
         // Vérifier que le compte est activé
         if (!user.isEnabled()) {
             throw new InvalidCredentialsException("account is disabled");
@@ -91,10 +97,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         }
 
         // Révoquer les anciens refresh tokens de l'utilisateur
-        refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.revokeAllByUser(user);
 
         // Générer un nouveau refresh token persisté
-        RefreshToken refreshToken = createRefreshToken(user);
+        RefreshToken refreshToken = createRefreshToken(user, UUID.randomUUID().toString());
 
         // Construire la réponse
         LoginResponse response = new LoginResponse();
@@ -111,6 +117,8 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
                 .toList());
         response.setExpiration(JwtService.ACCESS_TOKEN_DURATION_MS);
         response.setRefreshToken(refreshToken.getToken());
+        response.setToken(issueAccessToken(user, refreshToken.getSessionId()));
+        response.setType("Bearer");
         return response;
     }
 
@@ -160,10 +168,13 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         }
 
         // Rechercher le refresh token en base
+        User user = lockSessionOwner(request.getRefreshToken());
         Optional<RefreshToken> optionalToken = refreshTokenRepository.findByTokenForUpdate(request.getRefreshToken());
         RefreshToken storedToken = optionalToken.orElseThrow(
                 () -> new InvalidCredentialsException("invalid or expired refresh token")
         );
+
+        entityManager.refresh(storedToken, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
 
         // Vérifier que le token n'est pas révoqué
         if (storedToken.isRevoked()) {
@@ -177,11 +188,8 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             throw new InvalidCredentialsException("refresh token has expired");
         }
 
-        User user = storedToken.getUser();
-
-        if (user == null) {
-            throw new InvalidCredentialsException("user not found");
-        }
+        if (storedToken.getUser() == null || !user.getId().equals(storedToken.getUser().getId())
+                || !JwtService.canonicalSession(storedToken.getSessionId())) throw new InvalidCredentialsException("Invalid session");
 
         // Revoke every refresh session for an inactive account, not just this token.
         // This also prevents these sessions from reviving if the account is re-enabled.
@@ -195,18 +203,10 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         refreshTokenRepository.save(storedToken);
 
         // Générer un nouveau refresh token
-        RefreshToken newRefreshToken = createRefreshToken(user);
+        RefreshToken newRefreshToken = createRefreshToken(user, storedToken.getSessionId());
 
         // Générer un nouveau JWT access token
-        String newAccessToken = jwtService.generateToken(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail(),
-                user.isEnabled(),
-                user.getRole().stream()
-                        .map(r -> r.getRoleType().name())
-                        .toList()
-        );
+        String newAccessToken = issueAccessToken(user, newRefreshToken.getSessionId());
 
         // Construire la réponse
         RefreshTokenResponse response = new RefreshTokenResponse();
@@ -225,8 +225,9 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
     /**
      * Crée et persist un nouveau refresh token pour l'utilisateur donné.
      */
-    private RefreshToken createRefreshToken(User user) {
+    private RefreshToken createRefreshToken(User user, String sessionId) {
         RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setSessionId(sessionId);
         refreshToken.setToken(UUID.randomUUID().toString() + "-" + UUID.randomUUID().toString());
         refreshToken.setExpiryDate(LocalDateTime.now().plusSeconds(REFRESH_TOKEN_DURATION_MS / 1000));
         refreshToken.setRevoked(false);
@@ -234,6 +235,36 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
         return refreshTokenRepository.save(refreshToken);
     }
 
+
+    private String issueAccessToken(User user, String sessionId) {
+        return jwtService.generateSessionToken(user.getId(), user.getUsername(), user.getEmail(), user.isEnabled(),
+                user.getRole().stream().map(r -> r.getRoleType().name()).toList(), sessionId);
+    }
+
+    // All session writes take the User lock before any refresh row lock.
+    private User lockSessionOwner(String token) {
+        var stored = refreshTokenRepository.findByToken(token).orElseThrow(() -> new InvalidCredentialsException("Invalid session"));
+        if (stored.getUser() == null) throw new InvalidCredentialsException("Invalid session");
+        User user = userRepository.lockById(stored.getUser().getId()).orElseThrow(() -> new InvalidCredentialsException("Invalid session"));
+        entityManager.refresh(user, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        return user;
+    }
+
+    @Override
+    public void logout(RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isBlank())
+            throw new IllegalArgumentException("refreshToken is required");
+        // Idempotent and non-enumerating. A rotated token can revoke its own session family only.
+        var existing = refreshTokenRepository.findByToken(request.getRefreshToken());
+        if (existing.isEmpty() || existing.get().getUser() == null) return;
+        var owner = userRepository.lockById(existing.get().getUser().getId());
+        if (owner.isEmpty()) return;
+        entityManager.refresh(owner.get(), jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        var stored = refreshTokenRepository.findByTokenForUpdate(request.getRefreshToken());
+        stored.ifPresent(row -> entityManager.refresh(row, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE));
+        if (stored.isPresent() && JwtService.canonicalSession(stored.get().getSessionId()))
+            refreshTokenRepository.revokeSession(owner.get(), stored.get().getSessionId());
+    }
 
     private Role resolveClientRole() {
         return roleRepository.findByRoleType(RoleType.CLIENT)

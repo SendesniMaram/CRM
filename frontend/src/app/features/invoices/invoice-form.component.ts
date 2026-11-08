@@ -16,6 +16,8 @@ import { CustomerService } from '../customers/customer.service';
 import { InvoiceRequest, parseCustomerId } from './invoice.models';
 import { InvoiceService } from './invoice.service';
 
+import { money, invoiceDates, invoiceTotal } from '../../shared/financial-validators';
+
 const notBlank = (control: AbstractControl) => typeof control.value === 'string' && control.value.trim() ? null : { required: true };
 const finite = (control: AbstractControl) => control.value === null || Number.isFinite(control.value) ? null : { number: true };
 export function invoiceDate(control: AbstractControl) {
@@ -64,13 +66,13 @@ export class InvoiceFormComponent implements OnInit {
         ? null : { customer: true }]),
     issueDate: this.fb.nonNullable.control('', invoiceDate),
     dueDate: this.fb.nonNullable.control('', invoiceDate),
-    subtotal: this.fb.control<number | null>(null, [Validators.required, finite, control =>
+    subtotal: this.fb.control<number | null>(null, [Validators.required, money, control =>
       control.value === null || control.value > 0 ? null : { positive: true }]),
-    tax: this.fb.control<number | null>(null, finite),
+    tax: this.fb.control<number | null>(null, money),
     currency: this.fb.nonNullable.control('', Validators.maxLength(10)),
-    status: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50)]),
+    status: this.fb.nonNullable.control('', [Validators.required, notBlank, Validators.maxLength(50), Validators.pattern(/^(DRAFT|PENDING|UNPAID)$/)]),
     notes: this.fb.nonNullable.control('', Validators.maxLength(500))
-  });
+  }, { validators: [invoiceDates, invoiceTotal] });
 
   ngOnInit() {
     this.customerLoads.pipe(switchMap(() => {
@@ -97,6 +99,10 @@ export class InvoiceFormComponent implements OnInit {
         this.form.patchValue({ invoiceNumber: row.invoiceNumber, issueDate: row.issueDate ?? '',
           dueDate: row.dueDate ?? '', subtotal: row.subtotal, tax: row.tax, currency: row.currency ?? '',
           status: row.status, notes: row.notes ?? '' });
+        if (row.archived||row.issued||row.reconciliationId||['PAID', 'PARTIALLY_PAID'].includes(row.status)) {
+          this.error.set('Cette facture a un état de paiement protégé. Son édition directe est interdite.');
+          return EMPTY;
+        }
         this.ready.set(true);
         const clientId = parseCustomerId(row.customerId);
         if (clientId === null) {
@@ -132,6 +138,7 @@ export class InvoiceFormComponent implements OnInit {
   protected submit() {
     if (!this.ready() || this.saving() || this.loading() || this.customerLoading() || this.customerError()) return;
     Object.values(this.form.controls).forEach(control => control.updateValueAndValidity());
+    this.form.updateValueAndValidity();
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const value = this.form.getRawValue();
     if (value.customerId === null || value.subtotal === null) return;
@@ -149,7 +156,11 @@ export class InvoiceFormComponent implements OnInit {
       error: (e: { status?: number; error?: { message?: unknown } }) => {
         if (e.status === 401 || e.status === 403) return;
         if (e.status === 404) { this.ready.set(false); this.error.set('Cette facture n’existe plus.'); return; }
-        if (e.status === 400 || e.status === 409) {
+        if (e.status === 409) {
+          this.error.set('Modification refusée : une facture avec paiement ou historique protégé ne peut pas être modifiée directement. Rechargez la facture.');
+          return;
+        }
+        if (e.status === 400) {
           const message = typeof e.error?.message === 'string' ? e.error.message : '';
           for (const key of Object.keys(this.form.controls) as (keyof typeof this.form.controls)[]) {
             if (message.includes(key + ':') || (key === 'invoiceNumber' && /Invoice number already exists/i.test(message))) {

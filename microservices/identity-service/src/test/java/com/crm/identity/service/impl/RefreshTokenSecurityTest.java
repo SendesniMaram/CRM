@@ -32,6 +32,7 @@ class RefreshTokenSecurityTest {
     @Mock PasswordEncoder encoder;
     @Mock RefreshTokenRepository tokens;
     @Mock JwtService jwt;
+    @Mock jakarta.persistence.EntityManager entityManager;
     @InjectMocks AuthenticationServiceImpl service;
 
     private RefreshToken token(boolean enabled, boolean unlocked) {
@@ -44,9 +45,12 @@ class RefreshTokenSecurityTest {
         user.getRole().add(new Role("EMPLOYEE", RoleType.EMPLOYEE));
         RefreshToken stored = new RefreshToken();
         stored.setToken("synthetic-refresh");
+        stored.setSessionId("11111111-1111-4111-8111-111111111111");
         stored.setExpiryDate(LocalDateTime.now().plusDays(1));
         stored.setUser(user);
-        when(tokens.findByTokenForUpdate(stored.getToken())).thenReturn(Optional.of(stored));
+        lenient().when(tokens.findByToken(stored.getToken())).thenReturn(Optional.of(stored));
+        lenient().when(users.lockById(101L)).thenReturn(Optional.of(user));
+        lenient().when(tokens.findByTokenForUpdate(stored.getToken())).thenReturn(Optional.of(stored));
         return stored;
     }
 
@@ -70,7 +74,7 @@ class RefreshTokenSecurityTest {
     void activeAccountRotatesTokenAndPreservesRolesAndResponseContract() {
         RefreshToken stored = token(true, true);
         when(tokens.save(any(RefreshToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwt.generateToken(101L, "synthetic-user", "synthetic@example.test", true, List.of("EMPLOYEE")))
+        when(jwt.generateSessionToken(101L, "synthetic-user", "synthetic@example.test", true, List.of("EMPLOYEE"), stored.getSessionId()))
                 .thenReturn("synthetic-access");
         var result = service.refreshToken(request());
         assertThat(stored.isRevoked()).isTrue();
@@ -104,7 +108,7 @@ class RefreshTokenSecurityTest {
 
     @Test
     void unknownTokenCannotIssueTokens() {
-        when(tokens.findByTokenForUpdate(anyString())).thenReturn(Optional.empty());
+        when(tokens.findByToken(anyString())).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.refreshToken(request())).isInstanceOf(InvalidCredentialsException.class);
         verify(tokens, never()).save(any());
         verifyNoInteractions(jwt);

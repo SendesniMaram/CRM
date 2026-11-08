@@ -1,0 +1,53 @@
+{
+  "empty": {
+    "invoiceCount": 0,
+    "paidInvoiceCount": 0,
+    "unpaidInvoiceCount": 0,
+    "byCurrency": {}
+  },
+  "single": {
+    "invoiceCount": 1,
+    "paidInvoiceCount": 0,
+    "unpaidInvoiceCount": 1,
+    "byCurrency": {
+      "TND": {
+        "invoiceCount": 1,
+        "total": 100.25,
+        "paid": 0,
+        "outstanding": 100.25
+      }
+    }
+  },
+  "multiple": {
+    "invoiceCount": 3,
+    "paidInvoiceCount": 1,
+    "unpaidInvoiceCount": 2,
+    "byCurrency": {
+      "EUR": {
+        "invoiceCount": 1,
+        "total": 40,
+        "paid": 40,
+        "outstanding": 0
+      },
+      "TND": {
+        "invoiceCount": 2,
+        "total": 300,
+        "paid": 20,
+        "outstanding": 280
+      }
+    }
+  },
+  "zero": {
+    "invoiceCount": 1,
+    "paidInvoiceCount": 0,
+    "unpaidInvoiceCount": 1,
+    "byCurrency": {
+      "NON_RENSEIGNEE": {
+        "invoiceCount": 1,
+        "total": 0,
+        "paid": 0,
+        "outstanding": 0
+      }
+    }
+  }
+}

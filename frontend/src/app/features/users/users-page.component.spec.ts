@@ -21,6 +21,31 @@ describe('UsersPageComponent', () => {
       { provide: UserDirectoryService, useValue: service }, { provide: AuthService, useValue: { getCurrentUser: () => null, sessionGeneration: 0, hasAnyRole: (roles: CrmRole[]) => roles.includes(role) } }] });
   });
   function setup() { const fixture = TestBed.createComponent(UsersPageComponent); fixture.detectChanges(); return { fixture, page: fixture.componentInstance as any }; }
+  it('expires the current session immediately after changing its own roles', () => {
+    role = CrmRole.SUPER_ADMIN;
+    const auth = TestBed.inject(AuthService) as any;
+    auth.getCurrentUser = () => ({ username: 'self' }); auth.getRoles = () => [CrmRole.SUPER_ADMIN];
+    auth.expireSession = jasmine.createSpy('expireSession');
+    const { page } = setup();
+    const self = { id: '42', username: 'self', firstName: 'A', lastName: 'B', email: 'self@example.test', phone: null,
+      enabled: true, accountNonLocked: true, roles: [CrmRole.SUPER_ADMIN], roleType: CrmRole.SUPER_ADMIN, createdAt: null };
+    page.changeRole(self, CrmRole.ADMIN);
+    expect(service.setRoles).toHaveBeenCalledWith('42', [CrmRole.ADMIN]);
+    expect(auth.expireSession).toHaveBeenCalledOnceWith('/users', 0);
+  });
+  it('does not clear the current session when changing another account or after a refused change', () => {
+    role = CrmRole.SUPER_ADMIN;
+    const auth = TestBed.inject(AuthService) as any;
+    auth.getCurrentUser = () => ({ username: 'self' }); auth.getRoles = () => [CrmRole.SUPER_ADMIN];
+    auth.expireSession = jasmine.createSpy('expireSession');
+    const { page } = setup();
+    const other = { id: '43', username: 'other', firstName: 'A', lastName: 'B', email: 'other@example.test', phone: null,
+      enabled: true, accountNonLocked: true, roles: [CrmRole.ADMIN], roleType: CrmRole.ADMIN, createdAt: null };
+    page.changeRole(other, CrmRole.CLIENT); expect(auth.expireSession).not.toHaveBeenCalled();
+    service.setRoles.and.returnValue(throwError(() => ({ status: 409, error: { message: 'private diagnostic' } })));
+    page.changeRole({ ...other, username: 'self' }, CrmRole.ADMIN);
+    expect(auth.expireSession).not.toHaveBeenCalled(); expect(page.error()).not.toContain('private diagnostic');
+  });
   for (const current of [CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
     it('never loads or creates for ' + current, () => {
       role = current; const { fixture, page } = setup(); page.form.setValue(body); page.create();

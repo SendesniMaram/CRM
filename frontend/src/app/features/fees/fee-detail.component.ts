@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { EMPTY, catchError, finalize, switchMap, tap } from 'rxjs';
 import { InvoiceAmountPipe } from '../invoices/invoice-amount.pipe';
 import { FeeResponse } from './fee.models';
+import { feeEditable } from './fee-finance';
 import { FeeService } from './fee.service';
 @Component({
   selector: 'app-fee-detail', standalone: true,
@@ -20,6 +21,7 @@ export class FeeDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(FeeService);
   private readonly destroy = inject(DestroyRef);
+  protected editable=feeEditable;
   protected readonly fee = signal<FeeResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly error = signal('');

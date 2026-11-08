@@ -6,6 +6,7 @@
       <mat-card-subtitle>Heureux de vous retrouver. Connectez-vous pour continuer.</mat-card-subtitle>
     </mat-card-header>
     <mat-card-content>
+      @if (sessionNotice()) { <p role="status">{{ sessionNotice() }}</p> }
       <form [formGroup]="loginForm" (ngSubmit)="submit()" [attr.aria-busy]="loading()" novalidate>
         <mat-form-field appearance="outline">
           <mat-label>Nom d'utilisateur ou e-mail</mat-label>

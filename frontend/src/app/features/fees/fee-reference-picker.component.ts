@@ -11,7 +11,7 @@ import { EmployeeService } from '../employees/services/employee.service';
 
 interface ReferenceChoice { id: number; label: string }
 
-// Optional directory assistance: Fees stores string references and does not enforce foreign keys.
+// Directory assistance for string references; the server verifies newly assigned references.
 @Component({
   selector: 'app-fee-reference-picker', standalone: true,
   imports: [ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule],

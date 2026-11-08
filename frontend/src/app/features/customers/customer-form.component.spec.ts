@@ -86,4 +86,6 @@ describe('CustomerFormComponent', () => {
     expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('Impossible d’enregistrer');
     expect(component['saving']()).toBeFalse(); expect(component['ready']()).toBeTrue();
   });
+  it('preserves the assigned employee on edit rather than silently clearing it',()=>{service.get.and.returnValue(of({...row,assignedEmployeeId:101}));const c=start('4');c['submit']();expect(service.update.calls.mostRecent().args[1].assignedEmployeeId).toBe(101);});
+  it('blocks archive edits and unsafe numeric assignments',()=>{service.get.and.returnValue(of({...row,archived:true}));let c=start('4');expect(c['ready']()).toBeFalse();c['submit']();expect(service.update).not.toHaveBeenCalled();c=start();c['form'].patchValue({name:'Contact',assignedEmployeeId:'9007199254740993'});c['submit']();expect(service.create).not.toHaveBeenCalled();});
 });

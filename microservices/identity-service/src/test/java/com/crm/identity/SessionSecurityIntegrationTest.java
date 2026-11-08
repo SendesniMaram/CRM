@@ -63,13 +63,15 @@ class SessionSecurityIntegrationTest {
         RefreshToken token = new RefreshToken();
         token.setUser(user);
         token.setToken(value);
+        token.setSessionId(java.util.UUID.randomUUID().toString());
         token.setExpiryDate(LocalDateTime.now().plusDays(1));
         return tokens.saveAndFlush(token);
     }
 
     private String access(User user) {
-        return jwt.generateToken(user.getUsername(), user.getEmail(), true,
-                user.getRole().stream().map(r -> r.getRoleType().name()).toList());
+        var session = token(user, java.util.UUID.randomUUID().toString());
+        return jwt.generateSessionToken(user.getId(), user.getUsername(), user.getEmail(), true,
+                user.getRole().stream().map(r -> r.getRoleType().name()).toList(), session.getSessionId());
     }
 
     private void refresh(String value, int expected) throws Exception {
@@ -131,11 +133,11 @@ class SessionSecurityIntegrationTest {
         assertThat(tokens.findByToken("session-one").orElseThrow().isRevoked()).isTrue();
         assertThat(tokens.findByToken("session-two").orElseThrow().isRevoked()).isTrue();
         assertThat(tokens.findByToken("unrelated-session").orElseThrow().isRevoked()).isFalse();
-        assertThat(tokens.count()).isEqualTo(3);
+        assertThat(tokens.count()).isEqualTo(4);
         user.setEnabled(true); user.setAccountNonLocked(true); users.saveAndFlush(user);
         refresh("session-two", 401);
-        mvc.perform(get("/api/users").header("Authorization", "Bearer " + access)).andExpect(status().isOk());
-        // Existing access tokens are not permanently revoked by a status toggle.
+        mvc.perform(get("/api/users").header("Authorization", "Bearer " + access)).andExpect(status().isUnauthorized());
+        // Reactivation never restores sessions revoked while the account was unavailable.
     }
 
     @Test
@@ -161,6 +163,7 @@ class SessionSecurityIntegrationTest {
     void deletedAccountCannotUsePreviouslyIssuedIdentityAccessToken() throws Exception {
         User user = user(RoleType.ADMIN);
         String access = access(user);
+        tokens.deleteAll(); // Remove synthetic FK-dependent fixtures before deleting this test account.
         users.deleteById(user.getId());
         mvc.perform(get("/api/users").header("Authorization", "Bearer " + access))
                 .andExpect(status().isUnauthorized());
@@ -171,6 +174,7 @@ class SessionSecurityIntegrationTest {
         User deleted = user(RoleType.EMPLOYEE);
         deleted.setUsername("shared@example.test"); users.saveAndFlush(deleted);
         String oldAccess = access(deleted);
+        tokens.deleteAll();
         users.deleteById(deleted.getId());
         User unrelatedAdmin = user(RoleType.ADMIN);
         unrelatedAdmin.setEmail("shared@example.test"); users.saveAndFlush(unrelatedAdmin);

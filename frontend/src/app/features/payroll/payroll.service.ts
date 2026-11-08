@@ -1,4 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { map } from 'rxjs';
+import { SettlementRequest,SettlementSummary,validateSettlements } from './payroll-settlements.models';
 import { Injectable, inject } from '@angular/core';
 import { PayrollPage, PayrollPageParams, PayrollRequest, PayrollResponse } from './payroll.models';
 @Injectable({ providedIn: 'root' })
@@ -12,6 +14,11 @@ export class PayrollService {
     if (query.keyword?.trim()) params = params.set('keyword', query.keyword.trim());
     return this.http.get<PayrollPage>(this.url, { params });
   }
+  settlements(id:number){return this.http.get<SettlementSummary>(this.url+'/'+id+'/settlements').pipe(map(validateSettlements));}
+  pay(id:number,body:SettlementRequest){return this.http.post<SettlementSummary>(this.url+'/'+id+'/settlements',body).pipe(map(validateSettlements));}
+  reverse(id:number,reference:string,requestId:string,reason:string){return this.http.post<SettlementSummary>(this.url+'/'+id+'/settlements/'+encodeURIComponent(reference)+'/reversal',{requestId,reason}).pipe(map(validateSettlements));}
+  correct(id:number,reason:string){return this.http.post<PayrollResponse>(this.url+'/'+id+'/corrections',{reason});}
+  exportTechnical(period:string){return this.http.get(this.url+'/export/technical.csv',{params:{period},responseType:'blob'});}
   get(id: number) { return this.http.get<PayrollResponse>(`${this.url}/${id}`); }
   create(value: PayrollRequest) { return this.http.post<PayrollResponse>(this.url, value); }
   update(id: number, value: PayrollRequest) { return this.http.put<PayrollResponse>(`${this.url}/${id}`, value); }

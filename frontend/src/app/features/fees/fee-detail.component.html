@@ -1,11 +1,13 @@
 <section class="customer-page narrow" aria-labelledby="fee-detail-title">
   <a mat-button routerLink="/fees"><mat-icon>arrow_back</mat-icon>Retour aux honoraires</a>
   <header class="page-header"><div><p class="eyebrow">Prestations</p><h1 id="fee-detail-title">{{ fee()?.serviceName || 'Fiche honoraire' }}</h1><p class="subtitle">Informations et suivi de la prestation.</p></div>
-    @if (fee(); as row) { <a mat-flat-button [routerLink]="['/fees', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a> }</header>
+    @if (fee(); as row) { @if(editable(row)){<a mat-flat-button [routerLink]="['/fees', row.id, 'edit']"><mat-icon>edit</mat-icon>Modifier</a>} }</header>
   <mat-card class="directory-card"><mat-card-content>
     @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement de l’honoraire…</p></div> }
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     @if (fee(); as row) {
+      @if(!editable(row)){<p>Honoraire figé ; les temps transférés et les statuts engagés protègent son historique.</p>}
+      <p>Devise : {{row.currency || "Non renseignée"}}. Statuts ci-dessous déclaratifs, sans preuve de facture Invoice.</p>
       <dl class="details-grid">
         <div><dt>Référence employé</dt><dd>{{ row.employeeId }}</dd></div>
         <div><dt>Référence client</dt><dd>{{ row.customerId || 'Non renseignée' }}</dd></div>

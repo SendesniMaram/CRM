@@ -8,7 +8,7 @@ describe('InvoiceService', () => {
   let service: InvoiceService;
   let http: HttpTestingController;
   const url = 'http://localhost:8080/invoice/api/invoices';
-  const request = { invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: null, dueDate: null, subtotal: 100, tax: null, currency: null, status: 'À traiter', notes: null };
+  const request = { invoiceNumber: 'FACT-TEST', customerId: '2', issueDate: null, dueDate: null, subtotal: 100, tax: null, currency: null, status: 'PENDING', notes: null };
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(InvoiceService); http = TestBed.inject(HttpTestingController);

@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, catchError, defer, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
+import { Observable, catchError, defer, finalize, map, of, shareReplay, tap, throwError, timeout } from 'rxjs';
 import { AuthSession, LoginRequest, LoginResponse, RefreshTokenResponse } from '../models/auth.models';
 import { CrmRole } from '../models/role.model';
 import { jwtExpiration } from './jwt-expiration';
@@ -18,6 +18,7 @@ export class AuthService {
   private readonly expiryTick = signal(0);
   private expiryTimer?: ReturnType<typeof setTimeout>;
   private refreshInFlight?: Observable<string>;
+  readonly sessionNotice = signal('');
   private generation = 0;
   private revision = 0;
 
@@ -32,10 +33,14 @@ export class AuthService {
   login(request: LoginRequest): Observable<LoginResponse> {
     return defer(() => {
       this.clearSession();
+      this.sessionNotice.set('');
       const generation = this.generation;
       return this.http.post<LoginResponse>(this.authUrl + '/login', request).pipe(
         tap((response) => {
-          if (generation !== this.generation) throw new Error('Session changed');
+          if (generation !== this.generation) {
+            this.revokeRemote(response.refreshToken, generation);
+            throw new Error('Session changed');
+          }
           this.validateTokens(response.token, response.refreshToken);
           const { token, refreshToken, ...user } = response;
           this.saveSession({ accessToken: token, refreshToken, user });
@@ -45,13 +50,25 @@ export class AuthService {
   }
 
   logout(): void {
+    const refreshToken = this.session()?.refreshToken;
     this.clearSession();
+    this.sessionNotice.set('Déconnexion locale effectuée.');
+    if (refreshToken) this.revokeRemote(refreshToken, this.generation);
     void this.router.navigate(['/login']);
+  }
+
+  private revokeRemote(refreshToken: string, generation: number): void {
+    if (!refreshToken) return;
+    this.http.post<void>(this.authUrl + '/logout', { refreshToken }).pipe(timeout(5000)).subscribe({
+      next: () => { if (generation === this.generation) this.sessionNotice.set('Déconnexion confirmée.'); },
+      error: () => { if (generation === this.generation) this.sessionNotice.set('Déconnexion locale effectuée ; révocation serveur non confirmée. Une nouvelle connexion révoquera vos anciennes sessions.'); }
+    });
   }
 
   expireSession(returnUrl: string, generation = this.generation): void {
     if (generation !== this.generation) return;
     this.clearSession();
+    this.sessionNotice.set('Votre session a expiré ou a été révoquée. Reconnectez-vous.');
     void this.router.navigate(['/login'], { queryParams: { returnUrl: safeReturnUrl(returnUrl) } });
   }
 
@@ -90,7 +107,10 @@ export class AuthService {
       map(() => true),
       catchError((error) => {
         if (isSessionUnavailable(error)) return throwError(() => error);
-        if (generation === this.generation) this.clearSession();
+        if (generation === this.generation) {
+          this.clearSession();
+          this.sessionNotice.set('Votre session a expiré ou a été révoquée. Reconnectez-vous.');
+        }
         return of(false);
       })
     );
@@ -106,7 +126,10 @@ export class AuthService {
     }).pipe(
       map((response) => {
         // Late responses must not restore a session after logout or a new login.
-        if (generation !== this.generation) throw new Error('Session changed');
+        if (generation !== this.generation) {
+          this.revokeRemote(response.refreshToken, generation);
+          throw new Error('Session changed');
+        }
         this.validateTokens(response.accessToken, response.refreshToken);
         this.saveSession({
           accessToken: response.accessToken,

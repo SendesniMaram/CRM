@@ -20,7 +20,7 @@ describe('AuthService', () => {
     router = TestBed.inject(Router);
     spyOn(router, 'navigate').and.resolveTo(true);
   });
-  afterEach(() => { http.verify(); TestBed.resetTestingModule(); sessionStorage.clear(); });
+  afterEach(() => { http.match(base + '/logout').forEach(r => r.flush(null, { status: 204, statusText: 'No Content' })); http.verify(); TestBed.resetTestingModule(); sessionStorage.clear(); });
   const service = () => TestBed.inject(AuthService);
 
   it('logs in using the exact contract and stores tokens and user reactively', () => {
@@ -154,7 +154,10 @@ describe('AuthService', () => {
     expect(auth.getToken()).toBeNull();
     expect(sessionStorage.getItem('crm.auth.session')).toBeNull();
     expect(router.navigate).toHaveBeenCalledWith(['/login']);
-    http.expectNone(base + '/logout');
+    const logout = http.expectOne(base + '/logout');
+    expect(logout.request.method).toBe('POST'); expect(logout.request.body).toEqual({ refreshToken: 'fictitious-refresh' });
+    logout.flush(null, { status: 204, statusText: 'No Content' });
+    expect(auth.sessionNotice()).toContain('confirmée');
   });
 
   it('does not restore a session if refresh completes after logout', () => {
@@ -183,5 +186,42 @@ describe('AuthService', () => {
     http.expectOne(base + '/login').flush({ ...testLogin(), token: 'malformed' });
     expect(service().isAuthenticated()).toBeFalse();
     expect(sessionStorage.getItem('crm.auth.session')).toBeNull();
+  });
+
+  it('keeps logout local and final when the server is unavailable, without showing diagnostics', () => {
+    storeTestSession(); const auth = service(); auth.logout();
+    http.expectOne(base + '/logout').flush({ message: 'PRIVATE SQL fictitious-refresh' }, { status: 503, statusText: 'Unavailable' });
+    expect(auth.isAuthenticated()).toBeFalse(); expect(auth.getToken()).toBeNull();
+    expect(auth.sessionNotice()).toContain('non confirmée'); expect(auth.sessionNotice()).not.toContain('PRIVATE');
+    expect(auth.sessionNotice()).not.toContain('fictitious-refresh');
+    expect(router.navigate).toHaveBeenCalledOnceWith(['/login']);
+  });
+
+  it('does not change a new login when an old logout fails later', () => {
+    storeTestSession(); const auth = service(); auth.logout(); const oldLogout = http.expectOne(base + '/logout');
+    auth.login({ username: 'unit', email: null, password: 'fictitious' }).subscribe();
+    http.expectOne(base + '/login').flush(testLogin());
+    oldLogout.flush({}, { status: 503, statusText: 'Unavailable' });
+    expect(auth.isAuthenticated()).toBeTrue(); expect(auth.sessionNotice()).toBe('');
+  });
+
+  it('revokes a late rotated token as well as the original token without restoring local state', () => {
+    storeTestSession(); const auth = service();
+    auth.refreshAccessToken().subscribe({ error: () => {} }); const refresh = http.expectOne(base + '/refresh');
+    auth.logout(); http.expectOne(base + '/logout').flush(null, { status: 204, statusText: 'No Content' });
+    refresh.flush({ accessToken: testJwt(), refreshToken: 'fictitious-rotated', roles: [CrmRole.ADMIN], type: 'Bearer', expiration: 3600000 });
+    const cleanup = http.expectOne(base + '/logout'); expect(cleanup.request.body).toEqual({ refreshToken: 'fictitious-rotated' });
+    cleanup.flush(null, { status: 204, statusText: 'No Content' });
+    expect(auth.isAuthenticated()).toBeFalse(); expect(auth.sessionNotice()).toBe('Déconnexion confirmée.');
+  });
+
+  it('bounds an unreachable logout and leaves no stored credentials', () => {
+    jasmine.clock().install();
+    try {
+      storeTestSession(); const auth = service(); auth.logout();
+      const logout = http.expectOne(base + '/logout'); jasmine.clock().tick(5001);
+      expect(logout.cancelled).toBeTrue(); expect(sessionStorage.getItem('crm.auth.session')).toBeNull();
+      expect(auth.sessionNotice()).toContain('non confirmée');
+    } finally { jasmine.clock().uninstall(); }
   });
 });

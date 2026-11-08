@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -36,6 +37,7 @@ class AdminEmployeeCreationTest {
     @Autowired RoleRepository roles;
     @Autowired PasswordEncoder encoder;
     @Autowired JwtService jwt;
+    @Autowired com.crm.identity.repository.RefreshTokenRepository sessions;
 
     private Map<String, String> payload() {
         return Map.of("firstName", "Test", "lastName", "Employee", "username", "created-employee",
@@ -52,7 +54,12 @@ class AdminEmployeeCreationTest {
         caller.setAccountNonLocked(true);
         caller.getRole().add(roles.findByRoleType(role).orElseThrow());
         users.saveAndFlush(caller);
-        return "Bearer " + jwt.generateToken(caller.getUsername(), caller.getEmail(), true);
+        String sid = java.util.UUID.randomUUID().toString();
+        var session = new com.crm.identity.entity.RefreshToken(); session.setSessionId(sid); session.setUser(caller);
+        session.setToken(java.util.UUID.randomUUID().toString()); session.setExpiryDate(java.time.LocalDateTime.now().plusDays(1));
+        sessions.saveAndFlush(session);
+        return "Bearer " + jwt.generateSessionToken(caller.getId(), caller.getUsername(), caller.getEmail(), true,
+                caller.getRole().stream().map(r -> r.getRoleType().name()).toList(), sid);
     }
 
     @ParameterizedTest @EnumSource(RoleType.class)
@@ -96,8 +103,13 @@ class AdminEmployeeCreationTest {
     @Test
     void anonymousCannotCreate() throws Exception {
         mvc.perform(post("/api/users").contentType("application/json")
-                .content(json.writeValueAsString(payload()))).andExpect(status().isForbidden());
+                .content(json.writeValueAsString(payload()))).andExpect(status().isUnauthorized());
         assertThat(users.existsByUsername("created-employee")).isFalse();
+    }
+
+    @Test
+    void anonymousCannotReadUserDirectory() throws Exception {
+        mvc.perform(get("/api/users")).andExpect(status().isUnauthorized());
     }
 
     @Test
