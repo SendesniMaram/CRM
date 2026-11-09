@@ -63,7 +63,7 @@ export class LoginComponent {
 
     this.authService.login(request).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: () => void this.router.navigateByUrl(safeReturnUrl(this.route.snapshot.queryParamMap.get('returnUrl'))),
-      error: () => this.errorMessage.set('Échec de la connexion. Vérifiez vos identifiants et réessayez.')
+      error: (e) => {this.loginForm.controls.password.reset('');if(e.error?.code==='PASSWORD_CHANGE_REQUIRED'){void this.router.navigate(['/password']);return;}this.errorMessage.set('Échec de la connexion. Vérifiez vos identifiants et réessayez.');}
     });
   }
 }

@@ -28,6 +28,13 @@ export class UserDirectoryService {
       return rows;
     }));
   }
+  search(keyword='',role='',state='',page=0,size=10) {
+    return this.http.get(this.url+'/directory',{responseType:'text',params:{page,size,...(keyword.trim()?{keyword:keyword.trim()}:{}),...(role?{role}:{}),...(state?{state}:{})}}).pipe(map(raw=>{
+      const p=parseDirectory(raw) as {content:DirectoryUser[];number:number;totalElements:number;totalPages:number};
+      if(!p||!Array.isArray(p.content)||p.number!==page||!Number.isSafeInteger(p.totalElements)||p.totalElements<0||!Number.isSafeInteger(p.totalPages)||p.totalPages<0||p.content.some(u=>!canonicalId(u.id)||typeof u.username!=='string'||typeof u.email!=='string'||typeof u.enabled!=='boolean'||typeof u.accountNonLocked!=='boolean'||!Array.isArray(u.roles)||u.roles.some(r=>!Object.values(CrmRole).includes(r))))throw new HttpErrorResponse({status:502});
+      return {...p,content:p.content.map(u=>({...u,roleType:(u.roles[0]??null) as CrmRole|null}))};
+    }));
+  }
   createEmployee(request: RegisterRequest) {
     // Whitelist the existing register DTO. Roles and account flags are never caller-selected.
     const { firstName, lastName, username, email, password, phone } = request;

@@ -28,11 +28,11 @@ describe('onboarding with real HTTP services, interceptor and session', () => {
   for (const status of [400, 401, 403, 404, 409, 502, 503]) {
     it('preserves confirmed account creation when association fails with ' + status, async () => {
       const accountFixture = TestBed.createComponent(UsersPageComponent); accountFixture.detectChanges();
-      const account = accountFixture.componentInstance as any; http.expectOne(users).flush('[]');
+      const account = accountFixture.componentInstance as any; http.expectOne(r=>r.url===users+'/directory').flush('{"content":[],"number":0,"totalElements":0,"totalPages":0}');
       account.form.setValue(body); account.create();
       const creation = http.expectOne(users); expect(creation.request.headers.get('Authorization')).toBe('Bearer ' + auth.getToken());
       expect(creation.request.method).toBe('POST'); creation.flush(null, { status: 201, statusText: 'Created' });
-      await accountFixture.whenStable(); http.expectOne(users).flush('[]');
+      await accountFixture.whenStable(); http.expectOne(r=>r.url===users+'/directory').flush('{"content":[],"number":0,"totalElements":0,"totalPages":0}');
       expect(account.createdUsername()).toBe(body.username);
       const fixture = TestBed.createComponent(EmployeeAssociationComponent); fixture.detectChanges();
       const page = fixture.componentInstance as any; page.load();

@@ -50,6 +50,11 @@ public class User {
     @Column(name = "account_non_locked", nullable = false)
     private boolean accountNonLocked = true;
 
+    @Column(name = "password_change_required", nullable = false)
+    private boolean passwordChangeRequired;
+    public boolean isPasswordChangeRequired(){return passwordChangeRequired;}
+    public void setPasswordChangeRequired(boolean value){passwordChangeRequired=value;}
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

@@ -77,6 +77,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/test").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/api/users/administration/**").hasRole("SUPER_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/users/display-settings").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/**")
                                 .hasAnyRole("ADMIN", "SUPER_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/users")

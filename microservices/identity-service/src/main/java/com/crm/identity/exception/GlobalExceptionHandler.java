@@ -132,6 +132,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(404).body(body);
     }
 
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> methodNotAllowed(Exception ex,WebRequest request){return ResponseEntity.status(405).body(new ApiError(405,"Method Not Allowed","Method not allowed",getPath(request)));}
+
+    @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,org.springframework.web.bind.MissingServletRequestParameterException.class,org.springframework.http.converter.HttpMessageNotReadableException.class})
+    public ResponseEntity<ApiError> invalidHttpInput(Exception ex,WebRequest request){return ResponseEntity.badRequest().body(new ApiError(400,"Bad Request","Invalid request parameters or body",getPath(request)));}
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
         Throwable cause = ex.getCause();

@@ -1,3 +1,4 @@
+import { WorkspaceIdentityComponent } from './workspace-identity.component';
 ﻿import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,7 +10,7 @@ import { WorkspaceClock, workspaceGreeting } from '../../core/navigation/workspa
 import { AccountDialogComponent } from '../../layout/components/navbar/account-dialog.component';
 
 @Component({
-  selector: 'app-home', standalone: true, imports: [RouterLink, MatButtonModule, MatIconModule],
+  selector: 'app-home', standalone: true, imports: [WorkspaceIdentityComponent,RouterLink, MatButtonModule, MatIconModule],
   templateUrl: './home.component.html', styleUrl: './home.component.scss', changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeComponent {

@@ -1,5 +1,5 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, defer, finalize, map, of, shareReplay, tap, throwError, timeout } from 'rxjs';
 import { AuthSession, LoginRequest, LoginResponse, RefreshTokenResponse } from '../models/auth.models';
@@ -41,6 +41,7 @@ export class AuthService {
             this.revokeRemote(response.refreshToken, generation);
             throw new Error('Session changed');
           }
+          if(response.passwordChangeRequired===true)throw new HttpErrorResponse({status:403,error:{code:'PASSWORD_CHANGE_REQUIRED'}});
           this.validateTokens(response.token, response.refreshToken);
           const { token, refreshToken, ...user } = response;
           this.saveSession({ accessToken: token, refreshToken, user });

@@ -2,7 +2,7 @@ import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
-import { of, Subject, throwError } from 'rxjs';
+import { of, Subject, throwError, map } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { UserDirectoryService } from './user-directory.service';
@@ -13,8 +13,8 @@ describe('UsersPageComponent', () => {
   const body = { firstName: 'Test', lastName: 'Employee', username: 'employee-created', email: 'test@example.test', password: 'test-only-password', phone: '' };
   beforeEach(() => {
     role = CrmRole.ADMIN;
-    service = jasmine.createSpyObj('UserDirectoryService', ['list', 'createEmployee', 'create', 'update', 'setRoles', 'setEnabled']);
-    service.list.and.returnValue(of([])); service.createEmployee.and.returnValue(of(undefined));
+    service = jasmine.createSpyObj('UserDirectoryService', ['list', 'search', 'createEmployee', 'create', 'update', 'setRoles', 'setEnabled']);
+    service.list.and.returnValue(of([])); service.search.and.callFake(()=>service.list().pipe(map(rows=>({content:rows,number:0,totalPages:rows.length?1:0,totalElements:rows.length})))); service.createEmployee.and.returnValue(of(undefined));
     service.create.and.returnValue(of({} as any)); service.update.and.returnValue(of({} as any));
     service.setRoles.and.returnValue(of({} as any)); service.setEnabled.and.returnValue(of({} as any));
     TestBed.configureTestingModule({ imports: [UsersPageComponent], providers: [provideZonelessChangeDetection(), provideHttpClient(), provideRouter([]),
@@ -29,7 +29,7 @@ describe('UsersPageComponent', () => {
     const { page } = setup();
     const self = { id: '42', username: 'self', firstName: 'A', lastName: 'B', email: 'self@example.test', phone: null,
       enabled: true, accountNonLocked: true, roles: [CrmRole.SUPER_ADMIN], roleType: CrmRole.SUPER_ADMIN, createdAt: null };
-    page.changeRole(self, CrmRole.ADMIN);
+    page.confirmed=true;page.changeRole(self, CrmRole.ADMIN);
     expect(service.setRoles).toHaveBeenCalledWith('42', [CrmRole.ADMIN]);
     expect(auth.expireSession).toHaveBeenCalledOnceWith('/users', 0);
   });
@@ -41,9 +41,9 @@ describe('UsersPageComponent', () => {
     const { page } = setup();
     const other = { id: '43', username: 'other', firstName: 'A', lastName: 'B', email: 'other@example.test', phone: null,
       enabled: true, accountNonLocked: true, roles: [CrmRole.ADMIN], roleType: CrmRole.ADMIN, createdAt: null };
-    page.changeRole(other, CrmRole.CLIENT); expect(auth.expireSession).not.toHaveBeenCalled();
+    page.confirmed=true;page.changeRole(other, CrmRole.CLIENT); expect(auth.expireSession).not.toHaveBeenCalled();
     service.setRoles.and.returnValue(throwError(() => ({ status: 409, error: { message: 'private diagnostic' } })));
-    page.changeRole({ ...other, username: 'self' }, CrmRole.ADMIN);
+    page.confirmed=true;page.changeRole({ ...other, username: 'self' }, CrmRole.ADMIN);
     expect(auth.expireSession).not.toHaveBeenCalled(); expect(page.error()).not.toContain('private diagnostic');
   });
   for (const current of [CrmRole.EMPLOYEE, CrmRole.CLIENT]) {
@@ -108,33 +108,27 @@ describe('UsersPageComponent', () => {
     expect(service.create).toHaveBeenCalledWith({ ...body, roleType: CrmRole.CLIENT });
     const account = { id: '88', username: 'client', firstName: 'A', lastName: 'B', email: 'a@example.test', phone: null,
       roles: [CrmRole.CLIENT], roleType: CrmRole.CLIENT, enabled: true, accountNonLocked: true, createdAt: null };
-    page.changeStatus(account); expect(service.setEnabled).toHaveBeenCalledWith('88', false);
-    page.changeRole(account, CrmRole.EMPLOYEE); expect(service.setRoles).toHaveBeenCalledWith('88', [CrmRole.EMPLOYEE]);
+    page.confirmed=true;page.changeStatus(account); expect(service.setEnabled).toHaveBeenCalledWith('88', false);
+    page.confirmed=true;page.changeRole(account, CrmRole.EMPLOYEE); expect(service.setRoles).toHaveBeenCalledWith('88', [CrmRole.EMPLOYEE]);
     page.selectUser(account); page.editFirstName.set('Updated'); page.saveUser();
     expect(service.update).toHaveBeenCalledWith('88', { firstName: 'Updated', lastName: 'B', email: 'a@example.test', phone: '' });
   });
+  it('submits the rendered edit form through a real form event',()=>{
+    const {page,fixture}=setup();const user={id:'88',username:'client',firstName:'A',lastName:'B',email:'client@example.invalid',phone:null,roles:[CrmRole.CLIENT],roleType:CrmRole.CLIENT,enabled:true,accountNonLocked:true,createdAt:null};page.selectUser(user);fixture.detectChanges();const form=fixture.nativeElement.querySelector('section[aria-label="Détail et modification du compte"] form');expect(form).not.toBeNull();form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));expect(service.update).toHaveBeenCalledWith('88',{firstName:'A',lastName:'B',email:'client@example.invalid',phone:''});
+  });
+  it('does not send a role or status write without explicit confirmation',()=>{const {page}=setup();const user={id:'88',username:'client',roles:[CrmRole.CLIENT],enabled:true};page.changeStatus(user);page.changeRole(user,CrmRole.EMPLOYEE);expect(service.setEnabled).not.toHaveBeenCalled();expect(service.setRoles).not.toHaveBeenCalled();});
   function accounts() {
     return Array.from({length:26},(_,i)=>({id:i===0?'9223372036854775807':String(i+1),username:'account-'+i,
       firstName:'Person',lastName:String(i),email:'account-'+i+'@example.test',phone:null,
       roles:[i%2?CrmRole.CLIENT:CrmRole.EMPLOYEE],roleType:CrmRole.EMPLOYEE,
       enabled:i!==0,accountNonLocked:i!==2,createdAt:null}));
   }
-  it('paginates the full directory, preserves long IDs and filters across all pages', () => {
-    service.list.and.returnValue(of(accounts())); const {page}=setup();
-    expect(page.visibleUsers().length).toBe(10);
-    expect(page.visibleUsers()[0].id).toBe('9223372036854775807');
-    page.paginate({pageIndex:2,pageSize:10}); expect(page.visibleUsers().length).toBe(6);
-    page.filter('account-25','',''); expect(page.pageIndex()).toBe(0);
-    expect(page.visibleUsers().map((user:any)=>user.username)).toEqual(['account-25']);
-    expect(service.list).toHaveBeenCalledTimes(1);
+  it('requests server pages and preserves long identifiers',()=>{
+    const rows=accounts();service.search.and.returnValues(of({content:rows.slice(0,10),number:0,totalElements:26,totalPages:3}),of({content:rows.slice(20),number:2,totalElements:26,totalPages:3}),of({content:[rows[25]],number:0,totalElements:1,totalPages:1}));
+    const {page}=setup();expect(page.visibleUsers().length).toBe(10);expect(page.visibleUsers()[0].id).toBe('9223372036854775807');page.paginate({pageIndex:2,pageSize:10});expect(page.visibleUsers().length).toBe(6);expect(service.search).toHaveBeenCalledWith('','','',2,10);page.filter('account-25','','');expect(service.search).toHaveBeenCalledWith('account-25','','',0,10);expect(page.total()).toBe(1);
   });
-  it('combines role and account-state filters while restricting assignable roles', () => {
-    service.list.and.returnValue(of(accounts())); const {page,fixture}=setup();
-    page.filter('',CrmRole.EMPLOYEE,'locked'); expect(page.filteredUsers().map((u:any)=>u.username)).toEqual(['account-2']);
-    page.filter('',CrmRole.EMPLOYEE,'disabled'); expect(page.filteredUsers()[0].id).toBe('9223372036854775807');
-    page.filter('no-match','','');fixture.detectChanges();expect(fixture.nativeElement.textContent).toContain('Aucun compte ne correspond');
-    expect(service.createEmployee).not.toHaveBeenCalled();
-    expect((page as any).selectableRoles()).toEqual([CrmRole.EMPLOYEE, CrmRole.CLIENT]);
+  it('combines role and state filters on the server and renders no-match state',()=>{
+    const {page,fixture}=setup();page.filter('',CrmRole.EMPLOYEE,'locked');expect(service.search).toHaveBeenCalledWith('',CrmRole.EMPLOYEE,'locked',0,10);page.filter('no-match','','');fixture.detectChanges();expect(fixture.nativeElement.textContent).toContain('Aucun compte ne correspond');expect(page.selectableRoles()).toEqual([CrmRole.EMPLOYEE,CrmRole.CLIENT]);
   });
   it('clears detail and filters on session change and ignores a late directory response', () => {
     const session=signal(0); const auth=TestBed.inject(AuthService) as any;

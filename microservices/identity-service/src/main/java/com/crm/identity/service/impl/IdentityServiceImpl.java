@@ -29,6 +29,10 @@ import org.springframework.http.HttpStatus;
 @Transactional(readOnly = true)
 public class IdentityServiceImpl implements IIdentityService {
 
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private com.crm.identity.service.AdministrationJournal journal;
+    private void audit(User actor,Long target,String action){if(journal!=null&&actor!=null)journal.record(actor,target,action);}
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -65,7 +69,9 @@ public class IdentityServiceImpl implements IIdentityService {
         user.setEnabled(true);
         user.setAccountNonLocked(true);
         user.getRole().add(role);
+        user.setPasswordChangeRequired(true);
         userRepository.saveAndFlush(user);
+        audit(journal==null?null:journal.current(),user.getId(),"USER_CREATED");
     }
 
     @Override
@@ -94,7 +100,9 @@ public class IdentityServiceImpl implements IIdentityService {
         user.setPassword(passwordEncoder.encode(request.password())); user.setPhone(trimToNull(request.phone()));
         user.setEnabled(true); user.setAccountNonLocked(true);
         user.getRole().add(findRole(request.roleType()));
-        return toUserResponse(userRepository.saveAndFlush(user));
+        user.setPasswordChangeRequired(true);
+        var created=userRepository.saveAndFlush(user);audit(actor,created.getId(),"USER_CREATED");
+        return toUserResponse(created);
     }
 
     @Override
@@ -106,7 +114,7 @@ public class IdentityServiceImpl implements IIdentityService {
         ensureUnique(user.getUsername(), request.email(), id);
         user.setFirstName(request.firstName().trim()); user.setLastName(request.lastName().trim());
         user.setEmail(request.email().trim()); user.setPhone(trimToNull(request.phone()));
-        return toUserResponse(userRepository.saveAndFlush(user));
+        var saved=userRepository.saveAndFlush(user);audit(actor,saved.getId(),"USER_UPDATED");return toUserResponse(saved);
     }
 
     @Override
@@ -129,7 +137,7 @@ public class IdentityServiceImpl implements IIdentityService {
         if (!previousRoles.equals(new java.util.HashSet<>(request.roles()))) sessions.revokeAllByUser(user);
         user.getRole().clear();
         request.roles().stream().sorted().map(this::findRole).forEach(user.getRole()::add);
-        return toUserResponse(userRepository.saveAndFlush(user));
+        var saved=userRepository.saveAndFlush(user);audit(actor,saved.getId(),"ROLES_CHANGED");return toUserResponse(saved);
     }
 
     @Override
@@ -144,7 +152,7 @@ public class IdentityServiceImpl implements IIdentityService {
             throw new IllegalStateException("The last SUPER_ADMIN cannot be deactivated");
         if (!enabled || user.isEnabled() != enabled) sessions.revokeAllByUser(user);
         user.setEnabled(enabled);
-        return toUserResponse(userRepository.saveAndFlush(user));
+        var saved=userRepository.saveAndFlush(user);audit(actor,saved.getId(),"STATUS_CHANGED");return toUserResponse(saved);
     }
 
     // Fixed lock order: shared SUPER_ADMIN role -> acting User -> target User -> refresh rows.
@@ -212,6 +220,7 @@ public class IdentityServiceImpl implements IIdentityService {
         response.setEmail(user.getEmail());
         response.setPhone(user.getPhone());
         response.setEnabled(user.isEnabled());
+        response.setPasswordChangeRequired(user.isPasswordChangeRequired());
         response.setAccountNonLocked(user.isAccountNonLocked());
         // Explicit directory order, independent of Set/JPA iteration and enum ordinals.
         List<RoleType> order = List.of(RoleType.SUPER_ADMIN, RoleType.ADMIN, RoleType.EMPLOYEE, RoleType.CLIENT);

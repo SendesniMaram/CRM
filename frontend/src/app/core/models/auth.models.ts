@@ -7,6 +7,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  passwordChangeRequired?:boolean;
   username: string;
   email: string;
   enabled: boolean;

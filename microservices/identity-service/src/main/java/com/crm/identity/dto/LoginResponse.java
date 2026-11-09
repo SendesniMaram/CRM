@@ -8,6 +8,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  * Authentication login response.
  */
 public class LoginResponse {
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+    private boolean passwordChangeRequired;
+    public boolean isPasswordChangeRequired(){return passwordChangeRequired;}
+    public void setPasswordChangeRequired(boolean value){passwordChangeRequired=value;}
 
     @JsonIgnore
     private Long authenticatedUserId;

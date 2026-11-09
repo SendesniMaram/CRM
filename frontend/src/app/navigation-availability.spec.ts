@@ -113,7 +113,7 @@ describe('available CRM navigation', () => {
       expect(harness.fixture.nativeElement.querySelector('a[href="/leaves#associations"]')).toBeTruthy();
       expect(harness.routeNativeElement?.querySelector('a[href="/users#associations"]')).toBeTruthy();
       await harness.navigateByUrl('/users#associations');
-      http.expectOne('http://localhost:8080/identity/api/users').flush('[]');
+      http.expectOne(r => r.url === 'http://localhost:8080/identity/api/users/directory' && r.params.get('page') === '0' && r.params.get('size') === '10').flush('{"content":[],"number":0,"totalElements":0,"totalPages":0}');
       await harness.fixture.whenStable(); harness.detectChanges();
       const buttons = Array.from(harness.routeNativeElement!.querySelectorAll<HTMLButtonElement>('button'));
       buttons.find(button => button.textContent?.includes('Charger les comptes et les fiches'))!.click();

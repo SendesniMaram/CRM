@@ -65,6 +65,7 @@ public class DevAdminBootstrap implements CommandLineRunner {
         user.setUsername(username);
         user.setEmail(email);
         user.setPassword(encoder.encode(password));
+        user.setPasswordChangeRequired(true);
         user.setEnabled(true);
         user.setAccountNonLocked(true);
         user.getRole().add(role);

@@ -96,6 +96,8 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
             throw new InvalidCredentialsException("invalid credentials");
         }
 
+        if(user.isPasswordChangeRequired()){refreshTokenRepository.revokeAllByUser(user);var required=new LoginResponse();required.setPasswordChangeRequired(true);return required;}
+
         // Révoquer les anciens refresh tokens de l'utilisateur
         refreshTokenRepository.revokeAllByUser(user);
 
@@ -193,7 +195,7 @@ public class AuthenticationServiceImpl implements IAuthenticationService {
 
         // Revoke every refresh session for an inactive account, not just this token.
         // This also prevents these sessions from reviving if the account is re-enabled.
-        if (!user.isEnabled() || !user.isAccountNonLocked()) {
+        if (!user.isEnabled() || !user.isAccountNonLocked() || user.isPasswordChangeRequired()) {
             refreshTokenRepository.revokeAllByUser(user);
             throw new InvalidCredentialsException("account is unavailable");
         }

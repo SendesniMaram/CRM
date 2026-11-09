@@ -12,11 +12,13 @@ export const routes: Routes = [
 		loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
 	{ path: 'login', component: LoginComponent },
 	{ path: 'register', component: RegisterComponent },
+    {path:'password',loadComponent:()=>import('./features/auth/password/password.component').then(m=>m.PasswordComponent)},
 	{ path: 'access-denied', component: AccessDeniedComponent },
 	{
 		path: '',
 		component: LayoutComponent,
 		children: [
+            {path:'administration',canActivate:[authGuard,roleGuard],data:{roles:['SUPER_ADMIN']},loadComponent:()=>import('./features/users/administration.component').then(m=>m.AdministrationComponent)},
             {path:'my-contacts',canActivate:[authGuard,roleGuard],data:{roles:['EMPLOYEE']},loadComponent:()=>import('./features/customers/assigned-contacts.component').then(m=>m.AssignedContactsComponent)},
             {path:'client/requests',canActivate:[authGuard,roleGuard],data:{roles:['CLIENT'],caseSpace:'client'},loadComponent:()=>import('./features/customers/client-requests.component').then(m=>m.ClientRequestsComponent)},
             { path: 'hr-insights', canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'SUPER_ADMIN'] }, loadComponent: () => import('./features/hr-admin/hr-insights.component').then(m => m.HrInsightsComponent) },

@@ -12,11 +12,13 @@ const everyone = [...admins, CrmRole.EMPLOYEE, CrmRole.CLIENT];
 export const CRM_NAVIGATION: readonly CrmNavigationItem[] = [
   { label: 'Accueil', route: '/home', icon: 'home', description: 'Votre point de départ.', category: 'Général', roles: everyone },
   { label: 'Tableau de bord', route: '/dashboard', icon: 'dashboard', description: 'Consultez les indicateurs accessibles à votre rôle.', category: 'Général', roles: everyone },
+  {label:'Sécurité du compte',route:'/password',icon:'lock',description:'Changer votre mot de passe et révoquer vos sessions.',category:'Général',roles:everyone},
   { label: 'Mon profil', route: '/profile', icon: 'badge', description: 'Consultez votre fiche professionnelle personnelle.', category: 'Général', roles: [CrmRole.EMPLOYEE] },
   { label: 'Mes documents', route: '/my-documents', icon: 'folder', description: 'Documents partagés avec vous.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
 	{ label: 'Mes bulletins', route: '/my-payroll', icon: 'payments', description: 'Consultez uniquement vos bulletins de paie.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
 	{ label: 'Mes évaluations', route: '/my-evaluations', icon: 'rate_review', description: 'Consultez vos évaluations finalisées.', category: 'Ressources humaines', roles: [CrmRole.EMPLOYEE] },
   { label: 'Mon espace client', route: '/client', icon: 'account_circle', description: 'Mon profil et mes factures.', category: 'Général', roles: [CrmRole.CLIENT] },
+  {label:'Administration transverse',route:'/administration',icon:'admin_panel_settings',description:'Paramètres d’affichage, audit et sessions.',category:'Organisation',roles:[CrmRole.SUPER_ADMIN]},
   { label: 'Comptes employés', route: '/users', icon: 'manage_accounts', description: 'Créez les comptes employés et consultez leur état.', category: 'Organisation', roles: admins },
   { label: 'Employés', route: '/employees', icon: 'badge', description: 'Centralisez les informations de vos collaborateurs et facilitez le suivi administratif.', category: 'Organisation', roles: admins,
     action: { label: 'Ajouter un employé', route: '/employees/new', roles: admins } },

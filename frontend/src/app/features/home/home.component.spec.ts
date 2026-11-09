@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -11,7 +12,7 @@ import { HomeComponent } from './home.component';
 describe('HomeComponent', () => {
   const role=signal<CrmRole | null>(CrmRole.ADMIN);
   beforeEach(() => { role.set(CrmRole.ADMIN);TestBed.configureTestingModule({imports:[HomeComponent],providers:[
-    provideZonelessChangeDetection(),provideRouter([]),{provide:AuthService,useValue:{
+    provideHttpClient(),provideZonelessChangeDetection(),provideRouter([]),{provide:AuthService,useValue:{
       getCurrentUser:()=>({username:'Compte de test',email:'unit@example.invalid'}),
       hasAnyRole:(required:CrmRole[])=>role()!==null && required.includes(role()!)
     }}]}); });
@@ -27,7 +28,7 @@ describe('HomeComponent', () => {
         : current === CrmRole.EMPLOYEE ? ['/dashboard', '/profile', '/my-documents', '/my-payroll', '/my-evaluations', '/leaves', '/my-contacts']
         : administrativeRoutes;
       const moduleRoutes = Array.from(element.querySelectorAll('.module-card')).map(link => link.getAttribute('href'));
-      expect(moduleRoutes.slice().sort()).toEqual(expectedRoutes.slice().sort());
+      expect(moduleRoutes.slice().sort()).toEqual([...expectedRoutes,'/password',...(current===CrmRole.SUPER_ADMIN?['/administration']:[])].sort());
       const actions=Array.from(element.querySelectorAll('.action-links a')).map(link=>link.getAttribute('href'));
       if(current===CrmRole.EMPLOYEE)expect(actions).toEqual(['/leaves/new','/leaves']);
       else if(current===CrmRole.CLIENT)expect(actions).toEqual([]);

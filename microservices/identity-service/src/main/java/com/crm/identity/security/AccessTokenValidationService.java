@@ -24,7 +24,7 @@ public class AccessTokenValidationService {
         var claims = jwt.parseAccessToken(token);
         User user = users.findById(claims.userId()).orElseThrow(() -> invalid());
         var roles = user.getRole().stream().map(r -> r.getRoleType().name()).collect(java.util.stream.Collectors.toSet());
-        if (!user.isEnabled() || !user.isAccountNonLocked() || !claims.username().equals(user.getUsername())
+        if (user.isPasswordChangeRequired() || !user.isEnabled() || !user.isAccountNonLocked() || !claims.username().equals(user.getUsername())
                 || !claims.expiresAt().isAfter(Instant.now()) || !roles.equals(new java.util.HashSet<>(claims.roles()))
                 || !sessions.hasActiveSession(claims.userId(), claims.sessionId(), LocalDateTime.now())) throw invalid();
         return user;

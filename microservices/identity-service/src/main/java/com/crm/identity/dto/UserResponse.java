@@ -7,6 +7,10 @@ import java.util.List;
  * DTO for user consultation responses.
  */
 public class UserResponse {
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+    private boolean passwordChangeRequired;
+    public boolean isPasswordChangeRequired(){return passwordChangeRequired;}
+    public void setPasswordChangeRequired(boolean value){passwordChangeRequired=value;}
 
     private Long id;
     private String firstName;
