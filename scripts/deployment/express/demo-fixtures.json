@@ -1,0 +1,28 @@
+{
+  "classification": "FICTIONAL_ONLY_NOT_IMPORTED",
+  "accounts": [
+    {"ref":"SUPER","username":"express-admin","role":"SUPER_ADMIN","email":"express-admin@example.test","creation":"isolated-bootstrap"},
+    {"ref":"ADMIN","username":"demo-admin","role":"ADMIN","email":"demo-admin@example.test","creation":"acceptance-core"},
+    {"ref":"EMPLOYEE","username":"demo-employee","role":"EMPLOYEE","email":"demo-employee@example.test","creation":"acceptance-core"},
+    {"ref":"CLIENT","username":"demo-client","role":"CLIENT","email":"demo-client@example.test","creation":"acceptance-core"}
+  ],
+  "controlAccounts": [
+    {"ref":"EMPLOYEE_B","username":"demo-employee-b","role":"EMPLOYEE","email":"demo-employee-b@example.test","creation":"manual-after-authorization"},
+    {"ref":"CLIENT_B","username":"demo-client-b","role":"CLIENT","email":"demo-client-b@example.test","creation":"manual-after-authorization"}
+  ],
+  "departments": [
+    {"ref":"D1","payload":{"name":"Demonstration fictive","code":"DEMO-EXPRESS-D1","description":"Donnees fictives de soutenance, sans personnel reel."}}
+  ],
+  "employees": [
+    {"ref":"E1","departmentRef":"D1","accountRef":"EMPLOYEE","payload":{"employeeCode":"DEMO-EXPRESS-E1","firstName":"Alice","lastName":"Exemple","email":"alice.exemple@example.test","jobTitle":"Fonction de demonstration","hireDate":"2025-01-06","salary":2500,"address":"Adresse fictive sans localisation reelle"}},
+    {"ref":"E2","departmentRef":"D1","accountRef":"EMPLOYEE_B","payload":{"employeeCode":"DEMO-EXPRESS-E2","firstName":"Bob","lastName":"Exemple","email":"bob.exemple@example.test","jobTitle":"Fonction de controle","hireDate":"2025-01-06","salary":2500,"address":"Adresse fictive sans localisation reelle"}}
+  ],
+  "customers": [
+    {"ref":"C1","accountRef":"CLIENT","assignedEmployeeRef":"E1","payload":{"name":"Atelier Fictif","company":"Atelier Fictif","email":"atelier.fictif@example.test","contactType":"CUSTOMER","category":"DEMO","segment":"FICTIF"}},
+    {"ref":"C2","accountRef":"CLIENT_B","assignedEmployeeRef":"E2","payload":{"name":"Societe Exemple","company":"Societe Exemple","email":"societe.exemple@example.test","contactType":"CUSTOMER","category":"DEMO","segment":"FICTIF"}}
+  ],
+  "leaves": [{"ref":"L1","accountRef":"EMPLOYEE","startOffsetDays":7,"endOffsetDays":8,"reason":"Conge fictif de demonstration ; aucune regle legale deduite"}],
+  "invoices": [{"ref":"I1","customerRef":"C1","issueOffsetDays":0,"dueOffsetDays":30,"payload":{"subtotal":61.7,"tax":0,"currency":"EUR","status":"DRAFT","notes":"DEMO FICTIVE : montant attendu 2 x 30,85 = 61,70. Taxe zero choisie uniquement pour cette fixture."}}],
+  "document": {"filename":"document-fictif-demo.txt","content":"DOCUMENT DE DEMONSTRATION UNIQUEMENT. Aucun renseignement personnel reel. Ne pas publier sans selection explicite du destinataire fictif."},
+  "importPolicy":"No direct SQL. Resolve symbolic references to API-returned IDs; record text IDs, never guess or overwrite existing records. New isolated campaign only."
+}
