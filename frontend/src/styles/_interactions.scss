@@ -1,0 +1,47 @@
+@use 'workspace' as ui;
+
+html {
+  --mat-button-filled-container-color: #{ui.$accent};
+  --mat-button-filled-label-text-color: #{ui.$ink};
+  --mat-button-outlined-label-text-color: #{ui.$teal};
+  --mat-button-outlined-outline-color: #{ui.$line};
+  --mat-form-field-outlined-focus-outline-color: #{ui.$teal};
+}
+html.crm-landing { scroll-behavior: smooth; }
+a.module-card { display: flex; flex-direction: column; text-decoration: none; color: ui.$ink; }
+.module-card .open { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 1rem; font-size: .85rem; font-weight: 600; color: ui.$teal; }
+.module-card.module-cta .open { color: ui.$accent; }
+a.module-card:is(:hover, :focus-visible) {
+  transform: translateY(-3px);
+  border-color: ui.$accent;
+  box-shadow: 0 10px 24px #082b4914;
+  outline: 3px solid ui.$teal;
+  outline-offset: 3px;
+}
+.module-card .module-icon { align-self: flex-start; }
+.module-card .module-icon, .module-card .open mat-icon, .text-link mat-icon {
+  transition: transform 180ms ease;
+}
+.module-card:is(:hover, :focus-visible) .module-icon { transform: translateY(-2px) rotate(-3deg); }
+.module-card:is(:hover, :focus-visible) .open mat-icon,
+.text-link:is(:hover, :focus-visible) mat-icon { transform: translateX(3px); }
+:is(.button, button[mat-flat-button], a[mat-flat-button], button[mat-stroked-button], a[mat-stroked-button]) {
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+:is(.button, button[mat-flat-button], a[mat-flat-button], button[mat-stroked-button], a[mat-stroked-button]):not(:disabled):not([aria-disabled=true]):active { transform: translateY(1px); }
+:is(button, a, input, textarea, mat-select):focus-visible { outline: 3px solid ui.$teal; outline-offset: 4px; }
+:is(button, a)[aria-label^='Supprimer'] { --mat-button-text-label-text-color: #99382f; --mat-icon-button-icon-color: #99382f; }
+form[aria-busy=true] button[type=submit]:not(:has(.spinner))::before {
+  content: ''; display: inline-block; width: 14px; height: 14px; margin-right: .5rem;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%;
+  animation: crm-spin 900ms linear infinite;
+}
+mat-form-field:focus-within { --mat-form-field-outlined-focus-outline-color: #{ui.$teal}; }
+.mat-mdc-row:hover { background-color: ui.$surface; }
+@keyframes crm-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  html.crm-landing { scroll-behavior: auto; }
+  :is(.module-card, .module-card .module-icon, .module-card .open mat-icon, .text-link mat-icon, .button, button, a) { transition: none !important; }
+  .module-card:is(:hover, :focus-visible), .module-card:is(:hover, :focus-visible) :is(.module-icon, .open mat-icon), .text-link:is(:hover, :focus-visible) mat-icon { transform: none; }
+  form[aria-busy=true] button[type=submit]::before { animation: none; border-style: dotted; }
+}

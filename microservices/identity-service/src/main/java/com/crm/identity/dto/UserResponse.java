@@ -1,0 +1,109 @@
+package com.crm.identity.dto;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * DTO for user consultation responses.
+ */
+public class UserResponse {
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_DEFAULT)
+    private boolean passwordChangeRequired;
+    public boolean isPasswordChangeRequired(){return passwordChangeRequired;}
+    public void setPasswordChangeRequired(boolean value){passwordChangeRequired=value;}
+
+    private Long id;
+    private String firstName;
+    private String lastName;
+    private String username;
+    private String email;
+    private String phone;
+    private boolean enabled;
+    private String roleType;
+    private List<String> roles = List.of();
+    private boolean accountNonLocked;
+    private LocalDateTime createdAt;
+
+    public UserResponse() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public String getRoleType() {
+        return roleType;
+    }
+
+    public List<String> getRoles() { return roles; }
+
+    public void setRoles(List<String> roles) { this.roles = List.copyOf(roles); }
+
+    public boolean isAccountNonLocked() { return accountNonLocked; }
+
+    public void setAccountNonLocked(boolean accountNonLocked) { this.accountNonLocked = accountNonLocked; }
+
+    public void setRoleType(String roleType) {
+        this.roleType = roleType;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+}

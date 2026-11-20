@@ -1,0 +1,30 @@
+<section class="customer-page" aria-labelledby="my-payroll-title" [attr.aria-busy]="loading()">
+  <header class="page-header"><div><p class="eyebrow">Espace personnel</p><h1 id="my-payroll-title">Mes bulletins de paie</h1>
+    <p>Consultez uniquement les bulletins associés à votre compte.</p></div></header>
+  <mat-card><mat-card-content>
+    <form class="toolbar" (ngSubmit)="filter()">
+      <mat-form-field><mat-label>Année ou période</mat-label>
+        <input matInput type="text" placeholder="2026 ou 2026-10" [formControl]="period" maxlength="7" aria-describedby="period-hint">
+        <mat-hint id="period-hint">Format AAAA ou AAAA-MM</mat-hint>
+        @if (period.invalid && period.touched) { <mat-error>Entrez une année ou une période au format AAAA-MM.</mat-error> }
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="loading() || period.invalid">Filtrer</button>
+      <button mat-button type="button" (click)="period.setValue(''); filter()" [disabled]="loading()">Effacer</button>
+    </form>
+    @if (loading()) { <p role="status">Chargement de vos bulletins…</p> }
+    @if (error()) { <p role="alert">{{ error() }}</p> }
+    @if (!loading() && !error() && !rows().length) { <p role="status">Aucun bulletin pour cette période.</p> }
+    @if (rows().length) {
+      <div class="table-scroll"><table mat-table [dataSource]="rows()" aria-label="Mes bulletins de paie">
+        <ng-container matColumnDef="payPeriod"><th mat-header-cell *matHeaderCellDef>Période</th><td mat-cell *matCellDef="let row">{{ row.payPeriod }}</td></ng-container>
+        <ng-container matColumnDef="paymentDate"><th mat-header-cell *matHeaderCellDef>Date de paiement</th><td mat-cell *matCellDef="let row">{{ row.paymentDate ? (row.paymentDate | date:'dd/MM/yyyy') : 'Non renseignée' }}</td></ng-container>
+        <ng-container matColumnDef="netSalary"><th mat-header-cell *matHeaderCellDef>Net enregistré</th><td mat-cell *matCellDef="let row">{{ row.netSalary | number:'1.2-2' }}</td></ng-container>
+        <ng-container matColumnDef="currency"><th mat-header-cell *matHeaderCellDef>Devise</th><td mat-cell *matCellDef="let row">{{ row.currency || '—' }}</td></ng-container>
+        <ng-container matColumnDef="status"><th mat-header-cell *matHeaderCellDef>Statut</th><td mat-cell *matCellDef="let row">{{ row.status }}</td></ng-container>
+        <ng-container matColumnDef="actions"><th mat-header-cell *matHeaderCellDef>Action</th><td mat-cell *matCellDef="let row"><a mat-button [routerLink]="['/my-payroll', row.id]" [attr.aria-label]="'Consulter le bulletin ' + row.payPeriod">Consulter</a></td></ng-container>
+        <tr mat-header-row *matHeaderRowDef="columns"></tr><tr mat-row *matRowDef="let row; columns: columns"></tr>
+      </table></div>
+      <mat-paginator [length]="total()" [pageIndex]="page()" [pageSize]="10" [pageSizeOptions]="[10]" (page)="paginate($event)" aria-label="Pages de bulletins"></mat-paginator>
+    }
+  </mat-card-content></mat-card>
+</section>

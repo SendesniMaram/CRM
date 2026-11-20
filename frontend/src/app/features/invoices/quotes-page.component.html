@@ -1,0 +1,128 @@
+<main class="customer-page" aria-labelledby="quotes-title">
+  <header class="page-header">
+    <div><p class="eyebrow">Facturation</p><h1 id="quotes-title">Devis</h1>
+      <p class="subtitle">Préparez vos propositions, suivez leur statut et convertissez un devis accepté en facture.</p></div>
+    <a mat-button routerLink="/invoices">Factures</a>
+  </header>
+
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+
+  <mat-card class="directory-card"><mat-card-content>
+    <div class="page-header quote-form-header">
+      <h2>{{ selectedId() === null ? 'Nouveau devis' : 'Modifier le devis brouillon' }}</h2>
+      @if (selectedId() !== null) { <button mat-button type="button" (click)="startNew()">Nouveau devis</button> }
+    </div>
+    <form [formGroup]="form" (ngSubmit)="save()" class="form-grid" [attr.aria-busy]="saving()">
+      <div class="customer-choice full-width">
+        <mat-form-field appearance="outline"><mat-label>Rechercher un client</mat-label>
+          <input matInput [formControl]="customerSearch" (keydown.enter)="searchCustomers()" />
+        </mat-form-field>
+        <button mat-stroked-button type="button" (click)="searchCustomers()">Rechercher</button>
+      </div>
+      <mat-form-field appearance="outline"><mat-label>Client</mat-label>
+        <mat-select formControlName="customerId">
+          @for (customer of customers(); track customer.id) {
+            <mat-option [value]="'' + customer.id">{{ customer.name }}{{ customer.company ? ' — ' + customer.company : '' }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.customerId.hasError('required')) { <mat-error>Choisissez le client associé au devis.</mat-error> }
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Date d’émission</mat-label><input matInput type="date" formControlName="issueDate" /></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Date d’échéance</mat-label><input matInput type="date" formControlName="expiryDate" /></mat-form-field>
+
+      <div formArrayName="lines" class="quote-lines full-width">
+        <h3>Lignes du devis</h3>
+        @for (line of lineControls.controls; track $index) {
+          <div [formGroupName]="$index" class="quote-line">
+            <mat-form-field appearance="outline"><mat-label>Description</mat-label>
+              <input matInput formControlName="description" maxlength="255" />
+              @if (line.get('description')?.hasError('required') && line.get('description')?.touched) { <mat-error>Description obligatoire.</mat-error> }
+            </mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Quantité</mat-label><input matInput type="number" min="0.001" step="0.001" formControlName="quantity" /></mat-form-field>
+            <mat-form-field appearance="outline"><mat-label>Prix unitaire</mat-label><input matInput type="number" min="0" step="0.01" formControlName="unitPrice" /></mat-form-field>
+            <button mat-button type="button" (click)="removeLine($index)" [disabled]="lineControls.length === 1">Retirer</button>
+          </div>
+        }
+        <button mat-stroked-button type="button" (click)="addLine()">Ajouter une ligne</button>
+      </div>
+
+      <mat-form-field appearance="outline"><mat-label>Taxe (montant fixe)</mat-label>
+        <input matInput type="number" min="0" step="0.01" formControlName="tax" />
+        <mat-hint>Aucun taux ni calcul fiscal n’est appliqué automatiquement.</mat-hint>
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Devise</mat-label><input matInput formControlName="currency" maxlength="10" /></mat-form-field>
+      <mat-form-field appearance="outline" class="full-width"><mat-label>Notes</mat-label>
+        <textarea matInput formControlName="notes" maxlength="500" rows="3"></textarea>
+      </mat-form-field>
+      <p class="full-width quote-total">Total estimé : {{ totalForDraft() }}</p>
+      <div class="form-actions full-width"><button mat-flat-button type="submit" [disabled]="saving()">
+        {{ saving() ? 'Enregistrement…' : selectedId() === null ? 'Créer le devis' : 'Enregistrer les modifications' }}
+      </button></div>
+    </form>
+  </mat-card-content></mat-card>
+
+  <mat-card class="directory-card"><mat-card-content>
+    <h2>Devis enregistrés</h2>
+    <form class="toolbar" (ngSubmit)="find()">
+      <mat-form-field appearance="outline" class="search-field"><mat-label>Référence ou client</mat-label>
+        <input matInput [formControl]="search" />
+      </mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Statut</mat-label>
+        <mat-select [formControl]="statusFilter" (selectionChange)="find()">
+          <mat-option value="">Tous</mat-option>
+          @for (status of statuses; track status) { <mat-option [value]="status">{{ statusLabel(status) }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <button mat-stroked-button type="submit">Rechercher</button>
+    </form>
+    @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement des devis…</p></div> }
+    @if (!loading() && !error() && rows().length === 0) { <p class="muted">Aucun devis à afficher.</p> }
+    @if (rows().length > 0) {
+      <div class="table-scroll" tabindex="0" aria-label="Devis, défilement horizontal">
+        <table class="quotes-table">
+          <thead><tr><th>Référence</th><th>Client</th><th>Dates</th><th>Statut</th><th>Total</th><th>Actions</th></tr></thead>
+          <tbody>
+            @for (quote of rows(); track quote.id) {
+              <tr>
+                <td>{{ quote.quoteNumber }}</td>
+                <td>{{ customerName(quote.customerId) }}</td>
+                <td>{{ quote.issueDate ? (quote.issueDate | date:'dd/MM/yyyy') : '—' }}<small>Échéance : {{ quote.expiryDate ? (quote.expiryDate | date:'dd/MM/yyyy') : '—' }}</small></td>
+                <td>{{ statusLabel(quote.status) }}</td>
+                <td>{{ quote.totalAmount | number:'1.2-2' }} {{ quote.currency || '' }}</td>
+                <td class="quote-actions">
+                  @if (quote.status === 'DRAFT' && quote.convertedInvoiceId === null) { <button mat-button type="button" (click)="edit(quote)">Modifier</button> }
+                  @if (quote.status === 'DRAFT') { <button mat-button type="button" (click)="transition(quote, 'SENT')" [disabled]="busy()">Marquer envoyé</button> }
+                  @if (quote.status === 'DRAFT' || quote.status === 'SENT') {
+                    <button mat-button type="button" (click)="transition(quote, 'ACCEPTED')" [disabled]="busy()">Accepter</button>
+                    <button mat-button type="button" (click)="transition(quote, 'REJECTED')" [disabled]="busy()">Refuser</button>
+                  }
+                  @if (quote.status === 'ACCEPTED' && quote.convertedInvoiceId === null) {
+                    <button mat-button type="button" (click)="convert(quote)" [disabled]="busy()">Convertir en facture</button>
+                  }
+                  @if (quote.convertedInvoiceId !== null) { <a mat-button [routerLink]="['/invoices', quote.convertedInvoiceId]">Facture #{{ quote.convertedInvoiceId }}</a> }
+                  <button mat-button type="button" (click)="view(quote)">Détail</button>
+                  <button mat-button type="button" (click)="download(quote)">PDF</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <mat-paginator [length]="total()" [pageIndex]="page()" [pageSize]="size()" [pageSizeOptions]="[10,25,50]"
+      [disabled]="loading() || !!error()" (page)="paginate($event)" aria-label="Pagination des devis" />
+    @if (detail(); as quote) {
+      <section class="quote-detail" aria-labelledby="quote-detail-title">
+        <h3 id="quote-detail-title">{{ quote.quoteNumber }} — {{ customerName(quote.customerId) }}</h3>
+        <p>{{ statusLabel(quote.status) }} · {{ quote.issueDate ? (quote.issueDate | date:'dd/MM/yyyy') : 'Date non renseignée' }}
+          · Échéance {{ quote.expiryDate ? (quote.expiryDate | date:'dd/MM/yyyy') : 'non renseignée' }}</p>
+        <ul>@for (line of quote.lines; track line.id ?? $index) {
+          <li>{{ line.description }} — {{ line.quantity }} × {{ line.unitPrice | number:'1.2-2' }} = {{ line.lineTotal | number:'1.2-2' }}</li>
+        }</ul>
+        <p>Sous-total : {{ quote.subtotal | number:'1.2-2' }} · Taxe saisie : {{ quote.tax | number:'1.2-2' }}
+          · Total : {{ quote.totalAmount | number:'1.2-2' }} {{ quote.currency || '' }}</p>
+        @if (quote.notes) { <p class="notes">{{ quote.notes }}</p> }
+      </section>
+    }
+  </mat-card-content></mat-card>
+</main>

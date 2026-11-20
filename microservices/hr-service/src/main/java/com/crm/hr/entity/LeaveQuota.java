@@ -1,0 +1,4 @@
+package com.crm.hr.entity;
+import jakarta.persistence.*;import lombok.Data;import lombok.NoArgsConstructor;import java.math.BigDecimal;import java.time.LocalDate;
+@Entity @Table(name="leave_quotas",uniqueConstraints=@UniqueConstraint(name="uk_leave_quota_employee_period_type",columnNames={"employee_id","period_start","period_end","leave_type"})) @Data @NoArgsConstructor
+public class LeaveQuota{@Id @GeneratedValue(strategy=GenerationType.IDENTITY)private Long id;@Column(name="employee_id",nullable=false,length=50)private String employeeId;@Column(name="period_start",nullable=false)private LocalDate periodStart;@Column(name="period_end",nullable=false)private LocalDate periodEnd;@Column(name="leave_type",nullable=false,length=50)private String leaveType;@Column(name="granted_days",nullable=false,precision=7,scale=2)private BigDecimal grantedDays;}

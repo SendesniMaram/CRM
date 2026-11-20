@@ -1,0 +1,10 @@
+<section aria-label="Sélection d’un employé">
+<p>Référence conservée : {{selected() || "aucune"}}. Une nouvelle affectation est vérifiée par le serveur.</p>
+<label>Rechercher par nom ou code <input [(ngModel)]="query" [ngModelOptions]="{standalone:true}" maxlength="200" [disabled]="disabled()"></label>
+<button type="button" (click)="find()" [disabled]="disabled() || loading()">Rechercher un employé</button>
+@if(loading()){<p role="status">Chargement des employés…</p>}
+@if(error()){<p role="alert">{{error()}}</p>}
+@if(loaded() && !loading() && !error() && !choices().length){<p>Aucun employé trouvé.</p>}
+@if(choices().length){<label>Employé <select #choice [value]="selected()" (change)="select(choice.value)" [disabled]="disabled()"><option value="">Choisir</option>@for(employee of choices();track employee.id){<option [value]="employee.id">{{employee.label}} — {{employee.id}}</option>}</select></label>
+<button type="button" (click)="move(-1)" [disabled]="disabled() || loading() || page()===0">Précédents</button><span>Page {{page()+1}} sur {{pages()}}</span><button type="button" (click)="move(1)" [disabled]="disabled() || loading() || page()+1>=pages()">Suivants</button>}
+</section>

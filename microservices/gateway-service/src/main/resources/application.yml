@@ -1,0 +1,201 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Content-Type
+              - Authorization
+      routes:
+        - id: identity-test
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/api/test
+          filters:
+            - StripPrefix=1
+        - id: identity-auth
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/api/auth/**
+          filters:
+            - StripPrefix=1
+        - id: identity-users
+          uri: lb://IDENTITY-SERVICE
+          predicates:
+            - Path=/identity/api/users/**
+          filters:
+            - StripPrefix=1
+        - id: employee-test
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/employee/api/test
+          filters:
+            - StripPrefix=1
+        - id: employee-service
+          uri: lb://EMPLOYEE-SERVICE
+          predicates:
+            - Path=/employee/api/employees/**
+          filters:
+            - StripPrefix=1
+        - id: department-test
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/department/api/test
+          filters:
+            - StripPrefix=1
+        - id: department-service
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/department/api/departments/**
+          filters:
+            - StripPrefix=1
+        - id: customer-test
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/test
+          filters:
+            - StripPrefix=1
+        - id: customer-service
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/customers/**
+          filters:
+            - StripPrefix=1
+        - id: customer-contact-work
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/contact-work/**
+          filters:
+            - StripPrefix=1
+        - id: customer-opportunities
+          uri: lb://CUSTOMER-SERVICE
+          predicates:
+            - Path=/customer/api/opportunities/**
+          filters:
+            - StripPrefix=1
+        - id: hr-employee-profile
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/employee-profile/me
+            - Method=GET
+          filters:
+            - StripPrefix=1
+        - id: hr-test
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/test
+          filters:
+            - StripPrefix=1
+        - id: hr-service
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/hr-records/**
+          filters:
+            - StripPrefix=1
+        - id: hr-leaves
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/leaves/**
+          filters:
+            - StripPrefix=1
+        - id: hr-attendances
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/attendances/**
+          filters:
+            - StripPrefix=1
+        - id: hr-insights
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/hr-insights
+            - Method=GET
+          filters:
+            - StripPrefix=1
+        - id: hr-trainings
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/trainings/**
+          filters:
+            - StripPrefix=1
+        - id: hr-workflows
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/contracts/**,/hr/api/evaluations/**,/hr/api/job-offers/**,/hr/api/applications/**,/hr/api/employee-associations/**,/hr/api/employees/*/documents/**,/hr/api/employees/*/career-events/**,/hr/api/employees/*/leave-quotas/**,/hr/api/documents/**,/hr/api/career-events/**,/hr/api/leave-quotas/**
+          filters:
+            - StripPrefix=1
+        - id: payroll-test
+          uri: lb://PAYROLL-SERVICE
+          predicates:
+            - Path=/payroll/api/test
+          filters:
+            - StripPrefix=1
+        - id: payroll-service
+          uri: lb://PAYROLL-SERVICE
+          predicates:
+            - Path=/payroll/api/payrolls/**
+          filters:
+            - StripPrefix=1
+        - id: fees-test
+          uri: lb://FEES-SERVICE
+          predicates:
+            - Path=/fees/api/test
+          filters:
+            - StripPrefix=1
+        - id: fees-service
+          uri: lb://FEES-SERVICE
+          predicates:
+            - Path=/fees/api/fees/**
+          filters:
+            - StripPrefix=1
+        - id: invoice-test
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/test
+          filters:
+            - StripPrefix=1
+        - id: invoice-service
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/invoices/**
+          filters:
+            - StripPrefix=1
+        - id: invoice-quotes
+          uri: lb://INVOICE-SERVICE
+          predicates:
+            - Path=/invoice/api/quotes/**
+          filters:
+            - StripPrefix=1
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized

@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: "no"
+    ports: !override
+      - "13307:3306"
+    volumes: !override
+      - mysql-data:/var/lib/mysql
+      - ./docker/validation/mysql-init:/docker-entrypoint-initdb.d:ro
+
+  discovery-service:
+    image: crm-validation/discovery-service:sprint6b
+    restart: "no"
+    ports: !override ["18761:8761"]
+
+  gateway-service:
+    image: crm-validation/gateway-service:sprint6b
+    restart: "no"
+    ports: !override ["18080:8080"]
+
+  identity-service:
+    image: crm-validation/identity-service:sprint6b
+    restart: "no"
+    ports: !override ["18082:8082"]
+
+  employee-service:
+    image: crm-validation/employee-service:sprint6b
+    restart: "no"
+    ports: !override ["18083:8083"]
+
+  department-service:
+    image: crm-validation/department-service:sprint6b
+    restart: "no"
+    ports: !override ["18084:8084"]
+
+  customer-service:
+    image: crm-validation/customer-service:sprint6b
+    restart: "no"
+    ports: !override ["18085:8085"]
+
+  hr-service:
+    image: crm-validation/hr-service:sprint6b
+    restart: "no"
+    ports: !override ["18086:8086"]
+    volumes: !override
+      - hr-documents:/var/lib/crm/hr-documents
+
+  payroll-service:
+    image: crm-validation/payroll-service:sprint6b
+    restart: "no"
+    ports: !override ["18087:8087"]
+
+  fees-service:
+    image: crm-validation/fees-service:sprint6b
+    restart: "no"
+    ports: !override ["18088:8088"]
+
+  invoice-service:
+    image: crm-validation/invoice-service:sprint6b
+    restart: "no"
+    ports: !override ["18089:8089"]

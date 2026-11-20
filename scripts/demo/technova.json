@@ -1,0 +1,508 @@
+{
+  "departments": [
+    {
+      "ref": "DEV",
+      "payload": {
+        "name": "Développement informatique",
+        "code": "DEMO-TNC-DEV",
+        "description": "[DÉMO TechNova Consulting] Département fictif destiné à la démonstration."
+      }
+    },
+    {
+      "ref": "RH",
+      "payload": {
+        "name": "Ressources humaines",
+        "code": "DEMO-TNC-RH",
+        "description": "[DÉMO TechNova Consulting] Département fictif destiné à la démonstration."
+      }
+    },
+    {
+      "ref": "FIN",
+      "payload": {
+        "name": "Finance et administration",
+        "code": "DEMO-TNC-FIN",
+        "description": "[DÉMO TechNova Consulting] Département fictif destiné à la démonstration."
+      }
+    }
+  ],
+  "employees": [
+    {
+      "ref": "E01",
+      "departmentRef": "DEV",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E01",
+        "firstName": "PrenomDemo01",
+        "lastName": "EmployeFictif01",
+        "email": "demo.tnc.e01@example.invalid",
+        "phone": "+12025550100",
+        "jobTitle": "Développeur backend",
+        "hireDate": "2024-02-01",
+        "salary": 3200,
+        "address": "ADRESSE FICTIVE E01 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "E02",
+      "departmentRef": "DEV",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E02",
+        "firstName": "PrenomDemo02",
+        "lastName": "EmployeFictif02",
+        "email": "demo.tnc.e02@example.invalid",
+        "phone": "+12025550101",
+        "jobTitle": "Développeuse Angular",
+        "hireDate": "2024-06-03",
+        "salary": 3000,
+        "address": "ADRESSE FICTIVE E02 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "E03",
+      "departmentRef": "DEV",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E03",
+        "firstName": "PrenomDemo03",
+        "lastName": "EmployeFictif03",
+        "email": "demo.tnc.e03@example.invalid",
+        "phone": "+12025550102",
+        "jobTitle": "Ingénieur QA",
+        "hireDate": "2025-01-06",
+        "salary": 2600,
+        "address": "ADRESSE FICTIVE E03 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "E04",
+      "departmentRef": "RH",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E04",
+        "firstName": "PrenomDemo04",
+        "lastName": "EmployeFictif04",
+        "email": "demo.tnc.e04@example.invalid",
+        "phone": "+12025550103",
+        "jobTitle": "Responsable RH",
+        "hireDate": "2023-09-01",
+        "salary": 3300,
+        "address": "ADRESSE FICTIVE E04 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "E05",
+      "departmentRef": "FIN",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E05",
+        "firstName": "PrenomDemo05",
+        "lastName": "EmployeFictif05",
+        "email": "demo.tnc.e05@example.invalid",
+        "phone": "+12025550104",
+        "jobTitle": "Comptable",
+        "hireDate": "2024-03-04",
+        "salary": 2800,
+        "address": "ADRESSE FICTIVE E05 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "E06",
+      "departmentRef": "FIN",
+      "payload": {
+        "employeeCode": "DEMO-TNC-E06",
+        "firstName": "PrenomDemo06",
+        "lastName": "EmployeFictif06",
+        "email": "demo.tnc.e06@example.invalid",
+        "phone": "+12025550105",
+        "jobTitle": "Assistante administrative",
+        "hireDate": "2025-02-03",
+        "salary": 2200,
+        "address": "ADRESSE FICTIVE E06 - Site de demonstration sans localisation reelle"
+      }
+    }
+  ],
+  "customers": [
+    {
+      "ref": "C01",
+      "payload": {
+        "name": "[DEMO SYNTHETIQUE] Client fictif 01",
+        "company": "ENTREPRISE FICTIVE 01",
+        "email": "demo.tnc.c01@example.invalid",
+        "phone": "+12025550110",
+        "address": "ADRESSE FICTIVE C01 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "C02",
+      "payload": {
+        "name": "[DEMO SYNTHETIQUE] Client fictif 02",
+        "company": "ENTREPRISE FICTIVE 02",
+        "email": "demo.tnc.c02@example.invalid",
+        "phone": "+12025550111",
+        "address": "ADRESSE FICTIVE C02 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "C03",
+      "payload": {
+        "name": "[DEMO SYNTHETIQUE] Client fictif 03",
+        "company": "ENTREPRISE FICTIVE 03",
+        "email": "demo.tnc.c03@example.invalid",
+        "phone": "+12025550112",
+        "address": "ADRESSE FICTIVE C03 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "C04",
+      "payload": {
+        "name": "[DEMO SYNTHETIQUE] Client fictif 04",
+        "company": "ENTREPRISE FICTIVE 04",
+        "email": "demo.tnc.c04@example.invalid",
+        "phone": "+12025550113",
+        "address": "ADRESSE FICTIVE C04 - Site de demonstration sans localisation reelle"
+      }
+    },
+    {
+      "ref": "C05",
+      "payload": {
+        "name": "[DEMO SYNTHETIQUE] Client fictif 05",
+        "company": "ENTREPRISE FICTIVE 05",
+        "email": "demo.tnc.c05@example.invalid",
+        "phone": "+12025550114",
+        "address": "ADRESSE FICTIVE C05 - Site de demonstration sans localisation reelle"
+      }
+    }
+  ],
+  "leaves": [
+    {
+      "ref": "L01",
+      "employeeRef": "E01",
+      "targetStatus": "APPROVED",
+      "payload": {
+        "startDate": "2026-11-02",
+        "endDate": "2026-11-04",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L01 — Congé personnel fictif."
+      }
+    },
+    {
+      "ref": "L02",
+      "employeeRef": "E02",
+      "targetStatus": "APPROVED",
+      "payload": {
+        "startDate": "2026-11-09",
+        "endDate": "2026-11-10",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L02 — Congé personnel fictif."
+      }
+    },
+    {
+      "ref": "L03",
+      "employeeRef": "E03",
+      "targetStatus": "PENDING",
+      "payload": {
+        "startDate": "2026-11-16",
+        "endDate": "2026-11-18",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L03 — Congé personnel fictif."
+      }
+    },
+    {
+      "ref": "L04",
+      "employeeRef": "E04",
+      "targetStatus": "PENDING",
+      "payload": {
+        "startDate": "2026-11-23",
+        "endDate": "2026-11-24",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L04 — Congé personnel fictif."
+      }
+    },
+    {
+      "ref": "L05",
+      "employeeRef": "E05",
+      "targetStatus": "REJECTED",
+      "payload": {
+        "startDate": "2026-12-01",
+        "endDate": "2026-12-03",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L05 — Congé personnel fictif."
+      }
+    },
+    {
+      "ref": "L06",
+      "employeeRef": "E06",
+      "targetStatus": "REJECTED",
+      "payload": {
+        "startDate": "2026-12-07",
+        "endDate": "2026-12-08",
+        "reason": "[DÉMO TechNova Consulting] DEMO-TNC-L06 — Congé personnel fictif."
+      }
+    }
+  ],
+  "invoices": [
+    {
+      "ref": "I01",
+      "customerRef": "C01",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-001",
+        "issueDate": "2026-09-01",
+        "dueDate": "2026-10-01",
+        "subtotal": 4000,
+        "tax": 760,
+        "currency": "TND",
+        "status": "PAID",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I01"
+      }
+    },
+    {
+      "ref": "I02",
+      "customerRef": "C02",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-002",
+        "issueDate": "2026-09-05",
+        "dueDate": "2026-10-05",
+        "subtotal": 2500,
+        "tax": 475,
+        "currency": "TND",
+        "status": "PAID",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I02"
+      }
+    },
+    {
+      "ref": "I03",
+      "customerRef": "C03",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-003",
+        "issueDate": "2026-09-10",
+        "dueDate": "2026-10-10",
+        "subtotal": 6000,
+        "tax": 1140,
+        "currency": "TND",
+        "status": "SENT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I03"
+      }
+    },
+    {
+      "ref": "I04",
+      "customerRef": "C04",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-004",
+        "issueDate": "2026-09-15",
+        "dueDate": "2026-10-15",
+        "subtotal": 1800,
+        "tax": 342,
+        "currency": "TND",
+        "status": "SENT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I04"
+      }
+    },
+    {
+      "ref": "I05",
+      "customerRef": "C05",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-005",
+        "issueDate": "2026-10-01",
+        "dueDate": "2026-10-31",
+        "subtotal": 3200,
+        "tax": 608,
+        "currency": "TND",
+        "status": "SENT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I05"
+      }
+    },
+    {
+      "ref": "I06",
+      "customerRef": "C01",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-006",
+        "issueDate": "2026-10-05",
+        "dueDate": "2026-11-04",
+        "subtotal": 4500,
+        "tax": 855,
+        "currency": "TND",
+        "status": "SENT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I06"
+      }
+    },
+    {
+      "ref": "I07",
+      "customerRef": "C03",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-007",
+        "issueDate": "2026-10-10",
+        "dueDate": "2026-11-09",
+        "subtotal": 2200,
+        "tax": 418,
+        "currency": "TND",
+        "status": "DRAFT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I07"
+      }
+    },
+    {
+      "ref": "I08",
+      "customerRef": "C05",
+      "payload": {
+        "invoiceNumber": "DEMO-TNC-2026-008",
+        "issueDate": "2026-10-15",
+        "dueDate": "2026-11-14",
+        "subtotal": 1500,
+        "tax": 285,
+        "currency": "TND",
+        "status": "DRAFT",
+        "notes": "[DÉMO TechNova Consulting] Prestation fictive DEMO-TNC-I08"
+      }
+    }
+  ],
+  "fees": [
+    {
+      "ref": "H01",
+      "employeeRef": "E01",
+      "customerRef": "C01",
+      "payload": {
+        "serviceName": "DEMO-TNC-H01 — Développement API",
+        "description": "[DÉMO TechNova Consulting] Développement API, prestation fictive.",
+        "workDate": "2026-10-05",
+        "hourlyRate": 100,
+        "workedHours": 12
+      }
+    },
+    {
+      "ref": "H02",
+      "employeeRef": "E02",
+      "customerRef": "C02",
+      "payload": {
+        "serviceName": "DEMO-TNC-H02 — Interface Angular",
+        "description": "[DÉMO TechNova Consulting] Interface Angular, prestation fictive.",
+        "workDate": "2026-10-06",
+        "hourlyRate": 90,
+        "workedHours": 10
+      }
+    },
+    {
+      "ref": "H03",
+      "employeeRef": "E03",
+      "customerRef": "C03",
+      "payload": {
+        "serviceName": "DEMO-TNC-H03 — Tests et recette",
+        "description": "[DÉMO TechNova Consulting] Tests et recette, prestation fictive.",
+        "workDate": "2026-10-07",
+        "hourlyRate": 75,
+        "workedHours": 8
+      }
+    },
+    {
+      "ref": "H04",
+      "employeeRef": "E04",
+      "customerRef": "C04",
+      "payload": {
+        "serviceName": "DEMO-TNC-H04 — Conseil organisation RH",
+        "description": "[DÉMO TechNova Consulting] Conseil organisation RH, prestation fictive.",
+        "workDate": "2026-10-08",
+        "hourlyRate": 110,
+        "workedHours": 6
+      }
+    },
+    {
+      "ref": "H05",
+      "employeeRef": "E05",
+      "customerRef": "C05",
+      "payload": {
+        "serviceName": "DEMO-TNC-H05 — Analyse financière",
+        "description": "[DÉMO TechNova Consulting] Analyse financière, prestation fictive.",
+        "workDate": "2026-10-09",
+        "hourlyRate": 95,
+        "workedHours": 8
+      }
+    },
+    {
+      "ref": "H06",
+      "employeeRef": "E06",
+      "customerRef": "C01",
+      "payload": {
+        "serviceName": "DEMO-TNC-H06 — Assistance documentaire",
+        "description": "[DÉMO TechNova Consulting] Assistance documentaire, prestation fictive.",
+        "workDate": "2026-10-12",
+        "hourlyRate": 60,
+        "workedHours": 5
+      }
+    }
+  ],
+  "payrolls": [
+    {
+      "ref": "P01",
+      "employeeRef": "E01",
+      "payload": {
+        "baseSalary": 3200,
+        "bonuses": 300,
+        "deductions": 100,
+        "taxAmount": 350,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    },
+    {
+      "ref": "P02",
+      "employeeRef": "E02",
+      "payload": {
+        "baseSalary": 3000,
+        "bonuses": 250,
+        "deductions": 90,
+        "taxAmount": 320,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    },
+    {
+      "ref": "P03",
+      "employeeRef": "E03",
+      "payload": {
+        "baseSalary": 2600,
+        "bonuses": 200,
+        "deductions": 80,
+        "taxAmount": 250,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    },
+    {
+      "ref": "P04",
+      "employeeRef": "E04",
+      "payload": {
+        "baseSalary": 3300,
+        "bonuses": 350,
+        "deductions": 110,
+        "taxAmount": 380,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    },
+    {
+      "ref": "P05",
+      "employeeRef": "E05",
+      "payload": {
+        "baseSalary": 2800,
+        "bonuses": 200,
+        "deductions": 85,
+        "taxAmount": 280,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    },
+    {
+      "ref": "P06",
+      "employeeRef": "E06",
+      "payload": {
+        "baseSalary": 2200,
+        "bonuses": 150,
+        "deductions": 70,
+        "taxAmount": 180,
+        "payPeriod": "2026-09",
+        "paymentDate": "2026-09-30",
+        "currency": "TND",
+        "status": "DEMO"
+      }
+    }
+  ]
+}

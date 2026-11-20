@@ -1,0 +1,55 @@
+package com.crm.customer.util;
+
+import com.crm.customer.entity.Customer;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Utility class for building dynamic JPA Specifications for Customer search.
+ */
+public class CustomerSpecification {
+
+    private CustomerSpecification() {
+        // utility class
+    }
+
+    /**
+     * Build a Specification to search customers by keyword across multiple fields.
+     *
+     * @param keyword search keyword (nullable)
+     * @return Specification for filtering
+     */
+    public static Specification<Customer> searchByKeyword(String keyword) {
+        return (root, query, criteriaBuilder) -> {
+            if (!StringUtils.hasText(keyword)) {
+                return criteriaBuilder.conjunction();
+            }
+
+            String pattern = "%" + keyword.trim().toLowerCase(java.util.Locale.ROOT).replace("\\","\\\\").replace("%","\\%").replace("_","\\_") + "%";
+
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern, '\\'));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("email")), pattern, '\\'));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("company")), pattern, '\\'));
+            predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("phone")), pattern, '\\'));
+
+            return criteriaBuilder.or(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    public static Specification<Customer> state(String status){if(status==null||status.isBlank())return (r,q,c)->c.conjunction();if(!java.util.Set.of("ACTIVE","ARCHIVED").contains(status))throw new IllegalArgumentException("Unsupported contact status");return (r,q,c)->c.equal(r.get("archived"),status.equals("ARCHIVED"));}
+
+    public static Specification<Customer> filters(String keyword, String contactType, String category, String segment, Long assignedEmployeeId) {
+        return searchByKeyword(keyword)
+                .and((root, query, cb) -> !StringUtils.hasText(contactType) ? cb.conjunction() : cb.equal(root.get("contactType"), contactType))
+                .and((root, query, cb) -> !StringUtils.hasText(category) ? cb.conjunction() : cb.equal(cb.lower(root.get("category")), category.trim().toLowerCase()))
+                .and((root, query, cb) -> !StringUtils.hasText(segment) ? cb.conjunction() : cb.equal(cb.lower(root.get("segment")), segment.trim().toLowerCase()))
+                .and((root, query, cb) -> assignedEmployeeId == null ? cb.conjunction() : cb.equal(root.get("assignedEmployeeId"), assignedEmployeeId));
+    }
+}
+

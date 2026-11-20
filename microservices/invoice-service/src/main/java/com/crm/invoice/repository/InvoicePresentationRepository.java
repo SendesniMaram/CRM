@@ -1,0 +1,2 @@
+package com.crm.invoice.repository;import com.crm.invoice.entity.InvoicePresentation;import org.springframework.data.jpa.repository.*;import org.springframework.data.repository.query.Param;import java.util.Optional;
+public interface InvoicePresentationRepository extends JpaRepository<InvoicePresentation,Long>{@Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE) @Query("select p from InvoicePresentation p where p.id=:id") Optional<InvoicePresentation> lock(@Param("id") long id);}

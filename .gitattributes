@@ -1,0 +1,10 @@
+# Preserve the exact historical V1 bytes, including their existing CRLF endings.
+# Keep the standard whitespace checks; only recognize the preserved CRLF encoding.
+microservices/customer-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/department-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/employee-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/fees-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/hr-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/identity-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/invoice-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+microservices/payroll-service/src/main/resources/db/migration/V1__initial_schema.sql -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

@@ -1,0 +1,16 @@
+<section aria-label="Solde technique de congés"><h2>{{personal() ? "Mon solde de congés" : "Solde de congés d’un employé"}}</h2>
+<p>Estimation technique en jours calendaires inclusifs, toutes les demandes confondues. Aucun calcul légal, jour ouvré, jour férié, acquisition ou report. Les demandes ne sont pas ventilées par type.</p>
+@if(!personal()){<app-hr-employee-picker [selected]="employee" [disabled]="loading()" (employeeSelected)="selectEmployee($event)" />}
+<form (ngSubmit)="load()"><label>Début de référence <input name="balanceFrom" type="date" [(ngModel)]="from"></label><label>Fin de référence <input name="balanceTo" type="date" [(ngModel)]="to"></label><button [disabled]="loading()">Recalculer le solde</button></form>
+@if(loading()){<p role="status">Calcul du solde…</p>}@if(error()){<p role="alert">{{error()}}</p>}
+@if(result();as r){<p>Employé {{r.employeeId}} · {{r.from}} au {{r.to}}</p>
+<dl><dt>Jours attribués dans les quotas affichés</dt><dd>{{r.grantedDays ?? "Non renseignés"}}</dd><dt>Jours consommés (approuvés)</dt><dd>{{r.consumedDays}}</dd><dt>Jours en attente supplémentaires</dt><dd>{{r.pendingDays}}</dd><dt>Jours restants après approuvés</dt><dd>{{r.remainingDays ?? "Indéterminés"}}</dd><dt>Disponibles après réservation des demandes en attente</dt><dd>{{r.availableAfterPending ?? "Indéterminés"}}</dd></dl>
+@if(r.state==="NO_QUOTA"){<p>Aucun quota sur cette période ; aucune valeur de solde n’est inventée.</p>}
+@if(r.state==="QUOTA_PERIOD_MISMATCH"){<p>Les bornes des quotas diffèrent : choisissez leur période exacte. Aucune attribution n’est proratisée.</p>}
+@if(r.state==="QUOTA_TYPE_AMBIGUOUS"){<p>Plusieurs types de quotas : les demandes ne permettent pas leur ventilation. Solde indéterminé.</p>}
+@if(r.overlapsDetected){<p>Chevauchements détectés : chaque date approuvée compte une fois ; l’attente exclut ces dates et ses propres doublons.</p>}
+@if(r.remainingDays!==null && r.remainingDays<0){<p role="alert">Les jours approuvés dépassent le quota technique.</p>}
+<h3>Quotas de référence</h3>@for(q of r.quotas;track q.id){<p>{{q.type}} · {{q.from}} au {{q.to}} · {{q.days}} jours</p>}
+<h3>Demandes prises en compte</h3><p>Dates bornées à la période ; les demandes refusées sont listées sans consommation. Les jours de chaque ligne ne s’additionnent pas en présence de chevauchements.</p>
+@if(!r.requests.length){<p>Aucune demande sur cette période.</p>}<ul>@for(request of r.requests;track request.id){<li>Demande {{request.id}} · {{request.from}} au {{request.to}} · {{request.status}} · {{request.daysInPeriod}} jour(s)</li>}</ul>}
+</section>

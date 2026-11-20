@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {modelFor} from './prepare.mjs';
+import {stopPlan} from './stop.mjs';
+const root=fileURLToPath(new URL('../../../',import.meta.url));
+const model=modelFor(root,'20261111-120000','A'),manifest={run:'20261111-120000',group:'A',project:model.name};
+const campaign=path.join(root,'target',model.name),external=path.resolve(root,'../private/test.env');
+test('stop scopes exact campaign and preserves volumes',()=>{const args=stopPlan(root,campaign,manifest,model,external);assert.deepEqual(args.slice(-3),['stop','--timeout','30']);assert.ok(!args.includes('down')&&!args.includes('-v'));assert.equal(args[2],model.name);});
+test('stop refuses a foreign project or modified topology',()=>{assert.throws(()=>stopPlan(root,campaign,{...manifest,project:'crm-development'},model,external));assert.throws(()=>stopPlan(root,campaign,manifest,{...model,volumes:{'mysql-data':{external:true}}},external));});
+test('stop refuses repository secrets and unrelated campaign directory',()=>{assert.throws(()=>stopPlan(root,campaign,manifest,model,path.join(root,'.env')));assert.throws(()=>stopPlan(root,path.join(root,'docs'),manifest,model,external));});

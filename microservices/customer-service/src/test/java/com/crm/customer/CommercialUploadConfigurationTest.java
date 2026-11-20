@@ -1,0 +1,3 @@
+package com.crm.customer;
+import org.junit.jupiter.api.Test;import org.springframework.boot.env.YamlPropertySourceLoader;import org.springframework.core.io.FileSystemResource;import static org.junit.jupiter.api.Assertions.*;
+class CommercialUploadConfigurationTest {@Test void productionMultipartLimitsMatchTheFiveMiBApplicationContract()throws Exception{var sources=new YamlPropertySourceLoader().load("main",new FileSystemResource("src/main/resources/application.yml"));assertEquals("5MB",sources.getFirst().getProperty("spring.servlet.multipart.max-file-size"));assertEquals("6MB",sources.getFirst().getProperty("spring.servlet.multipart.max-request-size"));}}

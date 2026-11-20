@@ -1,0 +1,25 @@
+package com.crm.invoice.controller;
+import com.crm.invoice.service.*;import org.springframework.web.bind.annotation.*;import org.springframework.http.*;import jakarta.validation.Valid;import jakarta.validation.constraints.*;import java.time.LocalDate;import org.springframework.web.multipart.MultipartFile;import static com.crm.invoice.pdf.PdfReport.*;
+@RestController @RequestMapping("/api/invoices/work") public class InvoiceWorkController {private final InvoicePresentationService documents;private final InvoiceFollowupService followup;private final InvoiceReconciliationService reconcile;public InvoiceWorkController(InvoicePresentationService d,InvoiceFollowupService f,InvoiceReconciliationService r){documents=d;followup=f;reconcile=r;}public record Activation(@NotNull Boolean active){}public record Issue(@NotBlank @Pattern(regexp="[1-9][0-9]{0,18}") String templateId){}public record Notes(@NotBlank @Size(max=500) String notes){}
+ @GetMapping("/templates") public ResponseEntity<?> templates(@RequestParam(defaultValue="0") int page){return ok(documents.list(page));}
+ @PostMapping("/templates") public ResponseEntity<?> create(@Valid @RequestBody InvoicePresentationService.Input input){return ok(documents.save(null,input));}
+ @PutMapping("/templates/{id}") public ResponseEntity<?> update(@PathVariable long id,@Valid @RequestBody InvoicePresentationService.Input input){return ok(documents.save(id,input));}
+ @PatchMapping("/templates/{id}/active") public ResponseEntity<?> active(@PathVariable long id,@Valid @RequestBody Activation input){return ok(documents.active(id,input.active()));}
+ @PostMapping(value="/templates/{id}/logo",consumes=MediaType.MULTIPART_FORM_DATA_VALUE) public ResponseEntity<?> logo(@PathVariable long id,@RequestPart("file") MultipartFile file)throws java.io.IOException{if(file.getSize()>262144)throw new IllegalArgumentException("Logo maximum 256 KiB");return ok(documents.logo(id,file.getBytes()));}
+ @GetMapping(value="/templates/{id}/preview",produces="application/pdf") public ResponseEntity<byte[]> preview(@PathVariable long id){return attachment(documents.preview(id),"template-preview.pdf");}
+ @GetMapping(value="/{id}/preview",produces="application/pdf") public ResponseEntity<byte[]> previewInvoice(@PathVariable long id,@RequestParam long templateId){return attachment(documents.previewInvoice(id,templateId),"facture-preview.pdf");}
+ @PostMapping(value="/{id}/issue",produces="application/pdf") public ResponseEntity<byte[]> issue(@PathVariable long id,@Valid @RequestBody Issue input){return attachment(documents.issue(id,InvoiceWorkAccess.id(input.templateId())),"facture-"+id+".pdf");}
+ @PostMapping("/{id}/archive") public ResponseEntity<?> archive(@PathVariable long id){followup.archive(id);return ok(java.util.Map.of("archived",true));}
+ @GetMapping("/invoices") public ResponseEntity<?> invoices(@RequestParam LocalDate from,@RequestParam LocalDate to,@RequestParam(required=false) String customerId,@RequestParam(required=false) String status,@RequestParam(required=false) Boolean archived,@RequestParam(defaultValue="ALL") String mode,@RequestParam(defaultValue="0") int page){return ok(followup.invoices(from,to,customerId,status,archived,mode,page));}
+ @GetMapping("/policy") public ResponseEntity<?> policy(){return ok(followup.policy());}
+ @PutMapping("/policy") public ResponseEntity<?> policy(@Valid @RequestBody InvoiceFollowupService.Policy input){return ok(followup.configure(input));}
+ @PostMapping("/reminders/prepare") public ResponseEntity<?> prepare(@RequestParam(defaultValue="0") int page){return ok(java.util.Map.of("prepared",followup.prepare(page)));}
+ @GetMapping("/reminders") public ResponseEntity<?> reminders(@RequestParam(required=false) String state,@RequestParam(defaultValue="0") int page){return ok(followup.tasks(state,page));}
+ @PostMapping("/reminders/{id}/record") public ResponseEntity<?> handle(@PathVariable long id,@Valid @RequestBody Notes input){return ok(followup.handle(id,input.notes()));}
+ @GetMapping("/fee-candidates") public ResponseEntity<?> fees(@RequestParam String customerId,@RequestParam String currency,@RequestParam(defaultValue="0") int page,@RequestHeader("Authorization") String bearer){return ok(reconcile.candidates(customerId,currency,page,bearer));}
+ @GetMapping("/reconciliations") public ResponseEntity<?> jobs(@RequestParam(defaultValue="0") int page){return ok(reconcile.list(page));}
+ @PostMapping("/reconciliations") public ResponseEntity<?> execute(@Valid @RequestBody InvoiceReconciliationService.Input input,@RequestHeader("Authorization") String bearer){return ok(reconcile.execute(input,bearer));}
+ @PostMapping("/reconciliations/{id}/retry") public ResponseEntity<?> retry(@PathVariable String id,@RequestHeader("Authorization") String bearer){return ok(reconcile.retry(id,bearer));}
+ @PostMapping("/reconciliations/{id}/abandon") public ResponseEntity<?> abandon(@PathVariable String id,@Valid @RequestBody Notes input){return ok(reconcile.abandon(id,input.notes()));}
+ private ResponseEntity<?> ok(Object body){return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body);}
+}

@@ -1,0 +1,5 @@
+# Isolated clean-volume overlay for Sprint 6C.
+# Keeps crm-validation_mysql-data intact while validating current V1 migrations.
+volumes:
+  mysql-data:
+    name: crm-validation_mysql-data-sprint6c

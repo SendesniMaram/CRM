@@ -1,0 +1,31 @@
+import { provideZonelessChangeDetection,signal } from '@angular/core';
+import { ComponentFixture,TestBed } from '@angular/core/testing';
+import { provideRouter,Router } from '@angular/router';
+import { of,Subject,throwError } from 'rxjs';
+import { AuthService } from '../../core/services/auth.service';
+import { PayrollSettlementsComponent } from './payroll-settlements.component';
+import { PayrollService } from './payroll.service';
+import { MyPayrollService } from './my-payroll.service';
+import { PayrollResponse } from './payroll.models';
+import { SettlementSummary } from './payroll-settlements.models';
+describe('Payroll settlements workspace',()=>{
+ let fixture:ComponentFixture<PayrollSettlementsComponent>,service:jasmine.SpyObj<PayrollService>,personal:jasmine.SpyObj<MyPayrollService>;
+ let generation:number,authenticated:ReturnType<typeof signal<boolean>>;
+ const row:PayrollResponse={id:7,employeeId:'103',baseSalary:100,bonuses:null,deductions:null,taxAmount:null,payPeriod:'2026-11',paymentDate:null,currency:'TND',status:'PENDING',netSalary:100,published:true,createdAt:null,updatedAt:null};
+ const empty:SettlementSummary={paidAmount:'0',remainingAmount:'100.00',state:'UNPAID',entries:[],correctionReason:null,correctedBy:null,correctedAt:null};
+ beforeEach(async()=>{generation=0;authenticated=signal(true);service=jasmine.createSpyObj('PayrollService',['settlements','pay','reverse','correct']);personal=jasmine.createSpyObj('MyPayrollService',['settlements']);service.settlements.and.returnValue(of(empty));personal.settlements.and.returnValue(of(empty));
+ await TestBed.configureTestingModule({imports:[PayrollSettlementsComponent],providers:[provideZonelessChangeDetection(),provideRouter([]),{provide:PayrollService,useValue:service},{provide:MyPayrollService,useValue:personal},{provide:AuthService,useValue:{get sessionGeneration(){return generation;},isAuthenticated:()=>authenticated(),hasAnyRole:()=>authenticated()}}]}).compileComponents();
+ fixture=TestBed.createComponent(PayrollSettlementsComponent);fixture.componentRef.setInput('payroll',row);fixture.detectChanges();});
+ function load(){fixture.componentInstance['load']();fixture.detectChanges();return fixture.componentInstance;}
+ it('loads explicitly and displays the empty ledger and balance',()=>{expect(service.settlements).not.toHaveBeenCalled();load();expect(fixture.nativeElement.textContent).toContain('100.00');expect(fixture.nativeElement.querySelector('form')).not.toBeNull();});
+ it('shows a partial settlement and emits a reload after payment',()=>{const c=load(),updated={...empty,paidAmount:'40',remainingAmount:'60',state:'PARTIAL'};service.pay.and.returnValue(of(updated));spyOn(c.changed,'emit');c['amount']=40;c['date']='2026-11-02';c['pay']();fixture.detectChanges();expect(c['summary']()).toEqual(updated);expect(c.changed.emit).toHaveBeenCalled();expect(service.pay.calls.mostRecent().args[1].requestId).toMatch(/^[a-f0-9-]{36}$/);});
+ it('keeps the idempotency key when retrying an uncertain request',()=>{const c=load();service.pay.and.returnValue(throwError(()=>({status:503})));c['amount']=10;c['date']='2026-11-02';c['pay']();const first=service.pay.calls.mostRecent().args[1].requestId;c['pay']();expect(service.pay.calls.mostRecent().args[1].requestId).toBe(first);expect(c['error']()).toContain('indisponible');});
+ it('rejects invalid amounts before any write',()=>{const c=load();c['amount']=.001;c['date']='2026-11-02';c['pay']();expect(service.pay).not.toHaveBeenCalled();});
+ it('renders a personal read without payment or correction actions',()=>{fixture.componentRef.setInput('personal',true);const c=load();expect(personal.settlements).toHaveBeenCalledWith('7');expect(fixture.nativeElement.querySelector('form')).toBeNull();c['pay']();c['correct']();expect(service.pay).not.toHaveBeenCalled();expect(service.correct).not.toHaveBeenCalled();});
+ it('requires a reversal reason and preserves the original in the result',()=>{const entry={reference:'ref',kind:'PAYMENT',amount:'10',date:'2026-11-02',method:null,transactionReference:null,reversesReference:null,reason:null,author:null,createdAt:null};service.settlements.and.returnValue(of({...empty,entries:[entry]}));const c=load();c['reverse'](entry);expect(service.reverse).not.toHaveBeenCalled();c['reason']='Erreur de saisie';service.reverse.and.returnValue(of({...empty,entries:[entry,{...entry,reference:'reverse',kind:'REVERSAL',reversesReference:'ref'}]}));c['reverse'](entry);expect(service.reverse).toHaveBeenCalled();expect(c['summary']()?.entries.length).toBe(2);expect(c['canReverse'](entry)).toBeFalse();});
+ it('opens a linked correction draft without editing the original',()=>{const c=load();c['reason']='Prime incorrecte';service.correct.and.returnValue(of({...row,id:8,published:false,correctionOfId:7}));const navigate=spyOn(TestBed.inject(Router),'navigate').and.resolveTo(true);c['correct']();expect(service.correct).toHaveBeenCalledWith(7,'Prime incorrecte');expect(navigate).toHaveBeenCalledWith(['/payroll',8,'edit']);});
+ it('displays unavailable service without a fabricated zero balance',()=>{service.settlements.and.returnValue(throwError(()=>({status:503})));const c=load();expect(c['summary']()).toBeNull();expect(c['error']()).toContain('indisponible');});
+ it('ignores a late response after logout',()=>{const pending=new Subject<SettlementSummary>();service.settlements.and.returnValue(pending);const c=load();generation++;authenticated.set(false);fixture.detectChanges();pending.next(empty);expect(c['summary']()).toBeNull();expect(c['busy']()).toBeFalse();});
+ it('clears data and ignores a late response for another payroll',()=>{const pending=new Subject<SettlementSummary>();service.settlements.and.returnValue(pending);const c=load();fixture.componentRef.setInput('payroll',{...row,id:8});fixture.detectChanges();pending.next(empty);expect(c['summary']()).toBeNull();});
+ it('does not offer correction for historical paid payrolls without ledger',()=>{service.settlements.and.returnValue(of({...empty,remainingAmount:null,state:'LEGACY_UNRECONCILED'}));const c=load();c['reason']='Correction';c['correct']();expect(service.correct).not.toHaveBeenCalled();expect(fixture.nativeElement.querySelector('form')).toBeNull();});
+});

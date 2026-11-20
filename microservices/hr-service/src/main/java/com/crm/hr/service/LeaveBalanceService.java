@@ -1,0 +1,9 @@
+package com.crm.hr.service;
+import com.crm.hr.repository.LeaveBalanceRepository;import com.crm.hr.service.LeaveBalanceCalculator.Balance;import java.time.LocalDate;import org.springframework.stereotype.Service;import org.springframework.transaction.annotation.Transactional;import org.springframework.data.domain.PageRequest;import com.crm.security.AuthenticatedUserPrincipal;
+@Service @Transactional(readOnly=true) public class LeaveBalanceService {
+ private final LeaveBalanceRepository repository;private final LeaveAccess access;private final EmployeeReferenceValidator employees;
+ public LeaveBalanceService(LeaveBalanceRepository r,LeaveAccess a,EmployeeReferenceValidator e){repository=r;access=a;employees=e;}
+ public Balance own(LocalDate from,LocalDate to){var principal=AuthenticatedUserPrincipal.require(access.authentication());if(principal.authorities().stream().noneMatch(a->"ROLE_EMPLOYEE".equals(a.getAuthority())))throw new org.springframework.security.access.AccessDeniedException("Employee required");return calculate(access.ownEmployeeId(),from,to);}
+ public Balance administration(String employee,LocalDate from,LocalDate to,String bearer){access.requireAdmin();HrPeriod.require(from,to);employees.requireExists(employee,bearer);return calculate(employee,from,to);}
+ private Balance calculate(String employee,LocalDate from,LocalDate to){HrPeriod.require(from,to);var limit=PageRequest.of(0,2001);var rows=repository.requests(employee,from,to,limit);var quotas=repository.quotas(employee,from,to,limit);if(rows.size()>2000||quotas.size()>2000)throw new IllegalArgumentException("Balance exceeds 2000 records; choose a shorter period");return LeaveBalanceCalculator.calculate(employee,from,to,quotas,rows);}
+}

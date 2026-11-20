@@ -1,0 +1,17 @@
+import { safeReturnUrl } from './auth-navigation';
+
+describe('safeReturnUrl', () => {
+  for (const path of ['/home', '/dashboard', '/customers/3/edit', '/invoices/4?view=all#detail', '/fees/new', '/payroll/5', '/my-payroll', '/my-payroll/5', '/hr', '/hr?view=all#list', '/employees', '/departments', '/departments/new', '/departments/12/edit', '/departments?view=all#list']) {
+    it(`preserves the implemented internal destination ${path}`, () => {
+      expect(safeReturnUrl(path)).toBe(path);
+    });
+  }
+
+  for (const value of ['https://example.com', '//example.com', '/\\example.com', '/%2f%2fexample.com',
+    '/departments/../login', '/departments/0/edit', '/departments/new/edit', '/departments/12',
+    '/departments(aux:login)', '/departments/12/edit/extra', '/hr/unknown', '/hr/../login', '/login', '/register', '/unknown', '/departments\n']) {
+    it(`rejects an external, malformed or unimplemented destination ${JSON.stringify(value)}`, () => {
+      expect(safeReturnUrl(value)).toBe('/home');
+    });
+  }
+});

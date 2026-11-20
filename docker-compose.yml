@@ -1,0 +1,366 @@
+# =============================================================================
+# docker-compose.yml — CRM Microservices (architecture complète)
+# -----------------------------------------------------------------------------
+# Démarre toute l'architecture Spring Cloud :
+#   MySQL 8           -> base de données unique
+#   discovery-service -> serveur Eureka (port 8761)
+#   gateway-service   -> Spring Cloud Gateway (port 8080)
+#   identity-service  -> authentification JWT (port 8082)
+#   employee / department / customer / hr / payroll / fees / invoice
+#                       -> microservices métier (ports 8083-8089)
+#
+# Le monolithe backend/ et la librairie common-security NE sont PAS inclus.
+#
+# Le fichier est compatible avec Docker Compose v2.
+#   Configuration et rotation : docs/ROTATION_SECRETS.md
+#   Les identifiants MySQL du volume existant ne changent pas via .env.
+#   docker compose config --quiet
+#   docker compose up --build
+#   docker compose ps
+#   docker compose logs -f
+#   docker compose down
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Volumes nommés (persistance MySQL)
+# -----------------------------------------------------------------------------
+volumes:
+  mysql-data:
+    # Les données MySQL survivent à « docker compose down ».
+    # Seul « docker compose down -v » les supprime.
+  hr-documents:
+    # Documents RH privés, hors de tout répertoire web public.
+
+# -----------------------------------------------------------------------------
+# Réseau Docker unique
+# -----------------------------------------------------------------------------
+networks:
+  crm-network:
+    driver: bridge
+    # Tous les conteneurs du projet communiquent par leur nom de service
+    # sur ce réseau privé de type bridge.
+
+# -----------------------------------------------------------------------------
+# Services
+# -----------------------------------------------------------------------------
+services:
+
+  # ===========================================================================
+  # 1. MySQL 8.0 — base de données unique pour tous les microservices
+  # ===========================================================================
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      MYSQL_DATABASE: crm_db
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_0900_ai_ci
+      TZ: Europe/Paris
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/validation/mysql-init:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - crm-network
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ===========================================================================
+  # 2. Discovery Service — serveur Eureka (port 8761)
+  # ===========================================================================
+  discovery-service:
+    build:
+      context: ./microservices/discovery-service
+      dockerfile: Dockerfile
+    image: crm/discovery-service:latest
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 3. Gateway Service — Spring Cloud Gateway (port 8080)
+  # ===========================================================================
+  gateway-service:
+    build:
+      context: ./microservices/gateway-service
+      dockerfile: Dockerfile
+    image: crm/gateway-service:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Redirige Eureka vers le conteneur discovery-service (au lieu de localhost)
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 4. Identity Service — authentification JWT (port 8082)
+  # ===========================================================================
+  identity-service:
+    build:
+      context: ./microservices/identity-service
+      dockerfile: Dockerfile
+    image: crm/identity-service:latest
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/identity_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 5. Employee Service (port 8083)
+  # ===========================================================================
+  employee-service:
+    build:
+      context: ./microservices/employee-service
+      dockerfile: Dockerfile
+    image: crm/employee-service:latest
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/employee_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 6. Department Service (port 8084)
+  # ===========================================================================
+  department-service:
+    build:
+      context: ./microservices/department-service
+      dockerfile: Dockerfile
+    image: crm/department-service:latest
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/department_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 7. Customer Service (port 8085)
+  # ===========================================================================
+  customer-service:
+    build:
+      context: ./microservices/customer-service
+      dockerfile: Dockerfile
+    image: crm/customer-service:latest
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customer_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 8. HR Service (port 8086)
+  # ===========================================================================
+  hr-service:
+    build:
+      context: ./microservices/hr-service
+      dockerfile: Dockerfile
+    image: crm/hr-service:latest
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      APP_HR_DOCUMENTS_STORAGE_ROOT: /var/lib/crm/hr-documents
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/hr_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+    volumes:
+      - hr-documents:/var/lib/crm/hr-documents
+
+  # ===========================================================================
+  # 9. Payroll Service (port 8087)
+  # ===========================================================================
+  payroll-service:
+    build:
+      context: ./microservices/payroll-service
+      dockerfile: Dockerfile
+    image: crm/payroll-service:latest
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/payroll_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 10. Fees Service (port 8088)
+  # ===========================================================================
+  fees-service:
+    build:
+      context: ./microservices/fees-service
+      dockerfile: Dockerfile
+    image: crm/fees-service:latest
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fees_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network
+
+  # ===========================================================================
+  # 11. Invoice Service (port 8089)
+  # ===========================================================================
+  invoice-service:
+    build:
+      context: ./microservices/invoice-service
+      dockerfile: Dockerfile
+    image: crm/invoice-service:latest
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      IDENTITY_VALIDATION_BASE_URL: http://identity-service:8082
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/invoice_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_SQL_INIT_MODE: never
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Définissez MYSQL_ROOT_PASSWORD dans votre fichier .env}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Définissez APP_JWT_SECRET dans votre fichier .env}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://discovery-service:8761/eureka
+    depends_on:
+      discovery-service:
+        condition: service_started
+      gateway-service:
+        condition: service_started
+      identity-service:
+        condition: service_started
+      mysql:
+        condition: service_healthy
+    networks:
+      - crm-network

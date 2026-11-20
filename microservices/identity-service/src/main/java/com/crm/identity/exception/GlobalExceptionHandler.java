@@ -1,0 +1,161 @@
+package com.crm.identity.exception;
+
+import java.util.stream.Collectors;
+
+import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+
+import com.crm.identity.dto.ApiError;
+
+import jakarta.validation.ConstraintViolationException;
+
+/**
+ * Centralized exception handler for identity-service.
+ * Returns uniform JSON error responses.
+ */
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDuplicate(org.springframework.dao.DataIntegrityViolationException ex,
+                                                   WebRequest request) {
+        return ResponseEntity.status(409).body(new ApiError(
+                409, "Conflict", "Username or email already exists", getPath(request)));
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<ApiError> handleStatus(org.springframework.web.server.ResponseStatusException ex,
+                                                WebRequest request) {
+        int status = ex.getStatusCode().value();
+        return ResponseEntity.status(status).body(new ApiError(
+                status, ex.getStatusCode().toString(), ex.getReason() == null ? "Request could not be completed" : ex.getReason(), getPath(request)));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ApiError> handleInvalidCredentials(InvalidCredentialsException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                401,
+                "Unauthorized",
+                "Invalid username/email or password",
+                getPath(request)
+        );
+        return ResponseEntity.status(401).body(body);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiError> handleIllegalState(IllegalStateException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                409,
+                "Conflict",
+                "Username or email already exists",
+                getPath(request)
+        );
+        return ResponseEntity.status(409).body(body);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                400,
+                "Bad Request",
+                ex.getMessage() != null ? ex.getMessage() : "Invalid request",
+                getPath(request)
+        );
+        return ResponseEntity.status(400).body(body);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex, WebRequest request) {
+        String details = ex.getBindingResult().getFieldErrors().stream()
+                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .collect(Collectors.joining(", "));
+
+        ApiError body = new ApiError(
+                400,
+                "Bad Request",
+                "Validation failed: " + details,
+                getPath(request)
+        );
+        return ResponseEntity.status(400).body(body);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ApiError> handleConstraintViolation(ConstraintViolationException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                400,
+                "Bad Request",
+                ex.getMessage() != null ? ex.getMessage() : "Constraint violation",
+                getPath(request)
+        );
+        return ResponseEntity.status(400).body(body);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                403,
+                "Forbidden",
+                "Access denied",
+                getPath(request)
+        );
+        return ResponseEntity.status(403).body(body);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiError> handleResourceNotFound(ResourceNotFoundException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                404,
+                "Not Found",
+                ex.getMessage() != null ? ex.getMessage() : "Resource not found",
+                getPath(request)
+        );
+        return ResponseEntity.status(404).body(body);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNotFound(org.springframework.web.servlet.resource.NoResourceFoundException ex, WebRequest request) {
+        ApiError body = new ApiError(
+                404,
+                "Not Found",
+                "Resource not found",
+                getPath(request)
+        );
+        return ResponseEntity.status(404).body(body);
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiError> methodNotAllowed(Exception ex,WebRequest request){return ResponseEntity.status(405).body(new ApiError(405,"Method Not Allowed","Method not allowed",getPath(request)));}
+
+    @ExceptionHandler({org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,org.springframework.web.bind.MissingServletRequestParameterException.class,org.springframework.http.converter.HttpMessageNotReadableException.class})
+    public ResponseEntity<ApiError> invalidHttpInput(Exception ex,WebRequest request){return ResponseEntity.badRequest().body(new ApiError(400,"Bad Request","Invalid request parameters or body",getPath(request)));}
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleGeneric(Exception ex, WebRequest request) {
+        Throwable cause = ex.getCause();
+        logger.error("Unhandled exception: type={}, causeType={}",
+                ex.getClass().getName(), cause != null ? cause.getClass().getName() : "none");
+        ApiError body = new ApiError(
+                500,
+                "Internal Server Error",
+                "An unexpected error occurred",
+                getPath(request)
+        );
+        return ResponseEntity.status(500).body(body);
+    }
+
+    private String getPath(WebRequest request) {
+        if (request instanceof ServletWebRequest swr) {
+            return swr.getRequest().getRequestURI();
+        }
+        return request.getDescription(false);
+    }
+}

@@ -1,0 +1,24 @@
+spring:
+  flyway:
+    enabled: false
+  datasource:
+    url: jdbc:h2:mem:customer_db;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+
+app:
+  jwt:
+    # Test-only key — not a real secret, never used in production
+    secret: "this-is-a-test-only-secret-key-not-used-in-production-crm-2024"
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+

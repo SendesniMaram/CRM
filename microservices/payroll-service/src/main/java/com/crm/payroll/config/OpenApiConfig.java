@@ -1,0 +1,43 @@
+package com.crm.payroll.config;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.servers.Server;
+
+@Configuration
+public class OpenApiConfig {
+
+    @Value("${server.port:8087}")
+    private String serverPort;
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Payroll Service API")
+                        .description("Microservice de gestion des paies - CRM")
+                        .version("0.0.1-SNAPSHOT")
+                        .contact(new Contact()
+                                .name("CRM Team")
+                                .email("contact@crm.com"))
+                        .license(new License()
+                                .name("Projet Académique")))
+                .servers(List.of(
+                        new Server()
+                                .url("http://localhost:" + serverPort)
+                                .description("Serveur de développement"),
+                        new Server()
+                                .url("http://localhost:8080/payroll")
+                                .description("Via Gateway")
+                ));
+    }
+}
+

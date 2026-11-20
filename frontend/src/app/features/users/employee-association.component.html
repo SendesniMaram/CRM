@@ -1,0 +1,34 @@
+@if (isAdmin()) {
+  <section aria-labelledby="associations">
+    <h2 id="associations">Association User ↔ Employee</h2>
+    <p>Choisissez explicitement un compte EMPLOYEE actif et une fiche employé. Leurs identifiants sont indépendants.</p>
+    <button mat-button type="button" (click)="load()" [disabled]="busy()">Charger les comptes et les fiches</button>
+    @if (busy()) { <p role="status">Chargement ou enregistrement en cours…</p> }
+    @if (error()) { <p role="alert">{{ error() }}</p> }
+    @if (notice()) { <p role="status">{{ notice() }}</p> }
+    @if (options(); as choices) {
+      @if (!choices.users.length) { <p>Aucun compte EMPLOYEE actif disponible.</p> }
+      @if (!choices.employees.length) { <p>Aucune fiche employé disponible.</p> }
+      <mat-form-field><mat-label>Compte EMPLOYEE</mat-label>
+        <mat-select [formControl]="user" (selectionChange)="select()">
+          @for (account of choices.users; track account.id) { <mat-option [value]="account.id">{{ account.label }} — User {{ account.id }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      <button mat-button type="button" (click)="read()" [disabled]="busy() || !user.value">Actualiser l’état</button>
+      @if (link(); as association) {
+        <p>Compte User {{ association.userId }} associé à Employee {{ association.employeeId }} — {{ employeeLabel(association.employeeId) }}</p>
+        <p>Cette interface ne permet ni suppression ni réaffectation.</p>
+      } @else if (state() === 'absent') {
+        <p>Ce compte n’a pas d’association enregistrée. Le serveur vérifiera à nouveau les références à la création.</p>
+        <form (ngSubmit)="create()">
+          <mat-form-field><mat-label>Fiche employé à associer</mat-label>
+            <mat-select [formControl]="employee">
+              @for (record of choices.employees; track record.id) { <mat-option [value]="record.id">{{ record.label }} — Employee {{ record.id }}</mat-option> }
+            </mat-select>
+          </mat-form-field>
+          <button mat-flat-button type="submit" [disabled]="busy() || !employee.value">Créer l’association</button>
+        </form>
+      }
+    }
+  </section>
+}

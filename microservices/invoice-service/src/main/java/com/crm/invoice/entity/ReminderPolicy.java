@@ -1,0 +1,2 @@
+package com.crm.invoice.entity;import jakarta.persistence.*;import lombok.Data;
+@Entity @Table(name="invoice_reminder_policy") @Data public class ReminderPolicy {@Id private Long id=1L;@Column(nullable=false) private boolean enabled;@Column(nullable=false) private long revision=1;@Column(name="after_days",nullable=false) private int afterDays;@Column(name="repeat_days",nullable=false) private int repeatDays=7;@Column(nullable=false,length=30) private String channel="MANUAL";@Column(nullable=false,length=500) private String message="";}

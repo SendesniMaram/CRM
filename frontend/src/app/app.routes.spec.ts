@@ -1,0 +1,78 @@
+import { Route } from '@angular/router';
+import { publicEntryGuard } from './core/guards/public-entry.guard';
+import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { AccessDeniedComponent } from './features/access-denied/access-denied.component';
+import { LoginComponent } from './features/auth/login/login.component';
+import { RegisterComponent } from './features/auth/register/register.component';
+import { LayoutComponent } from './layout/components/layout/layout.component';
+import { routes } from './app.routes';
+
+describe('application routes', () => {
+  const privateShell = routes.find((route) => route.component === LayoutComponent);
+  const loginRoute = routes.find((route) => route.path === 'login');
+  const accessDeniedRoute = routes.find((route) => route.path === 'access-denied');
+  const registerRoute = routes.find((route) => route.path === 'register');
+  const dashboardRoute = privateShell?.children?.find((route) => route.path === 'dashboard');
+  const employeesRoute = privateShell?.children?.find((route) => route.path === 'employees');
+
+  it('lazy loads authenticated home and redirects the root to home', () => {
+    const home = privateShell?.children?.find(route => route.path === 'home');
+    expect(home?.loadComponent).toEqual(jasmine.any(Function));
+    expect(home?.canActivate).toContain(authGuard);
+    expect(privateShell?.children?.find(route => route.path === '')?.redirectTo).toBe('home');
+  });
+
+  it('allows guest login and redirects active sessions', () => {
+    expect(loginRoute?.component).toBe(LoginComponent);
+    expect(loginRoute?.canActivate).toEqual([publicEntryGuard]);
+  });
+
+  it('exposes the public presentation separately from authenticated home', () => {
+    for (const path of ['', 'welcome']) {
+      const presentation = routes.find(route => route.path === path && !route.children);
+      expect(presentation?.loadComponent).toEqual(jasmine.any(Function));
+      expect(presentation?.canActivate).toEqual([publicEntryGuard]);
+    }
+    expect(privateShell?.children?.find(route => route.path === 'home')?.canActivate).toContain(authGuard);
+  });
+
+  it('protects dashboard with authGuard', () => {
+    expect(dashboardRoute?.canActivate).toContain(authGuard);
+    expect(dashboardRoute?.canActivate).toContain(roleGuard);
+  });
+
+  it('protects Employees with admin roles and lazy loads its feature routes', () => {
+    expect(employeesRoute?.canActivate).toContain(authGuard);
+    expect(employeesRoute?.canActivate).toContain(roleGuard);
+    expect(employeesRoute?.data?.['roles']).toEqual(['SUPER_ADMIN', 'ADMIN']);
+    expect(employeesRoute?.loadChildren).toEqual(jasmine.any(Function));
+  });
+
+  it('protects Department management with admin roles and lazy loads its routes', () => {
+    const departmentRoute = privateShell?.children?.find((route) => route.path === 'departments');
+    expect(departmentRoute?.canActivate).toContain(authGuard);
+    expect(departmentRoute?.canActivate).toContain(roleGuard);
+    expect(departmentRoute?.data?.['roles']).toEqual(['SUPER_ADMIN', 'ADMIN']);
+    expect(departmentRoute?.loadChildren).toEqual(jasmine.any(Function));
+  });
+
+  it('exposes access denied as a public route', () => {
+    expect(accessDeniedRoute?.component).toBe(AccessDeniedComponent);
+    expect(accessDeniedRoute?.canActivate).toBeUndefined();
+  });
+
+  it('exposes register as a public route', () => {
+    expect(registerRoute?.component).toBe(RegisterComponent);
+    expect(registerRoute?.canActivate).toBeUndefined();
+  });
+
+  it('keeps dashboard lazy-loaded', () => {
+    expect(dashboardRoute?.loadComponent).toEqual(jasmine.any(Function));
+  });
+
+  it('keeps private routes inside LayoutComponent', () => {
+    expect(privateShell?.component).toBe(LayoutComponent);
+    expect(privateShell?.children).toContain(dashboardRoute as Route);
+  });
+});

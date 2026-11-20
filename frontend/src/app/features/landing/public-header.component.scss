@@ -1,0 +1,26 @@
+@use '../../../styles/workspace' as ui;
+
+:host { display: block; position: sticky; top: 0; z-index: 1000; background: #fff; box-shadow: none; }
+.public-header { max-width: 1400px; margin: auto; padding: 1.3rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: ui.$ink; }
+a { text-decoration: none; color: inherit; }
+.brand, .button { display: inline-flex; align-items: center; gap: .65rem; }
+.brand { font-size: 1.15rem; font-weight: 700; }
+.brand-detail { font-weight: 400; color: ui.$muted; }
+.brand-icon { display: grid; background: ui.$ink; color: ui.$accent; padding: .5rem; border-radius: 12px; }
+.desktop-nav { display: flex; gap: 1.5rem; font-size: .85rem; }
+.button { background: ui.$ink; color: #fff; padding: .6rem 1rem; border-radius: 9px; min-height: 48px; box-sizing: border-box; font-size: .85rem; font-weight: 600; }
+a:hover { color: ui.$teal; }
+.button:hover { background: ui.$secondary; color: #fff; }
+:is(a, summary):focus-visible { @include ui.focus; }
+.mobile-menu { display: none; position: relative; }
+summary { cursor: pointer; display: grid; place-items: center; list-style: none; width: 44px; height: 44px; border: 1px solid ui.$line; border-radius: 9px; }
+summary::-webkit-details-marker { display: none; }
+.mobile-menu nav { position: absolute; top: calc(100% + 1rem); right: 0; width: min(260px, calc(100vw - 2rem)); border: 1px solid ui.$line; border-radius: 12px; background: #fff; box-shadow: 0 12px 30px #082b4920; padding: .5rem; }
+.mobile-menu a { display: block; padding: .85rem; font-size: .9rem; }
+@media (max-width: 1000px) { .desktop-nav, .brand-detail { display: none; }.mobile-menu { display: block; margin-left: auto; } }
+@media (max-width: 700px) { .public-header { padding: 1rem; gap: .5rem; }.button { padding: .6rem .75rem; font-size: .8rem; } }
+
+@media (max-width: 700px) { .mobile-menu nav { right: -140px; } }
+
+:host.scrolled { box-shadow: 0 3px 16px #082b4914; }
+nav a[aria-current=location] { color: ui.$teal; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 7px; }

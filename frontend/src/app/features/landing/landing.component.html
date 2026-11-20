@@ -1,0 +1,15 @@
+<a class="skip" href="/welcome#presentation">Aller au contenu</a>
+<app-public-header />
+<main id="presentation" tabindex="-1">
+  <app-welcome-hero />
+  <div class="module-strip"><span>UNE GESTION CONNECTÉE</span><span>Organisation</span><span>Ressources humaines</span><span>Relation client</span><span>Facturation</span></div>
+  <section id="fonctionnalites" class="wrap section" aria-labelledby="modules-title"><div class="section-heading"><div><p class="eyebrow">Tout à sa place</p><h2 id="modules-title">Vos outils essentiels.<br>Un seul espace de travail.</h2></div><p>Du suivi des collaborateurs à la facturation, retrouvez les modules déjà disponibles dans votre CRM.</p></div>
+    <div class="module-grid">@for (module of modules; track module.name) { <a class="module-card" [routerLink]="destination(module.route)"><span class="module-icon"><mat-icon aria-hidden="true">{{ module.icon }}</mat-icon></span><h3>{{ module.name }}</h3><p>{{ module.text }}</p><span class="open">{{ cardAction(module.route) }}<mat-icon aria-hidden="true">arrow_forward</mat-icon></span></a> }<a class="module-card module-cta" [routerLink]="destination('/dashboard')"><mat-icon aria-hidden="true">space_dashboard</mat-icon><h3>Une vue d’ensemble</h3><p>Retrouvez les indicateurs accessibles à votre rôle dans le dashboard.</p><span class="open">Accéder à mon espace <mat-icon aria-hidden="true">arrow_forward</mat-icon></span></a></div>
+  </section>
+
+  <section id="fonctionnement" class="steps-section"><div class="wrap section"><p class="eyebrow">Simple, dès le premier jour</p><h2>Comment ça marche ?</h2><ol class="steps"><li><span>01</span><h3>Connectez-vous</h3><p>Utilisez les identifiants de votre compte pour retrouver votre espace personnel.</p></li><li><span>02</span><h3>Retrouvez vos outils</h3><p>Votre navigation présente les fonctionnalités correspondant à vos autorisations.</p></li><li><span>03</span><h3>Gardez le fil</h3><p>Consultez vos informations et réalisez les actions disponibles pour votre rôle.</p></li></ol></div></section>
+  <section class="wrap section benefits" aria-labelledby="benefits-title"><div><p class="eyebrow">De la clarté à chaque étape</p><h2 id="benefits-title">Un quotidien plus fluide.<br>Une gestion plus lisible.</h2><p class="lead">Une interface commune pour passer d’un module à l’autre et rester concentré sur votre activité.</p><a class="text-link" routerLink="/login">Retrouver mon espace <mat-icon aria-hidden="true">arrow_forward</mat-icon></a></div><div class="benefit-list"><article><mat-icon aria-hidden="true">account_tree</mat-icon><div><h3>L’information au bon endroit</h3><p>Des modules dédiés, réunis dans une navigation cohérente.</p></div></article><article><mat-icon aria-hidden="true">admin_panel_settings</mat-icon><div><h3>Des accès adaptés</h3><p>Une présentation qui respecte le périmètre de chaque compte.</p></div></article><article><mat-icon aria-hidden="true">devices</mat-icon><div><h3>Un espace qui vous suit</h3><p>Une interface pensée pour les écrans d’ordinateur, de tablette et de mobile.</p></div></article></div></section>
+  <app-landing-faq class="wrap section" />
+
+</main>
+<app-public-footer />
