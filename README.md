@@ -1,553 +1,126 @@
-# 🏗️ CRM - Gestion de la Relation Client
+# CRM Workspace
 
-## 📋 Table des matières
+CRM Workspace est un projet de stage d’ingénierie qui réunit le suivi commercial, les ressources humaines et la gestion financière dans une application web. Chaque profil dispose d’un espace adapté à ses responsabilités, de la consultation de factures par un client à l’administration des comptes et des dossiers RH.
 
-1. [Présentation du projet](#-présentation-du-projet)
-2. [Architecture](#-architecture)
-3. [Technologies](#-technologies)
-4. [Structure du projet](#-structure-du-projet)
-5. [Modules détaillés](#-modules-détaillés)
-6. [Configuration](#-configuration)
-7. [Installation et exécution](#-installation-et-exécution)
-8. [Tests](#-tests)
-9. [CI/CD - GitHub Actions](#-cicd---github-actions)
-10. [État du projet](#-état-du-projet)
-11. [Travaux réalisés](#-travaux-réalisés)
-12. [Bonnes pratiques Git](#-bonnes-pratiques-git)
-13. [Dépannage](#-dépannage)
+![Illustration de CRM Workspace](frontend/public/images/crm-workspace-1440.webp)
 
----
+*Aperçu illustratif de l’interface, issu de la page d’accueil du projet.*
 
-## 🎯 Présentation du projet
+## Fonctionnalités
 
-Application **CRM (Customer Relationship Management)** développée avec **Spring Boot** en architecture **hybride** : un backend monolithique et une infrastructure microservices pour l'authentification et la découverte de services.
+- **Relation client** — fiches et classification des contacts, affectation aux employés, suivi des opportunités et échanges avec les clients.
+- **Devis et facturation** — devis, conversion en facture, documents PDF, enregistrement de paiements et préparation de relances.
+- **Organisation et RH** — employés, départements, congés et soldes, présences, formations, contrats, évaluations, recrutement et documents RH partagés.
+- **Paie et honoraires** — préparation et publication des bulletins, consultation personnelle, suivi des règlements et cycles d’honoraires.
+- **Pilotage et administration** — tableaux de bord selon le rôle, annuaire paginé, gestion des comptes, paramètres d’affichage et journal d’administration.
 
-Le projet couvre :
-- La gestion des employés, départements et utilisateurs
-- L'authentification JWT avec refresh tokens
-- Le routage via une API Gateway Spring Cloud
-- La découverte de services avec Eureka
-- L'analyse de code statique avec **SonarQube Cloud**
-- L'intégration continue via **GitHub Actions**
+## Architecture
 
----
+Le projet a évolué d’un backend Spring Boot monolithique vers des services organisés par domaine. Angular adresse l’API Gateway, qui route les appels vers les services enregistrés dans Eureka. Les services métier utilisent des schémas MySQL distincts sur l’instance du Compose local. Le code historique reste disponible dans [`backend/`](backend/).
 
-## 🏛 Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Client / Navigateur                      │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  Gateway Service (port 8080)                     │
-│                    Spring Cloud Gateway                          │
-└──────┬────────────────────────────────────┬──────────────────────┘
-       │                                    │
-       ▼                                    ▼
-┌──────────────────┐           ┌──────────────────────────┐
-│  Identity Service│           │    Backend Monolith      │
-│   (port 8082)    │           │      (port 8081)         │
-│  Auth + JWT      │           │  Employés, Départements, │
-│  Refresh Tokens  │           │  Utilisateurs            │
-│  H2 (test) / MySQL│           │  MySQL                   │
-└──────────────────┘           └──────────────────────────┘
-       │                                    │
-       └──────────┬─────────────────────────┘
-                  │
-                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Discovery Service (port 8761)                      │
-│                   Eureka Server                                 │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    UI["Interface Angular"] --> GW["API Gateway"]
+    GW --> ID["Identity"]
+    GW --> DOM["Employee, Department, Customer, HR, Payroll, Fees, Invoice"]
+    GW -. recherche des services .-> EU["Discovery · Eureka"]
+    ID -. enregistrement .-> EU
+    DOM -. enregistrement .-> EU
+    DOM -. validation des sessions .-> ID
+    ID --> DB[("MySQL · schémas par domaine")]
+    DOM --> DB
 ```
 
-### Flux d'authentification
+| Service | Responsabilité | Port |
+| --- | --- | ---: |
+| Discovery | Registre Eureka | 8761 |
+| Gateway | Entrée HTTP et routage vers les services | 8080 |
+| Identity | Authentification, sessions et administration des comptes | 8082 |
+| Employee | Annuaire et dossiers des employés | 8083 |
+| Department | Référentiel des départements | 8084 |
+| Customer | Contacts, opportunités et demandes clients | 8085 |
+| HR | Congés, présences, formations, contrats, évaluations et dossier RH | 8086 |
+| Payroll | Bulletins, publication et règlements de paie | 8087 |
+| Fees | Honoraires et cycles de prestations | 8088 |
+| Invoice | Devis, factures, paiements, relances et PDF | 8089 |
 
-```
-Register → POST /api/auth/register → 201 Created + LoginResponse
-Login    → POST /api/auth/login    → 200 OK + JWT + RefreshToken
-Refresh  → POST /api/auth/refresh  → 200 OK + New JWT + New RefreshToken
-Users    → GET  /api/users         → 200 OK + Liste utilisateurs
-```
+La bibliothèque [`common-security`](microservices/common-security/) mutualise la validation JWT et la vérification de l’état des comptes et des sessions pour les services qui l’utilisent.
 
----
+## Technologies
 
-## 🛠 Technologies
+Java 21, Spring Boot, Spring Cloud Gateway, Eureka, Spring Security et Maven côté backend. Angular 20, TypeScript, RxJS et Angular Material côté frontend. MySQL 8 et Flyway pour les données et leurs migrations, avec H2 dans les suites de tests configurées pour cette base. Docker Compose orchestre l’environnement local et Jenkins décrit la chaîne de compilation et de validation.
 
-| Technologie | Version |
-|-------------|---------|
-| Java | **21** (Temurin) |
-| Spring Boot (backend) | **3.5.16** |
-| Spring Boot (microservices) | **3.3.6** |
-| Spring Cloud | **2023.0.2** |
-| Spring Cloud Gateway | ✅ |
-| Spring Cloud Netflix Eureka | ✅ |
-| Spring Security + JWT (jjwt 0.12.5) | ✅ |
-| JPA / Hibernate | ✅ |
-| MySQL 8 | ✅ |
-| H2 (tests) | ✅ |
-| Maven | **3.9.16** |
-| Lombok | ✅ |
-| SonarQube Cloud | ✅ |
-| GitHub Actions | ✅ |
+## Sécurité
 
----
+Identity émet des jetons d’accès JWT liés à une session. Le renouvellement fait tourner le jeton de rafraîchissement. La déconnexion, le changement de mot de passe et les changements sensibles du compte déclenchent la révocation des sessions concernées. Les services vérifient les droits côté serveur et les espaces personnels limitent l’accès aux données du compte authentifié.
 
-## 📂 Structure du projet
+| Rôle | Accès principal |
+| --- | --- |
+| `SUPER_ADMIN` | Administration transverse, audit, gestion des comptes et modules métier |
+| `ADMIN` | Administration des modules métier et gestion des comptes dans les limites de ses permissions |
+| `EMPLOYEE` | Profil, congés, documents partagés, évaluations, bulletins publiés et contacts affectés |
+| `CLIENT` | Coordonnées, factures et paiements enregistrés, demandes et échanges personnels |
 
-```
-crm/
-│
-├── backend/                          ← Monolithe Spring Boot
-│   ├── src/main/java/com/crm/
-│   │   ├── CrmApplication.java
-│   │   ├── config/                   # DataInitializer, OpenApiConfig
-│   │   ├── controller/               # Auth, Department, Employee, Home, User
-│   │   ├── dto/                      # Request/Response DTOs
-│   │   ├── entity/                   # Department, Employee, Role, User
-│   │   ├── enums/                    # EmployeeStatus, Gender, RoleType
-│   │   ├── exception/               # Gestion centralisée des erreurs
-│   │   ├── mapper/                   # MapStruct mappers
-│   │   ├── repository/               # JPA repositories
-│   │   ├── security/                 # JWT + configuration sécurité
-│   │   └── service/                  # Interfaces + implémentations
-│   └── src/test/
-│
-├── microservices/
-│   ├── discovery-service/            ← Eureka Server (port 8761)
-│   ├── gateway-service/              ← API Gateway (port 8080)
-│   └── identity-service/             ← Auth microservice (port 8082)
-│       ├── src/main/java/com/crm/identity/
-│       │   ├── IdentityServiceApplication.java
-│       │   ├── config/               # DataInitializer, SecurityConfig
-│       │   ├── controller/           # AuthenticationController, UserController
-│       │   ├── dto/                  # Login, Register, RefreshToken DTOs
-│       │   ├── entity/               # User, Role, RefreshToken
-│       │   ├── enums/                # RoleType (SUPER_ADMIN, ADMIN, etc.)
-│       │   ├── exception/            # Gestion des erreurs (400, 401, 404, 409, 500)
-│       │   ├── repository/           # JPA repositories
-│       │   ├── security/            # JWT, CustomUserDetails, Filter
-│       │   └── service/             # Authentication + Identity services
-│       └── src/test/
-│
-├── frontend/                         ← Frontend (non modifié)
-├── postman/                          ← Collections Postman
-│
-├── .github/
-│   └── workflows/
-│       └── build.yml                 ← CI/CD SonarQube Cloud (matrix 3 services)
-│
-├── .gitignore                        ← Filtrage des artefacts de build
-└── README.md                         ← Cette documentation
-```
+## Installation locale
 
----
-
-## 🔧 Modules détaillés
-
-### 1. Backend (Monolithe) — `backend/`
-
-| Aspect | Détail |
-|--------|--------|
-| **Port** | 8081 (configurable via `PORT` env) |
-| **Base de données** | MySQL `crm_db` |
-| **Java** | 21 |
-| **Spring Boot** | 3.5.16 |
-| **Sécurité** | JWT (jjwt 0.12.5) + Spring Security |
-| **Fonctionnalités** | CRUD Employés, Départements, Utilisateurs, Authentification |
-
-**Entity / Controller mapping :**
-- `Department` → `DepartmentController` → `/api/departments`
-- `Employee` → `EmployeeController` → `/api/employees`
-- `User` → `UserController` → `/api/users`
-- `Auth` → `AuthController` → `/api/auth/**`
-
----
-
-### 2. Discovery Service — `microservices/discovery-service/`
-
-| Aspect | Détail |
-|--------|--------|
-| **Port** | 8761 |
-| **Java** | 21 |
-| **Spring Boot** | 3.3.6 |
-| **Spring Cloud** | 2023.0.2 |
-| **Rôle** | Serveur Eureka (enregistrement/découverte des services) |
-| **Dashboard** | `http://localhost:8761` |
-
-**Configuration clé :**
-```yaml
-eureka:
-  client:
-    register-with-eureka: false    # Le serveur ne s'enregistre pas lui-même
-    fetch-registry: false
-```
-
----
-
-### 3. Gateway Service — `microservices/gateway-service/`
-
-| Aspect | Détail |
-|--------|--------|
-| **Port** | 8080 |
-| **Java** | 21 |
-| **Spring Boot** | 3.3.6 |
-| **Spring Cloud** | 2023.0.2 |
-| **Rôle** | Spring Cloud Gateway avec routage dynamique Eureka |
-| **Routes** | Découverte automatique via `discovery.locator.enabled=true` |
-
-**Route configurée :**
-```yaml
-- id: identity-test
-  uri: lb://IDENTITY-SERVICE
-  predicates:
-    - Path=/identity/api/test
-```
-
----
-
-### 4. Identity Service — `microservices/identity-service/`
-
-| Aspect | Détail |
-|--------|--------|
-| **Port** | 8082 |
-| **Java** | 21 |
-| **Spring Boot** | 3.3.6 |
-| **Spring Cloud** | 2023.0.2 |
-| **Base de données** | MySQL `identity_db` (prod) / H2 (tests) |
-
-**API exposée :**
-
-| Méthode | Endpoint | Description |
-|---------|----------|-------------|
-| POST | `/api/auth/register` | Inscription (retourne JWT + refresh token) |
-| POST | `/api/auth/login` | Connexion (retourne JWT + refresh token) |
-| POST | `/api/auth/refresh` | Rafraîchir le JWT |
-| GET | `/api/users` | Liste des utilisateurs (authentifié) |
-| GET | `/api/users/{id}` | Détail d'un utilisateur (authentifié) |
-
-**Entités JPA :**
-- `User` : id, firstName, lastName, email, password, phone, username, enabled, createdAt
-- `Role` : id, roleType (SUPER_ADMIN, ADMIN, EMPLOYEE, CLIENT), user (ManyToOne)
-- `RefreshToken` : id, token, expiryDate, user (ManyToOne)
-
-**Sécurité :**
-- JWT avec jjwt 0.12.5
-- Filtre `JwtAuthenticationFilter`
-- `SecurityConfig` avec endpoint protégés
-- `DataInitializer` : seed des 4 rôles au démarrage
-
----
-
-## ⚙ Configuration
-
-### Base de données
-
-```properties
-# Backend (MySQL)
-spring.datasource.url=jdbc:mysql://localhost:3306/crm_db
-spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
-spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
-
-# Identity Service (MySQL - prod)
-spring.datasource.url=jdbc:mysql://localhost:3306/identity_db
-spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
-spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
-
-# Identity Service (H2 - test)
-spring.datasource.url=jdbc:h2:mem:identity_db;MODE=MySQL
-```
-
-### Ports
-
-| Service | Port |
-|---------|------|
-| Gateway | 8080 |
-| Backend | 8081 |
-| Identity | 8082 |
-| Eureka | 8761 |
-
----
-
-## 🚀 Installation et exécution
-
-### Prérequis
-
-- Java **21** (Temurin ou Zulu)
-- Maven **3.9+**
-- MySQL **8.0+**
-- Git
-
-### Étapes
+Prérequis pour les commandes ci-dessous sous Bash ou Git Bash. Utiliser Git, un JDK 21, Maven 3.9, Node.js 22.12+ dans la série 22 ou Node.js 24, npm et Docker avec Compose. Chrome ou Chromium est requis pour les tests Angular.
 
 ```bash
-# 1. Cloner le dépôt
-git clone <url-du-repo>
-cd crm
-
-# 2. Créer les bases de données MySQL
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS crm_db;"
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS identity_db;"
-
-# 3. Démarrer les services (dans l'ordre)
-
-# 3a. Discovery Service (Eureka)
-cd microservices/discovery-service
-mvn clean spring-boot:run
-
-# 3b. Gateway Service
-cd ../gateway-service
-mvn clean spring-boot:run
-
-# 3c. Identity Service
-cd ../identity-service
-mvn clean spring-boot:run
-
-# 3d. Backend
-cd ../../backend
-mvn clean spring-boot:run
+git clone --branch microservices https://github.com/SendesniMaram/CRM.git
+cd CRM
+cp .env.example .env
 ```
 
-### Compilation et tests
+Renseigner `MYSQL_ROOT_PASSWORD` et `APP_JWT_SECRET` dans `.env`. Utiliser des valeurs propres à l’environnement local et un secret JWT aléatoire d’au moins 32 octets. Les Dockerfiles copient les JAR déjà compilés. Construire la bibliothèque, puis les services depuis la racine.
 
 ```bash
-# Tous les services
-cd microservices/discovery-service && mvn clean verify
-cd ../gateway-service && mvn clean verify
-cd ../identity-service && mvn clean verify
-cd ../../backend && mvn clean verify
+mvn -B -ntp -f microservices/common-security/pom.xml install
+for service in discovery gateway identity employee department customer hr payroll fees invoice; do
+  mvn -B -ntp -f "microservices/${service}-service/pom.xml" package || exit 1
+done
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
 ```
 
----
-
-## 🧪 Tests
-
-| Service | Tests | Statut |
-|---------|-------|--------|
-| `discovery-service` | 1 test (smoke test context) | ✅ Passes |
-| `gateway-service` | Test commenté | ⚠️ À réactiver |
-| `identity-service` | 1 test (smoke test context H2) | ✅ Passes |
-| `backend` | 4 tests (Swagger, Context, Mapper, JWT) | ✅ Passes |
-
-### Exécuter tous les tests
+Dans un autre terminal, depuis la racine du dépôt :
 
 ```bash
-# Depuis la racine
-cd microservices/discovery-service; mvn clean verify
-cd ../identity-service; mvn clean verify
-cd ../../backend; mvn clean test
+cd frontend
+npm ci
+npm start
 ```
 
----
+Ouvrir [l’application](http://localhost:4200). L’API Gateway est accessible sur [localhost:8080](http://localhost:8080) et Eureka sur [localhost:8761](http://localhost:8761). Le Compose de base est destiné au réseau de développement local.
 
-## 🤖 CI/CD - GitHub Actions
+Pour initialiser un premier compte d’administration sur une base de développement, Identity fournit un bootstrap explicite sous le profil `local` ou `dev`. Le profil et les propriétés `APP_BOOTSTRAP_ADMIN_ENABLED`, `APP_BOOTSTRAP_ADMIN_USERNAME`, `APP_BOOTSTRAP_ADMIN_EMAIL` et `APP_BOOTSTRAP_ADMIN_PASSWORD` se transmettent au conteneur via une configuration Compose locale. Le premier accès impose un changement de mot de passe. Les procédures de démonstration documentent la préparation d’un environnement dédié. [Démo Express](scripts/deployment/express/README.md) · [Démo native](scripts/deployment/native-demo/README.md)
 
-### Jenkins : CI de `publication-clean`
+## Tests et validation
 
-Le [Jenkinsfile](Jenkinsfile) compile et teste les modules Maven et Angular sans
-analyse SonarQube ni déploiement. Il publie les rapports JUnit et archive les
-sorties ciblées. Les prérequis et la configuration du job sont décrits dans
-[scripts/ci/README.md](scripts/ci/README.md). Une exécution réelle sur Jenkins
-reste nécessaire pour valider le pipeline sur votre agent.
+| Vérification de la version intégrée | Résultat |
+| --- | --- |
+| Maven `verify` sur les dix services, `common-security` et le backend historique | 1 749 tests réussis |
+| Angular sous Chrome Headless | 1 302 tests réussis |
+| Build Angular de production | Réussi, avec des avertissements de taille et de projection d’icônes |
+| Outils CI et sondes de disponibilité | 26 tests réussis |
+| Docker Compose | Validation statique réussie. Le daemon était indisponible pour cette campagne en exécution. |
 
-### Workflow : `SonarQube Microservices`
-
-```yaml
-# .github/workflows/build.yml
-```
-
-**Déclencheurs :**
-- `push` sur `main` et `microservices`
-- `pull_request` (opened, synchronize, reopened)
-
-**Matrix strategy** — 3 jobs parallèles :
-
-| Job | Service | Port | Project Key SonarQube |
-|-----|---------|------|----------------------|
-| 1 | `discovery-service` | 8761 | `SendesniMaram_CRM_discovery-service` |
-| 2 | `gateway-service` | 8080 | `SendesniMaram_CRM_gateway-service` |
-| 3 | `identity-service` | 8082 | `SendesniMaram_CRM_identity-service` |
-
-**Étapes :**
-1. `actions/checkout@v4` avec `fetch-depth: 0`
-2. `actions/setup-java@v4` — **JDK 21** (Zulu) ← Corrigé !
-3. `actions/cache` — Cache SonarQube + Cache Maven
-4. `mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar`
-
-**Configuration SonarQube :**
-```bash
--Dsonar.organization=sendesnimaram
--Dsonar.projectKey=SendesniMaram_CRM_${service}
-```
-
-### Correctif appliqué
-
-**Problème :** Le workflow utilisait `java-version: 17` alors que tous les POM exigent `<java.version>21</java.version>`.
-**Erreur :** `release version 21 not supported`
-**Correctif :** Changement de `java-version: 17` → `java-version: 21` (et `Set up JDK 17` → `Set up JDK 21`).
-
----
-
-## 📊 État du projet
-
-### Fichier .gitignore
-
-Le `.gitignore` filtre désormais :
-
-| Catégorie | Règles |
-|-----------|--------|
-| Build Maven | `target/`, `**/target/`, `*.class`, `*.jar`, `*.war`, `*.ear` |
-| Rapports Maven | `**/surefire-reports/`, `**/maven-status/`, `**/maven-archiver/`, `**/generated-sources/` |
-| Logs | `*.log`, `**/*.log` |
-| SonarQube | `.scannerwork/`, `.sonarqube/`, `**/.scannerwork/` |
-| IDE | `.vscode/`, `.idea/`, `*.iml`, `.settings/`, `.project`, `.classpath` |
-| OS | `Thumbs.db`, `.DS_Store`, `Desktop.ini` |
-| Environnement | `.env`, `application-local.*` |
-
-### Suivi Git — État propre
-
-- **58 fichiers générés retirés de l'index** (target/, .class, .log, surefire-reports, maven-status)
-- `git ls-files -- '*/target/*' '*.class' '*.jar' '*.log'` → **vide** ✅
-- Après `mvn clean verify`, aucun artefact n'apparaît dans `git status` ✅
-
----
-
-## 📝 Travaux réalisés
-
-### Phase 1 : Initialisation du projet
-- Structure Spring Boot monolithique (backend)
-- CRUD complet : Employés, Départements, Utilisateurs
-- Authentification JWT + Spring Security
-- Base de données MySQL avec JPA/Hibernate
-
-### Phase 2 : Migration microservices
-- Création de `discovery-service` (Eureka Server, port 8761)
-- Création de `gateway-service` (Spring Cloud Gateway, port 8080)
-- Création de `identity-service` (Auth microservice, port 8082)
-- Configuration Spring Cloud 2023.0.2 sur Java 21
-
-### Phase 3 : Finalisation identity-service
-- **Refonte complète de l'authentification :**
-  - Inscription avec validation (`@Email`, `@Size`, confirmation password)
-  - Connexion avec retour JWT + refresh token
-  - Rafraîchissement de token
-- **Ajout de 12 fichiers Java :**
-  - `config/DataInitializer.java` — seed des rôles
-  - `controller/UserController.java` — consultation utilisateurs
-  - `dto/ApiError.java`, `RefreshTokenRequest.java`, `RefreshTokenResponse.java`, `UserResponse.java`
-  - `entity/RefreshToken.java` — stockage des refresh tokens
-  - `enums/RoleType.java` — SUPER_ADMIN, ADMIN, EMPLOYEE, CLIENT
-  - `exception/GlobalExceptionHandler.java`, `ResourceNotFoundException.java`
-  - `repository/RefreshTokenRepository.java`
-- **14 fichiers modifiés :** +488 lignes / -54 lignes dans identity-service
-- **Dépendance ajoutée :** `spring-boot-starter-validation`
-
-### Phase 4 : CI/CD — GitHub Actions + SonarQube Cloud
-- Création de `.github/workflows/build.yml`
-- Matrix strategy pour les 3 microservices
-- Caches Maven et SonarQube
-- Analyse de code statique avec SonarQube Cloud
-
-### Phase 5 : Correction pipeline
-- **Problème :** `release version 21 not supported` (workflow utilisait JDK 17)
-- **Correctif :** Changement `java-version: 17` → `java-version: 21` dans `build.yml`
-
-### Phase 6 : Nettoyage Git
-- Création du `.gitignore` professionnel (Maven, IDE, OS, logs, SonarQube)
-- `git rm --cached` de **58 fichiers générés** (target/, .class, .log, rapports)
-- Vérification : aucun artefact build suivi par Git
-- `mvn clean verify` ne pollue plus `git status`
-
----
-
-## ✅ Bonnes pratiques Git
-
-### .gitignore
-```gitignore
-# Maven
-target/
-**/target/
-*.class
-*.jar
-*.war
-
-# Logs
-*.log
-**/*.log
-
-# IDE
-.vscode/
-.idea/
-*.iml
-
-# OS
-.DS_Store
-Thumbs.db
-```
-
-### Workflow Git recommandé
+Pour relancer les tests frontend :
 
 ```bash
-# Avant chaque commit
-git status                              # Vérifier l'état
-git add -p                              # Ajouter sélectivement
-git commit -m "type: message explicite" # Convention de message
-
-# Avant chaque push
-mvn clean verify                        # Tests + compilation
+cd frontend
+npm run test:ci
+npm run build -- --configuration production
 ```
 
----
+Les commandes Maven par module et les prérequis de l’agent CI sont détaillés dans le [guide Jenkins](scripts/ci/README.md).
 
-## 🔍 Dépannage
+## DevOps et perspectives
 
-### Erreur : `release version 21 not supported`
+Le [Compose de base](docker-compose.yml) définit les services, MySQL et les volumes locaux. Le [Jenkinsfile](Jenkinsfile) configure la compilation, les tests et l’archivage des rapports, avec une chaîne dédiée à l’intégration continue. Le dépôt contient aussi une configuration GitHub Actions.
 
-**Cause :** Le JDK configuré est inférieur à 21.
-**Solution :**
-```yaml
-# .github/workflows/build.yml
-- name: Set up JDK 21
-  with:
-    java-version: 21   # ← et non 17
-```
+Les images par service, les migrations et la configuration externalisée constituent une base pour préparer une cible Kubernetes. Les perspectives comprennent l’écriture et la validation des manifestes sur un cluster, la gestion centralisée des secrets, l’observabilité et une recette de déploiement de bout en bout. La version présentée est validée par la campagne locale de compilation et de tests ci-dessus.
 
-### Erreur : `java.lang.NoClassDefFoundError`
+## Auteur
 
-**Cause :** Fichier `.class` manquant ou JAR corrompu.
-**Solution :**
-```bash
-mvn clean install   # Recompiler tout le projet
-```
-
-### Test qui échoue : `contextLoads`
-
-**Cause :** Connexion MySQL impossible pendant les tests.
-**Solution :** Vérifier que les profils de test utilisent H2 :
-```yaml
-# src/test/resources/application-test.yml
-spring:
-  datasource:
-    url: jdbc:h2:mem:testdb
-```
-
-### Port déjà utilisé
-
-```bash
-netstat -ano | findstr :8080    # Vérifier le port
-taskkill /PID <PID> /F          # Libérer le port
-```
-
----
-
-## 📜 Licence
-
-Projet académique dans le cadre du développement d'une application CRM avec architecture microservices Spring Cloud.
-
----
-
-*Documentation générée le $(date +%Y-%m-%d) — Dernière mise à jour : juillet 2026*
-
-Configuration et rotation des secrets : [procedure](docs/ROTATION_SECRETS.md).
+**Maram Sendesni** · Projet de stage CRM.
