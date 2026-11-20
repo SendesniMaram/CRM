@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { roleGuard } from '../../core/guards/role.guard';
 import { routes } from '../../app.routes';
+import { LayoutComponent } from '../../layout/components/layout/layout.component';
 import { firstValueFrom,of,Observable } from 'rxjs';
 describe('CLIENT route authorization',()=>{
  for(const role of Object.values(CrmRole)){
@@ -12,7 +13,7 @@ describe('CLIENT route authorization',()=>{
    TestBed.configureTestingModule({providers:[provideZonelessChangeDetection(),provideRouter([]),
     {provide:AuthService,useValue:{ensureSession:()=>of(true),hasAnyRole:(roles:CrmRole[])=>roles.includes(role)}}]});
    for(const [path,allowed] of [['client',role===CrmRole.CLIENT],['customer-associations',role===CrmRole.ADMIN||role===CrmRole.SUPER_ADMIN]] as const){
-    const route=routes.find(r=>r.path==='')!.children!.find(r=>r.path===path)!;
+    const route=routes.find(route => route.component === LayoutComponent)!.children!.find(r=>r.path===path)!;
     const result=await firstValueFrom(TestBed.runInInjectionContext(()=>roleGuard({data:route.data} as ActivatedRouteSnapshot,{url:'/'+path} as RouterStateSnapshot)) as Observable<boolean|UrlTree>);
     if(allowed)expect(result).toBeTrue();else expect(TestBed.inject(Router).serializeUrl(result as UrlTree)).toBe('/access-denied');
    }

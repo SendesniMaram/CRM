@@ -124,6 +124,13 @@ spring:
             - Path=/hr/api/attendances/**
           filters:
             - StripPrefix=1
+        - id: hr-insights
+          uri: lb://HR-SERVICE
+          predicates:
+            - Path=/hr/api/hr-insights
+            - Method=GET
+          filters:
+            - StripPrefix=1
         - id: hr-trainings
           uri: lb://HR-SERVICE
           predicates:

@@ -11,6 +11,7 @@ import java.io.IOException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Uses the same account/session validation as the internal endpoint. */
@@ -28,13 +29,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         SecurityContextHolder.clearContext();
         String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ") || header.indexOf('\r') >= 0 || header.indexOf('\n') >= 0) {
+        if (header == null || !header.startsWith("Bearer ") || header.substring(7).isBlank() || header.indexOf('\r') >= 0 || header.indexOf('\n') >= 0) {
             reject(request,response,401); return;
         }
         try {
             var user = validation.authenticatedUser(header.substring(7));
             var authorities = user.getRole().stream().map(r -> new SimpleGrantedAuthority("ROLE_" + r.getRoleType().name())).toList();
-            SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null, authorities));
+            var authentication = new UsernamePasswordAuthenticationToken(user, null, authorities);
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (InvalidCredentialsException ex) { reject(request,response,401); return;
         } catch (RuntimeException ex) { reject(request,response,503); return; }
         chain.doFilter(request,response);

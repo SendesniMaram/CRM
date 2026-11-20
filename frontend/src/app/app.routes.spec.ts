@@ -1,4 +1,5 @@
 import { Route } from '@angular/router';
+import { publicEntryGuard } from './core/guards/public-entry.guard';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { AccessDeniedComponent } from './features/access-denied/access-denied.component';
@@ -22,15 +23,17 @@ describe('application routes', () => {
     expect(privateShell?.children?.find(route => route.path === '')?.redirectTo).toBe('home');
   });
 
-  it('exposes login as a public route', () => {
+  it('allows guest login and redirects active sessions', () => {
     expect(loginRoute?.component).toBe(LoginComponent);
-    expect(loginRoute?.canActivate).toBeUndefined();
+    expect(loginRoute?.canActivate).toEqual([publicEntryGuard]);
   });
 
   it('exposes the public presentation separately from authenticated home', () => {
-    const presentation = routes.find(route => route.path === 'welcome');
-    expect(presentation?.loadComponent).toEqual(jasmine.any(Function));
-    expect(presentation?.canActivate).toBeUndefined();
+    for (const path of ['', 'welcome']) {
+      const presentation = routes.find(route => route.path === path && !route.children);
+      expect(presentation?.loadComponent).toEqual(jasmine.any(Function));
+      expect(presentation?.canActivate).toEqual([publicEntryGuard]);
+    }
     expect(privateShell?.children?.find(route => route.path === 'home')?.canActivate).toContain(authGuard);
   });
 

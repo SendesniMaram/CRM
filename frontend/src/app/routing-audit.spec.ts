@@ -80,10 +80,10 @@ describe('application routing audit with restored sessions', () => {
     }
   });
 
-  for (const path of ['/login', '/register']) {
-    it(`keeps ${path} public even with a valid session, matching the current configuration`, async () => {
+  for (const [path, expected] of [['/login', '/home'], ['/register', '/register']]) {
+    it(`routes an active session from ${path} to ${expected}`, async () => {
       storeTestSession(); const harness = await RouterTestingHarness.create(); await harness.navigateByUrl(path);
-      expect(TestBed.inject(Router).url).toBe(path);
+      expect(TestBed.inject(Router).url).toBe(expected);
       expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
     });
   }

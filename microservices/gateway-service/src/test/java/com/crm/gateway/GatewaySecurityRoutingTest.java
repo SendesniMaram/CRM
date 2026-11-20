@@ -35,6 +35,7 @@ class GatewaySecurityRoutingTest {
     private static final AtomicInteger hits = new AtomicInteger();
     private static final AtomicReference<String> bearer = new AtomicReference<>();
     private static final AtomicReference<String> downstreamPath = new AtomicReference<>();
+    private static final AtomicReference<String> downstreamQuery = new AtomicReference<>();
     private static final HttpServer BACKEND = backend();
     @LocalServerPort int port;
     @Autowired RouteDefinitionLocator definitions;
@@ -48,6 +49,7 @@ class GatewaySecurityRoutingTest {
                 bearer.set(request.getRequestHeaders().getFirst("Authorization"));
                 String path = request.getRequestURI().getPath();
                 downstreamPath.set(path);
+                downstreamQuery.set(request.getRequestURI().getRawQuery());
                 int status = path.contains("/status/") ? Integer.parseInt(path.substring(path.lastIndexOf('/') + 1)) : 200;
                 byte[] body = ("synthetic-" + status).getBytes(StandardCharsets.UTF_8);
                 request.getResponseHeaders().set("Content-Type", "text/plain");
@@ -61,7 +63,7 @@ class GatewaySecurityRoutingTest {
     }
 
     @BeforeEach void setup() {
-        hits.set(0); bearer.set(null); downstreamPath.set(null);
+        hits.set(0); bearer.set(null); downstreamPath.set(null); downstreamQuery.set(null);
         client = WebTestClient.bindToServer().baseUrl("http://127.0.0.1:" + port)
                 .responseTimeout(Duration.ofSeconds(8)).build();
     }
@@ -159,6 +161,7 @@ class GatewaySecurityRoutingTest {
             "/customer/api/opportunities,/api/opportunities",
             "/invoice/api/quotes,/api/quotes",
             "/hr/api/contracts,/api/contracts",
+            "/hr/api/hr-insights,/api/hr-insights",
             "/hr/api/evaluations/mine,/api/evaluations/mine",
             "/hr/api/job-offers,/api/job-offers",
             "/hr/api/applications,/api/applications",
@@ -174,6 +177,17 @@ class GatewaySecurityRoutingTest {
         assertThat(downstreamPath.get()).isEqualTo(expected);
         assertThat(bearer.get()).isEqualTo("Bearer original-user");
         assertThat(hits).hasValue(1);
+    }
+    @Test void hrInsightsPreservesPeriodAndDoesNotExposeAdjacentPathsOrWrites() {
+        client.get().uri("/hr/api/hr-insights?from=2026-01-01&to=2026-12-31")
+                .header("Authorization", "Bearer original-user").exchange().expectStatus().isOk();
+        assertThat(downstreamPath.get()).isEqualTo("/api/hr-insights");
+        assertThat(downstreamQuery.get()).isEqualTo("from=2026-01-01&to=2026-12-31");
+        assertThat(bearer.get()).isEqualTo("Bearer original-user");
+        int accepted = hits.get();
+        client.post().uri("/hr/api/hr-insights").exchange().expectStatus().is4xxClientError();
+        client.get().uri("/hr/api/hr-insights/internal").exchange().expectStatus().isNotFound();
+        assertThat(hits).hasValue(accepted);
     }
     @ParameterizedTest @ValueSource(strings = {"/employee/api/internal/employees/103/profile-summary",
             "/employee-service/api/internal/employees/103/profile-summary", "/employee-service/api%2Finternal/employees/103/profile-summary",

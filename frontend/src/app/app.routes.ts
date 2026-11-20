@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { publicEntryGuard } from './core/guards/public-entry.guard';
 import { AccessDeniedComponent } from './features/access-denied/access-denied.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { RegisterComponent } from './features/auth/register/register.component';
@@ -8,9 +9,11 @@ import { LayoutComponent } from './layout/components/layout/layout.component';
 import { NotFoundComponent } from './features/not-found/not-found.component';
 
 export const routes: Routes = [
-	{ path: 'welcome', title: 'CRM Workspace — Votre activité, en un regard',
+	{ path: '', pathMatch: 'full', canActivate: [publicEntryGuard], title: 'CRM Workspace — Votre activité, en un regard',
 		loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
-	{ path: 'login', component: LoginComponent },
+	{ path: 'welcome', canActivate: [publicEntryGuard], title: 'CRM Workspace — Votre activité, en un regard',
+		loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
+	{ path: 'login', canActivate: [publicEntryGuard], component: LoginComponent },
 	{ path: 'register', component: RegisterComponent },
     {path:'password',loadComponent:()=>import('./features/auth/password/password.component').then(m=>m.PasswordComponent)},
 	{ path: 'access-denied', component: AccessDeniedComponent },
