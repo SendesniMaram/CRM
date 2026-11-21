@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { Subscription, forkJoin, of, timeout } from 'rxjs';
+import { Subscription, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { CrmRole } from '../../core/models/role.model';
 import { ClientPayment,ClientService,ClientProfile,ClientInvoice,ClientInvoicePage,clientError } from './client.service';
@@ -27,12 +27,15 @@ export class ClientWorkspaceComponent {
  protected closeDetail(){if(this.busy())return;this.detail.set(null);this.payments.set(null);this.paymentError.set('');}
  private requests=new Subscription();private generation=-1;
  protected readonly profile=signal<ClientProfile|null>(null);protected readonly page=signal<ClientInvoicePage|null>(null);
- protected readonly detail=signal<ClientInvoice|null>(null);protected readonly error=signal('');protected readonly loading=signal(false);protected readonly busy=signal(false);
+ protected readonly detail=signal<ClientInvoice|null>(null);protected readonly error=signal('');protected readonly busy=signal(false);
+ protected readonly profileError=signal('');protected readonly invoiceError=signal('');
+ protected readonly profileLoading=signal(false);protected readonly invoiceLoading=signal(false);
+ protected readonly loading=computed(()=>this.profileLoading()||this.invoiceLoading());
  constructor(){
   effect(()=>{this.auth.getCurrentUser();const allowed=this.auth.hasAnyRole([CrmRole.CLIENT]);const g=this.auth.sessionGeneration;
    untracked(()=>{if(g!==this.generation || !allowed){
     this.requests.unsubscribe();this.requests=new Subscription();this.generation=g;
-    this.profile.set(null);this.page.set(null);this.detail.set(null);this.payments.set(null);this.paymentError.set('');this.query.set('');this.statusFilter.set('');this.error.set('');this.loading.set(false);this.busy.set(false);
+    this.profile.set(null);this.page.set(null);this.detail.set(null);this.payments.set(null);this.paymentError.set('');this.query.set('');this.statusFilter.set('');this.error.set('');this.profileError.set('');this.invoiceError.set('');this.profileLoading.set(false);this.invoiceLoading.set(false);this.busy.set(false);
     if(allowed)this.load(0);
    }});
   });this.destroy.onDestroy(()=>this.requests.unsubscribe());
@@ -40,10 +43,20 @@ export class ClientWorkspaceComponent {
  private current(g:number){return g===this.auth.sessionGeneration && !this.destroy.destroyed && this.auth.hasAnyRole([CrmRole.CLIENT]);}
  protected load(page:number){
   if(this.loading()||this.busy()||!Number.isSafeInteger(page)||page<0||!this.current(this.generation))return;const g=this.generation;
-  this.loading.set(true);this.error.set('');this.detail.set(null);this.payments.set(null);this.paymentError.set('');
-  this.requests.add(forkJoin({profile:this.profile()?of(this.profile()!):this.service.profile(),page:this.service.invoices(page)}).pipe(timeout(10000)).subscribe({
-   next:r=>{if(this.current(g)){this.profile.set(r.profile);this.page.set(r.page);this.query.set('');this.statusFilter.set('');this.loading.set(false);}},
-   error:e=>{if(this.current(g)){this.profile.set(null);this.page.set(null);this.error.set(clientError(e));this.loading.set(false);}}
+  this.error.set('');this.detail.set(null);this.payments.set(null);this.paymentError.set('');
+  this.page.set(null);this.invoiceError.set('');this.query.set('');this.statusFilter.set('');
+  // Each personal API checks ownership independently. A failed service must not erase the other section.
+  if(!this.profile()){
+   this.profileLoading.set(true);this.profileError.set('');
+   this.requests.add(this.service.profile().pipe(timeout(10000)).subscribe({
+    next:r=>{if(this.current(g)){this.profile.set(r);this.profileLoading.set(false);}},
+    error:e=>{if(this.current(g)){this.profile.set(null);this.profileError.set(clientError(e));this.profileLoading.set(false);}}
+   }));
+  }
+  this.invoiceLoading.set(true);
+  this.requests.add(this.service.invoices(page).pipe(timeout(10000)).subscribe({
+   next:r=>{if(this.current(g)){this.page.set(r);this.invoiceLoading.set(false);}},
+   error:e=>{if(this.current(g)){this.page.set(null);this.invoiceError.set(clientError(e));this.invoiceLoading.set(false);}}
   }));
  }
  protected open(id:string){

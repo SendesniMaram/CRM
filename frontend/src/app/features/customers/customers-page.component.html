@@ -1,21 +1,28 @@
 <section class="customer-page" aria-labelledby="customers-title">
   <header class="page-header">
-    <div><p class="eyebrow">Relation client</p><h1 id="customers-title">Contacts commerciaux</h1>
+    <div class="header-copy"><p class="eyebrow">Relation client</p><h1 id="customers-title">Contacts commerciaux</h1>
       <p class="subtitle">Retrouvez clients, prospects et fournisseurs, puis filtrez-les par catégorie et segment.</p></div>
     @if (canManage()) {
-      <div class="page-actions">
+      <div class="headline-actions">
         <a mat-stroked-button routerLink="/customers/requests">Demandes clients</a>
-        <a mat-flat-button routerLink="/customers/new"><mat-icon>person_add</mat-icon>Nouveau contact</a>
-        <button mat-stroked-button type="button" (click)="exportCsv()" [disabled]="exporting()">
-          @if (exporting()) { Export en cours… } @else { <mat-icon>download</mat-icon>Exporter CSV }
+        <a class="primary-action" mat-flat-button routerLink="/customers/new"><mat-icon aria-hidden="true">person_add</mat-icon>Nouveau contact</a>
+      </div>
+      <div class="page-actions">
+        <div class="action-group" role="group" aria-label="Exporter les contacts">
+        <button mat-stroked-button type="button" (click)="exportCsv()" [disabled]="exporting()" [attr.aria-busy]="exporting()">
+          <mat-icon aria-hidden="true">download</mat-icon>{{ exporting() ? 'Export en cours…' : 'Exporter CSV' }}
         </button>
         <button mat-stroked-button type="button" (click)="exportExcel()" [disabled]="exporting()">
-          <mat-icon>table_view</mat-icon>Exporter Excel
+          <mat-icon aria-hidden="true">table_view</mat-icon>Exporter Excel
         </button>
-        <button mat-stroked-button type="button" (click)="csvInput.click()" [disabled]="importing()">
-          @if (importing()) { Import en cours… } @else { <mat-icon>upload_file</mat-icon>Importer CSV }
+        </div>
+        <div class="action-group" role="group" aria-label="Importer des contacts">
+        <button mat-stroked-button type="button" (click)="csvInput.click()" [disabled]="importing()" [attr.aria-busy]="importing()">
+          <mat-icon aria-hidden="true">upload_file</mat-icon>{{ importing() ? 'Import en cours…' : 'Importer CSV' }}
         </button>
-        <button mat-stroked-button (click)="xlsxInput.click()" [disabled]="importing()">Importer XLSX</button><input #xlsxInput type="file" accept=".xlsx" hidden (change)="selectExcel($event)">
+        <button mat-stroked-button type="button" (click)="xlsxInput.click()" [disabled]="importing()"><mat-icon aria-hidden="true">upload_file</mat-icon>Importer XLSX</button>
+        </div>
+        <input #xlsxInput type="file" accept=".xlsx" hidden (change)="selectExcel($event)">
         <input #csvInput type="file" accept=".csv,text/csv" hidden (change)="importCsv($event)" />
       </div>
     }
@@ -31,18 +38,22 @@
   }
   <mat-card class="directory-card">
     <mat-card-content>
-      <form class="toolbar" (ngSubmit)="find()">
+      <form class="toolbar" (submit)="$event.preventDefault(); find()">
+        <div class="search-row">
         <mat-form-field appearance="outline" class="search-field">
           <mat-label>Rechercher un client</mat-label><mat-icon matPrefix>search</mat-icon>
           <input matInput [formControl]="search" placeholder="Nom, e-mail, société ou téléphone" />
         </mat-form-field>
         <button mat-stroked-button type="submit">Rechercher</button>
+        <button mat-icon-button type="button" (click)="load()" [disabled]="loading() || busy()" aria-label="Recharger les clients"><mat-icon>refresh</mat-icon></button>
+        </div>
+        <div class="filter-grid">
         <mat-form-field appearance="outline"><mat-label>Type</mat-label><mat-select [formControl]="contactType" (selectionChange)="find()"><mat-option value="">Tous</mat-option><mat-option value="LEAD">Prospects</mat-option><mat-option value="CUSTOMER">Clients</mat-option><mat-option value="SUPPLIER">Fournisseurs</mat-option></mat-select></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Catégorie</mat-label><input matInput [formControl]="category" /></mat-form-field>
         <mat-form-field appearance="outline"><mat-label>Segment</mat-label><input matInput [formControl]="segment" /></mat-form-field>
-        <mat-form-field><mat-label>Employé affecté (identifiant)</mat-label><input matInput [formControl]="assignedEmployeeId" maxlength="19"></mat-form-field>
-        <mat-form-field><mat-label>Statut</mat-label><mat-select [formControl]="status" (selectionChange)="find()"><mat-option value="">Tous</mat-option><mat-option value="ACTIVE">Actifs</mat-option><mat-option value="ARCHIVED">Archivés</mat-option></mat-select></mat-form-field>
-        <button mat-icon-button type="button" (click)="load()" [disabled]="loading() || busy()" aria-label="Recharger les clients"><mat-icon>refresh</mat-icon></button>
+        <mat-form-field appearance="outline"><mat-label>Employé affecté</mat-label><input matInput [formControl]="assignedEmployeeId" maxlength="19" inputmode="numeric"><mat-hint>Identifiant de l’employé</mat-hint></mat-form-field>
+        <mat-form-field appearance="outline"><mat-label>Statut</mat-label><mat-select [formControl]="status" (selectionChange)="find()"><mat-option value="">Tous</mat-option><mat-option value="ACTIVE">Actifs</mat-option><mat-option value="ARCHIVED">Archivés</mat-option></mat-select></mat-form-field>
+        </div>
       </form>
       @if (loading()) { <div class="state" role="status"><mat-spinner diameter="32" /><p>Chargement des clients…</p></div> }
       @if (error()) { <div class="state error" role="alert"><mat-icon>cloud_off</mat-icon><p>{{ error() }}</p><button mat-button (click)="load()">Réessayer</button></div> }

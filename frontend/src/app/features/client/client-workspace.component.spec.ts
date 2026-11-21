@@ -34,15 +34,45 @@ describe('ClientWorkspaceComponent',()=>{
   f.detectChanges();expect(f.nativeElement.textContent).toContain('Customer B');expect(f.nativeElement.textContent).not.toContain('Customer A');
  });
  for(const status of [401,403,404,502,503]){
-  it('displays HTTP '+status+' and clears stale data',()=>{
+  it('displays profile HTTP '+status+' without suppressing separately authorized invoices',()=>{
    service.profile.and.returnValue(throwError(()=>({status})));const f=create();
-   expect(f.nativeElement.querySelector('[role=alert]')).toBeTruthy();expect(f.componentInstance['profile']()).toBeNull();expect(f.componentInstance['page']()).toBeNull();
+   expect(f.nativeElement.querySelector('[role=alert]')).toBeTruthy();expect(f.componentInstance['profile']()).toBeNull();expect(f.componentInstance['page']()?.totalElements).toBe(1);
   });
  }
  it('shows loading and empty invoices separately',()=>{
   const pending=new Subject<ClientProfile>();service.profile.and.returnValue(pending);service.invoices.and.returnValue(of({content:[],totalElements:0,totalPages:0,number:0}));
   const f=create();expect(f.nativeElement.textContent).toContain('Chargement');
   pending.next({customerId:'101',name:'A',email:null,phone:null,company:null});pending.complete();f.detectChanges();expect(f.nativeElement.textContent).toContain('Aucune facture');
+ });
+ for(const status of [401,403,404,502,503]){
+  it('keeps the profile and scopes invoice HTTP '+status+' to billing',()=>{
+   service.invoices.and.returnValue(throwError(()=>({status})));const f=create();
+   expect(f.componentInstance['profile']()?.name).toBe('Customer A');expect(f.componentInstance['page']()).toBeNull();
+   expect(f.nativeElement.textContent).toContain('Customer A');expect(f.nativeElement.textContent).toContain('Facturation :');
+   expect(f.nativeElement.textContent).not.toContain('Aucune facture');expect(f.componentInstance['profileError']()).toBe('');
+  });
+ }
+ it('renders the profile before the billing service responds or times out',()=>{
+  jasmine.clock().install();try{
+   const pending=new Subject<any>();service.invoices.and.returnValue(pending);const f=create();
+   expect(f.nativeElement.textContent).toContain('Customer A');expect(f.componentInstance['invoiceLoading']()).toBeTrue();
+   jasmine.clock().tick(10001);f.detectChanges();expect(f.nativeElement.textContent).toContain('Customer A');
+   expect(f.componentInstance['loading']()).toBeFalse();expect(f.componentInstance['invoiceError']()).toContain('Erreur de communication');
+  }finally{jasmine.clock().uninstall();}
+ });
+ it('recovers billing after 503 without reloading the profile or showing stale invoices',()=>{
+  const f=create(),component=f.componentInstance as any;service.invoices.and.returnValue(throwError(()=>({status:503})));
+  component.load(0);f.detectChanges();expect(component.page()).toBeNull();expect(f.nativeElement.textContent).not.toContain('INV-A');
+  service.invoices.and.returnValue(of({content:[],totalElements:0,totalPages:0,number:0}));component.load(0);f.detectChanges();
+  expect(component.invoiceError()).toBe('');expect(f.nativeElement.textContent).toContain('Aucune facture');expect(service.profile).toHaveBeenCalledTimes(1);
+ });
+ it('cancels both independent pending APIs and clears section errors on logout',()=>{
+  const profile=new Subject<ClientProfile>(),invoices=new Subject<any>();service.profile.and.returnValue(profile);service.invoices.and.returnValue(invoices);
+  const f=create();expect(profile.observed).toBeTrue();expect(invoices.observed).toBeTrue();
+  generation++;allowed=false;user.set('B');f.detectChanges();expect(profile.observed).toBeFalse();expect(invoices.observed).toBeFalse();
+  profile.next({customerId:'101',name:'Late private profile',email:null,phone:null,company:null});invoices.next({content:[],totalElements:0,totalPages:0,number:0});f.detectChanges();
+  expect(f.componentInstance['profile']()).toBeNull();expect(f.componentInstance['page']()).toBeNull();expect(f.nativeElement.textContent).not.toContain('Late private profile');
+  expect(f.componentInstance['profileError']()).toBe('');expect(f.componentInstance['invoiceError']()).toBe('');
  });
  it('uses the personal detail API and blocks double detail submissions',()=>{
   const pending=new Subject<any>();service.detail.and.returnValue(pending);const f=create();

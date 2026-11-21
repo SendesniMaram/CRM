@@ -1,0 +1,23 @@
+<section class="company" aria-label="Informations de l’entreprise" [attr.aria-busy]="loading()">
+  <div class="company-heading">
+    <div>
+      <h2>Votre organisation</h2>
+      <p>Consultez le nom de votre entreprise, son message d’accueil et son contact de support.</p>
+    </div>
+    <button mat-stroked-button type="button" (click)="load()" [disabled]="loading()">
+      <mat-icon aria-hidden="true">{{ value() ? 'refresh' : 'business' }}</mat-icon>
+      {{ loading() ? 'Chargement…' : error() ? 'Réessayer' : value() ? 'Actualiser les informations' : 'Afficher les informations de l’entreprise' }}
+    </button>
+  </div>
+  @if (loading()) { <p class="status" role="status">Chargement des informations de l’entreprise…</p> }
+  @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+  <div aria-live="polite">
+    @if (value(); as company) {
+      <div class="company-details">
+        <h3>{{ company.companyName }}</h3>
+        @if (company.welcomeMessage) { <p>{{ company.welcomeMessage }}</p> }
+        @if (company.supportEmail) { <p class="support">Support : {{ company.supportEmail }}</p> }
+      </div>
+    }
+  </div>
+</section>

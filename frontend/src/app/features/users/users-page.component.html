@@ -7,7 +7,9 @@
       @if (loading()) { <p role="status">Chargement des comptes…</p> }
       @if (listError()) { <p role="alert">{{ listError() }}</p> }
       @if (!loading() && !listError() && users().length === 0) { <p>{{query() || roleFilter() || stateFilter() ? "Aucun compte ne correspond aux filtres." : "Aucun compte disponible."}}</p> }
-      <label><input type="checkbox" [checked]="confirmed" (change)="confirmed=$any($event.target).checked">Je confirme le prochain changement de rôle ou d’activation.</label>
+      <label><input type="checkbox" [checked]="confirmed" [disabled]="busy() || loading()" (change)="confirmed=$any($event.target).checked">Je confirme le prochain changement de rôle ou d’activation.</label>
+      <p id="account-change-help">Pour modifier un rôle ou l’activation d’un compte, cochez d’abord la confirmation ci-dessus. Elle est nécessaire pour chaque changement. Choisir un rôle dans la liste l’applique immédiatement.</p>
+      @if (error() && !selectedUser()) { <p role="alert" aria-label="Erreur de gestion du compte">{{ error() }}</p> }
       <div class="actions" aria-label="Filtres de l’annuaire">
         <mat-form-field><mat-label>Rechercher un compte</mat-label><input matInput #queryInput [value]="query()" (input)="filter(queryInput.value, roleFilter(), stateFilter())" maxlength="200"></mat-form-field>
         <mat-form-field><mat-label>Rôle du compte</mat-label><select matNativeControl #roleInput [value]="roleFilter()" (change)="filter(query(), roleInput.value, stateFilter())"><option value="">Tous les rôles</option>@for(role of roles; track role){<option [value]="role">{{role}}</option>}</select></mat-form-field>
@@ -22,8 +24,8 @@
           <td><button mat-button (click)="selectUser(user)" [attr.aria-label]="'Consulter le compte ' + user.username">{{ user.id }} — {{ user.username }}</button></td><td>{{ user.firstName }} {{ user.lastName }}</td>
           <td>{{ user.email }}</td><td>{{ user.roles.join(', ') || 'Aucun rôle' }}</td>
           <td>{{ user.enabled ? 'Activé' : 'Désactivé' }} @if($any(user).passwordChangeRequired){<span>Mot de passe initial à changer</span>} / {{ user.accountNonLocked ? 'Non verrouillé' : 'Verrouillé' }}</td>
-          <td class="actions">@if (canManageTarget(user)) { <button mat-button (click)="changeStatus(user)" [disabled]="busy() || loading()">{{ user.enabled ? 'Désactiver' : 'Réactiver' }}</button>
-            @if (selectableRoles().length > 1) { <select #roleChoice value="" aria-label="Remplacer les rôles" [disabled]="busy()" (change)="changeRole(user, $any(roleChoice.value)); roleChoice.value='' "><option value="" disabled>Remplacer les rôles…</option>@for(role of selectableRoles(); track role){<option [value]="role">{{role}}</option>}</select> }
+          <td class="actions">@if (canManageTarget(user)) { <button mat-button (click)="changeStatus(user)" [disabled]="busy() || loading() || !confirmed" aria-describedby="account-change-help">{{ user.enabled ? 'Désactiver' : 'Réactiver' }}</button>
+            @if (selectableRoles().length > 1) { <select #roleChoice value="" aria-label="Remplacer les rôles" aria-describedby="account-change-help" [disabled]="busy() || loading() || !confirmed" (change)="changeRole(user, $any(roleChoice.value)); roleChoice.value='' "><option value="" disabled>Choisir le nouveau rôle…</option>@for(role of selectableRoles(); track role){<option [value]="role">{{role}}</option>}</select> }
           } @else { <span>Action SUPER_ADMIN uniquement</span> }</td>
         </tr> }</tbody></table></div>
       }

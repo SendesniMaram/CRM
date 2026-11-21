@@ -36,7 +36,7 @@ function customerPaginator(): MatPaginatorIntl {
   imports: [RouterLink, ReactiveFormsModule, MatButtonModule, MatCardModule, MatFormFieldModule,
     MatIconModule, MatInputModule, MatPaginatorModule, MatProgressSpinnerModule, MatSelectModule, MatSortModule, MatTableModule],
   providers: [{ provide: MatPaginatorIntl, useFactory: customerPaginator }],
-  templateUrl: './customers-page.component.html', styleUrl: './customers.scss',
+  templateUrl: './customers-page.component.html', styleUrl: './customers-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CustomersPageComponent implements OnInit {

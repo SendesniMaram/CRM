@@ -21,6 +21,29 @@ describe('UsersPageComponent', () => {
       { provide: UserDirectoryService, useValue: service }, { provide: AuthService, useValue: { getCurrentUser: () => null, sessionGeneration: 0, hasAnyRole: (roles: CrmRole[]) => roles.includes(role) } }] });
   });
   function setup() { const fixture = TestBed.createComponent(UsersPageComponent); fixture.detectChanges(); return { fixture, page: fixture.componentInstance as any }; }
+  it('enables role selection only after confirmation and sends the chosen role once', () => {
+    role=CrmRole.SUPER_ADMIN;
+    const account={id:'88',username:'client-demo',firstName:'Test',lastName:'Client',email:'client@example.test',phone:null,enabled:true,accountNonLocked:true,roles:[CrmRole.CLIENT],roleType:CrmRole.CLIENT,createdAt:null};
+    service.list.and.returnValue(of([account]));
+    const {fixture,page}=setup();
+    const select=fixture.nativeElement.querySelector('select[aria-label="Remplacer les rôles"]') as HTMLSelectElement;
+    expect(select.disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#account-change-help').textContent).toContain('cochez d’abord');
+    expect(service.setRoles).not.toHaveBeenCalled();
+    fixture.nativeElement.querySelector('input[type="checkbox"]').click();fixture.detectChanges();
+    expect(select.disabled).toBeFalse();
+    select.value=CrmRole.ADMIN;select.dispatchEvent(new Event('change',{bubbles:true}));fixture.detectChanges();
+    expect(service.setRoles).toHaveBeenCalledOnceWith('88',[CrmRole.ADMIN]);
+    expect(page.confirmed).toBeFalse();expect(select.disabled).toBeTrue();
+  });
+  it('shows a refused role change next to the confirmation without requiring the account detail', () => {
+    role=CrmRole.SUPER_ADMIN;
+    service.setRoles.and.returnValue(throwError(()=>({status:403})));
+    const {fixture,page}=setup();page.confirmed=true;
+    page.changeRole({id:'88',username:'client-demo',roles:[CrmRole.CLIENT]},CrmRole.ADMIN);fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[aria-label="Erreur de gestion du compte"]').textContent).toContain('autorisations');
+    expect(page.selectedUser()).toBeNull();
+  });
   it('expires the current session immediately after changing its own roles', () => {
     role = CrmRole.SUPER_ADMIN;
     const auth = TestBed.inject(AuthService) as any;

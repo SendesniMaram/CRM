@@ -39,8 +39,7 @@
     <li><span>02</span><h3>Consultez votre espace</h3><p>Consultez ou gérez les informations selon les droits de votre compte.</p></li>
     <li><span>03</span><h3>{{ dashboard() ? 'Retrouvez votre tableau de bord' : 'Utilisez vos accès disponibles' }}</h3><p>{{ admin() ? 'Suivez les indicateurs de gestion issus des données enregistrées.' : leaves() ? 'Suivez vos demandes personnelles et leur état.' : 'Consultez les informations de session disponibles, sans données administratives.' }}</p></li>
   </ol></section>
+  <app-workspace-identity />
   <aside class="security"><mat-icon aria-hidden="true">shield</mat-icon><div><h2>Votre espace sécurisé</h2><p>Les accès aux fonctionnalités et aux données dépendent de votre rôle et des autorisations appliquées par les services.</p></div></aside>
   <footer><strong>CRM Workspace</strong><span>© {{ clock.now().getFullYear() }} · Plateforme de gestion</span></footer>
 </section>
-
-<app-workspace-identity />

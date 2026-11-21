@@ -72,4 +72,11 @@ describe('HomeComponent', () => {
   it('provides no Dashboard shortcut to an unrecognized role', () => {
     role.set(null);const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();expect(fixture.nativeElement.querySelector('.dashboard-link')).toBeNull();
   });
+  it('places the company information card inside the home before its footer', () => {
+    const fixture=TestBed.createComponent(HomeComponent);fixture.detectChanges();
+    const home=fixture.nativeElement.querySelector('.home') as HTMLElement;
+    const card=home.querySelector('app-workspace-identity')!;
+    expect(card).not.toBeNull();
+    expect(card.compareDocumentPosition(home.querySelector('footer')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

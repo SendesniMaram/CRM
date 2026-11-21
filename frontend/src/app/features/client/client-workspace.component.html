@@ -5,10 +5,18 @@
   @if(busy()){<p role="status">Ouverture du document…</p>}
   @if(error()){<p class="error" role="alert">{{error()}}</p>}
   <div class="overview">
+    @if(profileLoading() || profileError()){<mat-card><mat-card-content><h2>Mon profil</h2>
+      @if(profileLoading()){<p role="status">Chargement de votre profil…</p>}
+      @if(profileError()){<p class="error" role="alert">{{profileError()}}</p>}
+    </mat-card-content></mat-card>}
     @if(profile();as p){<mat-card><mat-card-content><h2>Mon profil</h2><dl>
       <dt>Nom</dt><dd>{{p.name}}</dd><dt>Société</dt><dd>{{p.company || 'Non renseignée'}}</dd>
       <dt>E-mail</dt><dd>{{p.email || 'Non renseigné'}}</dd><dt>Téléphone</dt><dd>{{p.phone || 'Non renseigné'}}</dd>
     </dl></mat-card-content></mat-card>}
+    @if(invoiceLoading() || invoiceError()){<mat-card><mat-card-content><h2>Mes factures</h2>
+      @if(invoiceLoading()){<p role="status">Chargement de vos factures…</p>}
+      @if(invoiceError()){<p class="error" role="alert">Facturation : {{invoiceError()}}</p>}
+    </mat-card-content></mat-card>}
     @if(page();as p){<mat-card><mat-card-content><h2>Mes factures</h2><p class="count">{{p.totalElements}}</p><p>Factures accessibles à votre compte.</p><p>Les montants et statuts détaillés figurent dans l’historique ci-dessous.</p></mat-card-content></mat-card>}
   </div>
   @if(page();as p){<mat-card><mat-card-content><h2>Historique de mes factures — {{p.totalElements}}</h2>
